@@ -1,11 +1,11 @@
-import os
 import json
 from openai import AsyncOpenAI
 from typing import Dict, Any, List, Optional
 from pydantic import BaseModel, Field
+from app.config import settings
 
 # Configure for DeepSeek
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_API_KEY = settings.DEEPSEEK_API_KEY
 
 client = AsyncOpenAI(
     api_key=DEEPSEEK_API_KEY,
@@ -60,6 +60,6 @@ async def generate_infographic_spec(document_text: str) -> Dict[str, Any]:
     result_json = response.choices[0].message.content
     
     # Strict validation: Parse and validate via Pydantic, then convert back to dict
-    validated_spec = InfographicSpec.parse_raw(result_json)
+    validated_spec = InfographicSpec.model_validate_json(result_json)
     
-    return validated_spec.dict()
+    return validated_spec.model_dump()

@@ -22,6 +22,19 @@ services:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
 
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://admin:password@db:5432/training_system
+      - QDRANT_HOST=qdrant
+    depends_on:
+      - db
+      - qdrant
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   qdrant_data:

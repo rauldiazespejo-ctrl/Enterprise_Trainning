@@ -4,6 +4,7 @@ import uuid
 import hashlib
 import os
 import asyncio
+from loguru import logger
 from app.database import SessionLocal, get_db
 from app.models.learning import Procedure, ProcedureVersion
 from app.services.websocket_manager import manager
@@ -18,7 +19,7 @@ async def upload_to_supabase_storage(file_path: str, bucket: str = "documents"):
     Mock: Uploads file to Supabase S3-compatible storage.
     In production, this replaces local file storage.
     """
-    print(f"Uploading {file_path} to Supabase bucket: {bucket}...")
+    logger.info(f"Uploading {file_path} to Supabase bucket: {bucket}...")
     await asyncio.sleep(1) # simulate network latency
     return f"https://supabase.co/storage/v1/object/public/{bucket}/{os.path.basename(file_path)}"
 
@@ -75,7 +76,7 @@ async def process_document_pipeline_free_tier(file_hash: str, procedure_id: uuid
 
 
 @router.post("/upload")
-async def upload_procedure_document(
+def upload_procedure_document(
     company_id: uuid.UUID,
     title: str,
     background_tasks: BackgroundTasks,
@@ -87,7 +88,7 @@ async def upload_procedure_document(
     if not file.filename.endswith((".pdf", ".docx", ".doc")):
         raise HTTPException(status_code=400, detail="Only PDF or Word documents are allowed")
 
-    content = await file.read()
+    content = file.file.read()
     file_hash = hashlib.sha256(content).hexdigest()
     
     # Check if a procedure with this title already exists for the company

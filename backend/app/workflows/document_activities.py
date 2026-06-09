@@ -3,6 +3,7 @@ import os
 import uuid
 import json
 import httpx
+from loguru import logger
 
 # Ensure we don't import database/LLM models at the top level of temporal activities 
 # if they cause side-effects, but here it's fine for simple functions.
@@ -66,5 +67,5 @@ async def broadcast_status_activity(workflow_id: str, status: str, step: str, me
             )
         return True
     except Exception as e:
-        print(f"Broadcast failed: {e}")
+        logger.error(f"Broadcast failed: {e}")
         return False

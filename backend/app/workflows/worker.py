@@ -1,5 +1,4 @@
 import asyncio
-import os
 from temporalio.client import Client
 from temporalio.worker import Worker
 
@@ -11,8 +10,10 @@ from app.workflows.document_activities import (
     update_database_status_activity,
     cleanup_temp_file_activity
 )
+from loguru import logger
+from app.config import settings
 
-TEMPORAL_HOST = os.getenv("TEMPORAL_HOST", "localhost:7233")
+TEMPORAL_HOST = settings.TEMPORAL_HOST
 
 async def main():
     # Connect to the Temporal cluster
@@ -31,7 +32,7 @@ async def main():
             cleanup_temp_file_activity
         ],
     )
-    print(f"Starting Temporal Worker on task queue 'document-processing-queue' connecting to {TEMPORAL_HOST}...")
+    logger.info(f"Starting Temporal Worker on task queue 'document-processing-queue' connecting to {TEMPORAL_HOST}...")
     await worker.run()
 
 if __name__ == "__main__":
