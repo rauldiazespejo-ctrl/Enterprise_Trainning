@@ -6,6 +6,12 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: Optional[str] = None
     TEMPORAL_HOST: str = "localhost:7233"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    QDRANT_URL: Optional[str] = None
+    QDRANT_API_KEY: Optional[str] = None
+
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 settings = Settings()

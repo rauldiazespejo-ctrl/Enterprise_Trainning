@@ -3,12 +3,16 @@ import uuid
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from typing import List, Dict, Any
-
-QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
-QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+from app.config import settings
 
 # Initialize Qdrant Client. FastEmbed model is loaded automatically on first use.
-client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+if settings.QDRANT_URL and settings.QDRANT_API_KEY:
+    client = QdrantClient(url=settings.QDRANT_URL, api_key=settings.QDRANT_API_KEY)
+else:
+    QDRANT_HOST = os.getenv("QDRANT_HOST", "localhost")
+    QDRANT_PORT = int(os.getenv("QDRANT_PORT", "6333"))
+    client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
+
 client.set_model("sentence-transformers/all-MiniLM-L6-v2")
 client.set_sparse_model("Qdrant/bm25")
 
