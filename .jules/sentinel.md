@@ -1,0 +1,4 @@
+## 2024-05-18 - Path Traversal in File Uploads
+**Vulnerability:** Found a Path Traversal vulnerability in the FastAPI `upload_procedure_document` endpoint (`backend/app/routers/documents.py`). The application was using the raw `file.filename` provided by the client to construct a local temporary file path: `os.path.join(temp_dir, f"{file_hash}_{file.filename}")`.
+**Learning:** Even though `os.path.join` is used, if `file.filename` contains sequences like `../../../`, `os.path.join` resolves it and can traverse outside the intended temporary directory, allowing an attacker to write files anywhere on the file system (e.g., overwriting `main.py`). `UploadFile.filename` from FastAPI is user input and cannot be trusted.
+**Prevention:** Always use `os.path.basename()` or a strictly secure slugify function on any client-provided filename before using it in any path concatenation or file system operations. Ensure filename is sanitized.
