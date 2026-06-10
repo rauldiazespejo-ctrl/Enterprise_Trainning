@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import procedures, documents, websockets, chat
+from app.routers import procedures, documents, websockets, chat, auth
 
 app = FastAPI(title="Training System API")
 
@@ -12,6 +12,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(procedures.router, prefix="/api/v1/procedures", tags=["Procedures"])
 app.include_router(documents.router, prefix="/api/v1/documents", tags=["Documents"])
 app.include_router(websockets.router, tags=["WebSockets"])

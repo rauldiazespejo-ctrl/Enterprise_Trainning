@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { UploadCloud, FileType, AlertCircle, Loader2 } from 'lucide-react';
 import { API_URL } from '../config';
 

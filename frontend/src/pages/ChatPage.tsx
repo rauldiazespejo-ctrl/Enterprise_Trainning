@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { Send, Bot, User, ShieldAlert, Loader2, FileText } from 'lucide-react';
 import { API_URL } from '../config';
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import axios from '../lib/axios';
 import { FileText, Loader2, RefreshCcw } from 'lucide-react';
 import { API_URL } from '../config';
 

@@ -3,12 +3,23 @@ import { MainLayout } from './layouts/MainLayout';
 import { UploadPage } from './pages/UploadPage';
 import { ProceduresPage } from './pages/ProceduresPage';
 import { ChatPage } from './pages/ChatPage';
+import { LoginPage } from './pages/LoginPage';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = localStorage.getItem('token');
+  if (!token) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+}
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<MainLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route path="/" element={<ProtectedRoute><MainLayout /></ProtectedRoute>}>
           <Route index element={<Navigate to="/procedures" replace />} />
           <Route path="procedures" element={<ProceduresPage />} />
           <Route path="upload" element={<UploadPage />} />

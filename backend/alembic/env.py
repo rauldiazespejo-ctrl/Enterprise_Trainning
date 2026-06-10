@@ -13,7 +13,10 @@ from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import our models and Base
-from app.models import Base
+from app.database import Base
+import app.models.core
+import app.models.learning
+from app.config import settings
 
 # Load environment variables
 load_dotenv()
@@ -23,7 +26,7 @@ load_dotenv()
 config = context.config
 
 # Overwrite the sqlalchemy.url from the env file
-database_url = os.getenv("DATABASE_URL", "postgresql://admin:password@localhost:5432/training_system")
+database_url = settings.DATABASE_URL
 config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.

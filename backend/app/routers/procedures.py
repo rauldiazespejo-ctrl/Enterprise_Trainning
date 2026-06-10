@@ -20,10 +20,13 @@ class ProcedureResponse(BaseModel):
     class Config:
         from_attributes = True
 
+from app.routers.auth import get_current_user
+from app.models.core import User
+
 @router.get("/", response_model=List[ProcedureResponse])
-def get_procedures(db: Session = Depends(get_db)):
-    # Fetch procedures and their latest version
-    procedures = db.query(Procedure).order_by(desc(Procedure.created_at)).all()
+def get_procedures(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    # Fetch procedures for the user's company
+    procedures = db.query(Procedure).filter_by(company_id=current_user.company_id).order_by(desc(Procedure.created_at)).all()
 
     result = []
     for proc in procedures:

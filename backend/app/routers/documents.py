@@ -77,15 +77,18 @@ async def process_document_pipeline_free_tier(file_hash: str, procedure_id: uuid
 
 from app.models.core import Company
 
+from app.routers.auth import get_current_user
+from app.models.core import User
+
 @router.post("/upload")
 def upload_procedure_document(
-    company_id: uuid.UUID,
     title: str,
     background_tasks: BackgroundTasks,
     doc_type: str = "internal",
     client_id: uuid.UUID = None,
     file: UploadFile = File(...),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
 ):
     if not file.filename.endswith((".pdf", ".docx", ".doc")):
         raise HTTPException(status_code=400, detail="Only PDF or Word documents are allowed")
@@ -93,19 +96,12 @@ def upload_procedure_document(
     content = file.file.read()
     file_hash = hashlib.sha256(content).hexdigest()
     
-    # Bypass/Ensure the company exists for the demo
-    company = db.query(Company).filter_by(id=company_id).first()
-    if not company:
-        company = Company(id=company_id, name="SoldesP Demo Company")
-        db.add(company)
-        db.commit()
-
     # Check if a procedure with this title already exists for the company
-    procedure = db.query(Procedure).filter_by(company_id=company_id, title=title).first()
+    procedure = db.query(Procedure).filter_by(company_id=current_user.company_id, title=title).first()
     
     if not procedure:
         procedure = Procedure(
-            company_id=company_id,
+            company_id=current_user.company_id,
             client_id=client_id,
             type=doc_type,
             title=title
