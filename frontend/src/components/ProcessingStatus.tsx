@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Loader2, CheckCircle2, XCircle, FileText, Bot, Database, Zap } from 'lucide-react';
+import { WS_URL } from '../config';
 
 interface ProcessingStatusProps {
   versionId: string;
@@ -18,7 +19,7 @@ export function ProcessingStatus({ versionId }: ProcessingStatusProps) {
   useEffect(() => {
     // Conectar al WebSocket
     const workflowId = `process-doc-${versionId}`;
-    const ws = new WebSocket(`ws://localhost:8000/ws/workflow/${workflowId}`);
+    const ws = new WebSocket(`${WS_URL}/ws/workflow/${workflowId}`);
 
     ws.onmessage = (event) => {
       try {

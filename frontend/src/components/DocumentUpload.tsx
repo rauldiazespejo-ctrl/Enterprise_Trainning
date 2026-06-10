@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import { UploadCloud, FileType, AlertCircle, Loader2 } from 'lucide-react';
+import { API_URL } from '../config';
 
 interface DocumentUploadProps {
   onUploadSuccess: (procedureId: string, versionId: string) => void;
@@ -44,11 +45,13 @@ export function DocumentUpload({ onUploadSuccess }: DocumentUploadProps) {
     const formData = new FormData();
     formData.append('file', file);
 
-    // Generar UUIDs aleatorios temporales para la demo (en un caso real, vienen del auth)
-    const companyId = crypto.randomUUID();
+    // Nota: El Backend espera que el companyId provenga de la DB (Postgres).
+    // Dejamos un valor que no va a cumplir con la llave foránea porque las migraciones y seed no están implementados,
+    // o simplemente omitimos el parámetro si lo quitamos del backend. Por ahora usar un UUID default o uno válido si existe DB local.
+    const companyId = '00000000-0000-0000-0000-000000000000'; // Placeholder - REQUIERE LOGIN/SEED
 
     try {
-      const response = await axios.post(`http://localhost:8000/api/v1/documents/upload?company_id=${companyId}&title=${encodeURIComponent(title)}&doc_type=${docType}`, formData, {
+      const response = await axios.post(`${API_URL}/api/v1/documents/upload?company_id=${companyId}&title=${encodeURIComponent(title)}&doc_type=${docType}`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

@@ -75,6 +75,8 @@ async def process_document_pipeline_free_tier(file_hash: str, procedure_id: uuid
             db.close()
 
 
+from app.models.core import Company
+
 @router.post("/upload")
 def upload_procedure_document(
     company_id: uuid.UUID,
@@ -91,6 +93,13 @@ def upload_procedure_document(
     content = file.file.read()
     file_hash = hashlib.sha256(content).hexdigest()
     
+    # Bypass/Ensure the company exists for the demo
+    company = db.query(Company).filter_by(id=company_id).first()
+    if not company:
+        company = Company(id=company_id, name="SoldesP Demo Company")
+        db.add(company)
+        db.commit()
+
     # Check if a procedure with this title already exists for the company
     procedure = db.query(Procedure).filter_by(company_id=company_id, title=title).first()
     
