@@ -1,0 +1,3 @@
+## 2024-06-10 - O(N²) String Concatenation in PDF Extraction
+**Learning:** Found a classic performance anti-pattern in `backend/app/services/pdf_extractor.py`: using `+=` for string concatenation inside a loop iterating over PDF pages. In Python, strings are immutable, so `+=` creates a new string object and copies the data every time, leading to O(N²) time complexity where N is the number of pages. For large PDFs, this becomes a severe bottleneck.
+**Action:** Always use a list to accumulate string chunks inside a loop and join them at the end using `"".join(chunks)`, which is optimized in C and runs in O(N) time.
