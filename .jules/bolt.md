@@ -1,0 +1,3 @@
+## 2024-05-24 - [Optimize PDF Extraction string concatenation and resource management]
+**Learning:** PyMuPDF extraction using naive string concatenation (`full_text +=`) triggers an O(n^2) scaling when building large text documents from multipage PDFs, dragging performance down significantly. Also, leaving a document implicitly unclosed causes memory and file-handle leaks.
+**Action:** When extracting large amounts of text across loops (like iterating pages in a PDF), always buffer blocks into a list and use `"".join(buffer)`. Ensure proper resource closure utilizing context managers (`with fitz.open(...) as doc:`).
