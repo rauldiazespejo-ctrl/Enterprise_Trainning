@@ -30,7 +30,8 @@ async def process_document_pipeline_free_tier(file_hash: str, procedure_id: uuid
     
     try:
         await manager.broadcast_status(workflow_id, "processing", "extraction", "Extracting text from PDF (Supabase/Local)...")
-        extracted_text = extract_text_from_pdf(file_path)
+        # BOLT OPTIMIZATION: Offload synchronous PDF extraction to a separate thread to prevent blocking the event loop
+        extracted_text = await asyncio.to_thread(extract_text_from_pdf, file_path)
         
         await manager.broadcast_status(workflow_id, "processing", "ai_analysis", "Analyzing content with DeepSeek AI...")
         spec = await generate_infographic_spec(extracted_text)
@@ -44,7 +45,8 @@ async def process_document_pipeline_free_tier(file_hash: str, procedure_id: uuid
                 "text": step.get("action", "")
             })
             
-        add_document_sections(sections)
+        # BOLT OPTIMIZATION: Offload synchronous Qdrant network operations to a separate thread
+        await asyncio.to_thread(add_document_sections, sections)
         
         # Update DB Status
         db = SessionLocal()
