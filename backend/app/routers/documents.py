@@ -121,7 +121,11 @@ async def upload_procedure_document(
     # Save the original file locally temporarily
     temp_dir = os.path.join(os.getcwd(), "tmp")
     os.makedirs(temp_dir, exist_ok=True)
-    temp_file_path = os.path.join(temp_dir, f"{file_hash}_{file.filename}")
+
+    # SECURITY FIX: Prevent path traversal by extracting the base filename
+    # replacing backslashes to handle Windows paths safely
+    secure_filename = os.path.basename(file.filename.replace("\\", "/"))
+    temp_file_path = os.path.join(temp_dir, f"{file_hash}_{secure_filename}")
     
     with open(temp_file_path, "wb") as f:
         f.write(content)
