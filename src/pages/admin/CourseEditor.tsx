@@ -14,8 +14,10 @@ import {
   Plus,
   X,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Upload
 } from 'lucide-react';
+import { storage } from '@/lib/supabase';
 
 // ─── Toast simple ────────────────────────────────────────────────────────────
 interface ToastState {
@@ -507,6 +509,41 @@ const CourseEditor: React.FC = () => {
                 rows={3}
                 className="input-modern w-full resize-y"
               />
+            </div>
+
+            <div className="sm:col-span-2 space-y-2">
+              <label className="block text-sm font-medium text-slate-300">Miniatura del Curso</label>
+              <div className="flex items-center gap-4">
+                {draft.thumbnail && (
+                  <img src={draft.thumbnail} alt="Thumbnail" className="w-24 h-24 object-cover rounded-lg border border-slate-700" />
+                )}
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    id="thumbnail-upload"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const path = `thumbnails/${Date.now()}_${file.name}`;
+                        const url = await storage.uploadFile('assets', path, file);
+                        updateField('thumbnail', url);
+                        showToast('Imagen subida correctamente');
+                      } catch (err) {
+                        console.error(err);
+                        showToast('Error al subir la imagen', 'error');
+                      }
+                    }}
+                  />
+                  <label htmlFor="thumbnail-upload" className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm font-medium rounded-lg transition-colors border border-slate-600">
+                    <Upload className="w-4 h-4" />
+                    Subir Imagen
+                  </label>
+                  <p className="text-xs text-slate-400 mt-2">Formatos recomendados: JPG, PNG. Tamaño máximo: 2MB.</p>
+                </div>
+              </div>
             </div>
             <Select
               label="Estado"
