@@ -116,10 +116,15 @@ const parseAIResponse = (content: string): Omit<AIGeneratedCourse, 'estimatedDur
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((s: any) => {
         const type: SlideType = VALID_SLIDE_TYPES.includes(s.type) ? s.type as SlideType : 'content';
+        let imageUrl = s.imageUrl ? String(s.imageUrl) : undefined;
+        if (type === 'image' && !imageUrl) {
+          imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(s.title)}`;
+        }
         return {
           title: String(s.title),
           content: String(s.content || ''),
           type,
+          imageUrl,
           keyPoints: Array.isArray(s.keyPoints) ? s.keyPoints.map(String) : undefined,
           scenario: s.scenario ? String(s.scenario) : undefined,
           outcome: s.outcome ? String(s.outcome) : undefined,

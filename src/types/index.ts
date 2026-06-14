@@ -155,6 +155,7 @@ export interface GeneratedSlide {
   title: string;
   content: string;
   type: 'content' | 'image' | 'summary' | 'concept' | 'example' | 'tip';
+  imageUrl?: string;
   keyPoints?: string[];
   scenario?: string;
   outcome?: string;
