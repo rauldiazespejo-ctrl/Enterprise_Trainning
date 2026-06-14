@@ -160,49 +160,133 @@ Deno.serve(async (request) => {
     const difficulty: string = typeof body.difficulty === 'string' ? body.difficulty : 'intermediate';
     const category: string = typeof body.category === 'string' ? body.category : 'general';
 
-    if (!healthcheck && (documentText.length < 200 || documentText.length > 90000)) {
+    if (!healthcheck && (documentText.length < 200 || documentText.length > 500000)) {
       return Response.json({ error: 'Documento inválido o fuera del límite permitido.' }, {
         status: 400,
         headers: corsHeaders,
       });
     }
 
-    const systemPrompt = buildSystemPrompt(numModules, difficulty, category);
+    if (healthcheck) {
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [{ role: 'user', content: 'Responde solo: OK' }],
+          temperature: 0,
+          max_tokens: 5,
+        }),
+      });
 
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'deepseek-chat',
-        messages: healthcheck
-          ? [{ role: 'user', content: 'Responde solo: OK' }]
-          : [
-              { role: 'system', content: systemPrompt },
-              {
-                role: 'user',
-                content: `Genera el curso con ${numModules} módulos y 5 diapositivas por módulo a partir de este documento:\n\n${documentText}`
-              },
-            ],
-        response_format: healthcheck ? undefined : { type: 'json_object' },
-        temperature: healthcheck ? 0 : 0.5,
-        max_tokens: healthcheck ? 5 : 16000,
-      }),
-    });
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        return Response.json(
+          { error: `El proveedor de IA respondió ${response.status}. ${errText}` },
+          { status: 502, headers: corsHeaders }
+        );
+      }
 
-    if (!response.ok) {
-      const errText = await response.text().catch(() => '');
-      return Response.json(
-        { error: `El proveedor de IA respondió ${response.status}. ${errText}` },
-        { status: 502, headers: corsHeaders }
-      );
+      const data = await response.json();
+      return Response.json({
+        content: data?.choices?.[0]?.message?.content ?? '',
+      }, { headers: corsHeaders });
     }
 
-    const data = await response.json();
+    const maxChunkLength = 40000;
+    const textChunks = [];
+    let currentChunk = '';
+    const lines = documentText.split('\n');
+    for (const line of lines) {
+      if (currentChunk.length + line.length + 1 > maxChunkLength && currentChunk.length > 0) {
+        textChunks.push(currentChunk);
+        currentChunk = '';
+      }
+      currentChunk += (currentChunk.length > 0 ? '\n' : '') + line;
+    }
+    if (currentChunk.length > 0) {
+      textChunks.push(currentChunk);
+    }
+
+    let allModules = [];
+    let courseTitle = '';
+    let courseDescription = '';
+    
+    let remainingModulesToGenerate = Math.max(numModules, textChunks.length);
+    const totalModules = remainingModulesToGenerate;
+
+    for (let i = 0; i < textChunks.length; i++) {
+      const chunk = textChunks[i];
+      const modulesForThisChunk = i === textChunks.length - 1 
+        ? remainingModulesToGenerate 
+        : Math.ceil(totalModules / textChunks.length);
+      
+      remainingModulesToGenerate -= modulesForThisChunk;
+
+      const startModuleIdx = totalModules - remainingModulesToGenerate - modulesForThisChunk + 1;
+      const endModuleIdx = totalModules - remainingModulesToGenerate;
+
+      const systemPrompt = buildSystemPrompt(modulesForThisChunk, difficulty, category);
+
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            {
+              role: 'user',
+              content: `Genera ${modulesForThisChunk} módulos (del módulo ${startModuleIdx} al ${endModuleIdx}) con 5 diapositivas por módulo a partir de este documento (Parte ${i + 1} de ${textChunks.length}):\n\n${chunk}`
+            },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.5,
+          max_tokens: 16000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        return Response.json(
+          { error: `El proveedor de IA respondió ${response.status} en la parte ${i + 1}. ${errText}` },
+          { status: 502, headers: corsHeaders }
+        );
+      }
+
+      const data = await response.json();
+      const contentText = data?.choices?.[0]?.message?.content ?? '{}';
+      
+      try {
+        const parsed = JSON.parse(contentText);
+        if (i === 0) {
+          courseTitle = parsed.title || 'Curso Generado';
+          courseDescription = parsed.description || 'Descripción del curso.';
+        }
+        if (parsed.modules && Array.isArray(parsed.modules)) {
+          allModules = allModules.concat(parsed.modules);
+        } else if (parsed.course && Array.isArray(parsed.course.modules)) {
+          allModules = allModules.concat(parsed.course.modules);
+        }
+      } catch (e) {
+        console.error("Error parsing JSON from DeepSeek for chunk", i, e);
+      }
+    }
+
+    const finalCourse = {
+      title: courseTitle,
+      description: courseDescription,
+      modules: allModules
+    };
+
     return Response.json({
-      content: data?.choices?.[0]?.message?.content ?? '',
+      content: JSON.stringify(finalCourse)
     }, { headers: corsHeaders });
   } catch (error) {
     return Response.json({
