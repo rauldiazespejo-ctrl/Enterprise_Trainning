@@ -81,7 +81,7 @@ BEGIN
   VALUES (
     gen_random_uuid(),
     'raul.diaz@soldesp.cl',
-    crypt('Soldesp2024!', gen_salt('bf')),
+    crypt('CAMBIAME_POR_FAVOR', gen_salt('bf')),
     now(),
     '{"provider":"email","providers":["email"]}',
     '{"name":"Raul Diaz Espejo","role":"super_admin"}',
