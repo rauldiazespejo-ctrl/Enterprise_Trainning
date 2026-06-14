@@ -44,12 +44,13 @@ REMOTE=$(git remote get-url origin 2>/dev/null || echo "")
 if [ -z "$REMOTE" ]; then
   echo "⚠️  No hay remote de GitHub configurado."
   echo ""
-  echo "Para conectar con GitHub, ejecuta estos comandos:"
+  echo "Configurando remote de GitHub..."
+  git remote add origin https://github.com/rauldiazespejo-ctrl/Enterprise_Trainning.git
+  echo "✅ Remote configurado."
   echo ""
-  echo "  git remote add origin https://github.com/TU_USUARIO/TU_REPOSITORIO.git"
-  echo "  git push -u origin main"
-  echo ""
-  echo "  (Reemplaza TU_USUARIO y TU_REPOSITORIO con los tuyos)"
+  echo "🚀 Pushing a GitHub..."
+  git push -u origin main
+  echo "✅ Push exitoso a GitHub."
 else
   echo "🚀 Pushing a GitHub ($REMOTE)..."
   git push -u origin main

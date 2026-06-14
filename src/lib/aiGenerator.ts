@@ -46,7 +46,7 @@ export const generateCourseWithAI = async (
   };
 };
 
-const VALID_SLIDE_TYPES = ['concept', 'example', 'tip', 'content', 'summary', 'image', 'video'] as const;
+const VALID_SLIDE_TYPES = ['concept', 'example', 'tip', 'content', 'summary', 'image'] as const;
 type SlideType = typeof VALID_SLIDE_TYPES[number];
 
 // Valida y normaliza el JSON devuelto por el modelo
