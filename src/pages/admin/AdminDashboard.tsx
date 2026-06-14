@@ -5,6 +5,7 @@ import MainLayout from '@/components/layout/MainLayout';
 import { Card, StatCard, Button, Badge, ProgressBar } from '@/components/ui/Card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
+import { db } from '@/lib/supabase';
 import {
   Users,
   BookOpen,
@@ -21,30 +22,33 @@ import {
 
 const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { courses, assignments, certificates } = useCourses();
+  const [stats, setStats] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  // Estadísticas
-  const totalEmployees = 25;
-  const activeCourses = courses.length;
-  const totalAssignments = assignments.length;
-  const completedAssignments = assignments.filter(a => a.status === 'completed').length;
-  const pendingAssignments = assignments.filter(a => a.status === 'pending').length;
-  const totalCertificates = certificates.length;
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchStats = async () => {
+      const { data } = await db.getStats();
+      if (mounted && data) {
+        setStats(data);
+        setLoading(false);
+      }
+    };
+    fetchStats();
+    return () => { mounted = false; };
+  }, []);
 
-  // Empleados recientes
-  const recentEmployees = [
-    { id: '1', name: 'María García', department: 'Ventas', progress: 75 },
-    { id: '2', name: 'Juan Pérez', department: 'Marketing', progress: 45 },
-    { id: '3', name: 'Ana Martínez', department: 'TI', progress: 90 },
-    { id: '4', name: 'Carlos López', department: 'RH', progress: 30 }
-  ];
+  if (loading || !stats) {
+    return (
+      <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        </div>
+      </MainLayout>
+    );
+  }
 
-  // Cursos recientes
-  const recentCourses = [
-    { id: '1', title: 'Fundamentos de Gestión Empresarial', enrolled: 15, completion: 60 },
-    { id: '2', title: 'Comunicación Efectiva', enrolled: 20, completion: 45 },
-    { id: '3', title: 'Liderazgo y Motivación', enrolled: 10, completion: 80 }
-  ];
+  const { totalEmployees, activeCourses, totalAssignments, totalCertificates, completionRate, recentEmployees, recentCourses, recentActivity } = stats;
 
   return (
     <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
@@ -73,7 +77,7 @@ const AdminDashboard: React.FC = () => {
           />
           <StatCard
             label="Tasa de Completación"
-            value={`${Math.round((completedAssignments / totalAssignments) * 100) || 0}%`}
+            value={`${completionRate}%`}
             icon={<TrendingUp className="w-6 h-6" />}
             trend={{ value: 5, positive: true }}
             variant="warning"
@@ -204,37 +208,23 @@ const AdminDashboard: React.FC = () => {
           </div>
         </Card>
 
-        {/* Recent Activity */}
+                {/* Recent Activity */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Actividad Reciente</h3>
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 glass rounded-xl">
-              <div className="p-2 bg-emerald-500/20 rounded-xl">
-                <CheckCircle className="w-4 h-4 text-emerald-400" />
+            {recentActivity && recentActivity.map((act: any) => (
+              <div key={act.id} className="flex items-center gap-3 p-3 glass rounded-xl">
+                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                  {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
+                  {act.icon === 'Award' && <Award className="w-4 h-4" />}
+                  {act.icon === 'Clock' && <Clock className="w-4 h-4" />}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">{act.user} {act.detail}</p>
+                  <p className="text-xs text-slate-400">{act.time}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">María García completó el curso de Gestión Empresarial</p>
-                <p className="text-xs text-slate-400">Hace 2 horas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 glass rounded-xl">
-              <div className="p-2 bg-indigo-500/20 rounded-xl">
-                <Award className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">Certificado emitido para Carlos López</p>
-                <p className="text-xs text-slate-400">Hace 5 horas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3 p-3 glass rounded-xl">
-              <div className="p-2 bg-amber-500/20 rounded-xl">
-                <Clock className="w-4 h-4 text-amber-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">Nueva asignación creada para Juan Pérez</p>
-                <p className="text-xs text-slate-400">Hace 1 día</p>
-              </div>
-            </div>
+            ))}
           </div>
         </Card>
       </div>
