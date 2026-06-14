@@ -4,8 +4,10 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Credenciales Supabase — proyecto Enterprise_Trainning (Soldesp S.A.)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vyumcxkjetzalvnebgqi.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ5dW1jeGtqZXR6YWx2bmViZ3FpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwMTI1MzcsImV4cCI6MjA5NjU4ODUzN30.3xwaIo56JaoVU4FxIAgPNn6nq1GgSSvxcpeWoIbtY8I';
+// 🛡️ Sentinel: Removed hardcoded Supabase secrets to prevent credential leakage.
+// Uses safe placeholders to prevent initialization crashes when env vars are missing.
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

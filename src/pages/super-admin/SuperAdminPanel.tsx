@@ -28,6 +28,7 @@ const SuperAdminPanel: React.FC = () => {
   useEffect(() => {
     if (!isSuperAdmin) { navigate('/admin'); return; }
     loadUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSuperAdmin]);
 
   const loadUsers = async () => {

@@ -68,14 +68,10 @@ const parseAIResponse = (content: string): Omit<AIGeneratedCourse, 'estimatedDur
     throw new Error('El curso generado por la IA está incompleto. Intenta de nuevo.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const modules: GeneratedModule[] = modulesRaw.map((m: any, idx: number) => {
     const mod = m as Record<string, unknown>;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const slides = (Array.isArray(mod.slides) ? mod.slides as any[] : [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((s: any) => s?.title && (s?.content || s?.keyPoints))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((s: any) => {
         const type: SlideType = VALID_SLIDE_TYPES.includes(s.type) ? s.type as SlideType : 'content';
         return {
@@ -89,13 +85,9 @@ const parseAIResponse = (content: string): Omit<AIGeneratedCourse, 'estimatedDur
         };
       });
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const quizRaw = mod.quiz as Record<string, any> | undefined;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const questions = (Array.isArray(quizRaw?.questions) ? quizRaw!.questions as any[] : [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((q: any) => q?.question && Array.isArray(q?.options) && q.options.length >= 2)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((q: any) => ({
         question: String(q.question),
         options: (q.options as unknown[]).slice(0, 4).map(String),
