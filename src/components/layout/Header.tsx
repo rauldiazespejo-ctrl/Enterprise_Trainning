@@ -18,6 +18,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
+            aria-label="Abrir menú"
             className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
           >
             <Menu className="w-6 h-6" />
@@ -34,13 +35,14 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
             <Search className="w-4 h-4 text-slate-500" />
             <input
               type="text"
+              aria-label="Buscar"
               placeholder="Buscar..."
               className="bg-transparent border-none outline-none text-sm w-48 text-slate-300 placeholder-slate-500"
             />
           </div>
 
           {/* Notifications */}
-          <button className="relative p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
+          <button aria-label="Notificaciones" className="relative p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors">
             <Bell className="w-5 h-5" />
             <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
           </button>
