@@ -1,0 +1,4 @@
+## 2025-02-28 - [CRITICAL] Prevent Hardcoded Secrets in External Client Initialization
+**Vulnerability:** Supabase (`supabase.ts`) was using hardcoded production secrets (`VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` defaults) directly in the source code as fallback values. If environment variables were missing, the application would silently fallback to these exposed production credentials.
+**Learning:** Default parameter fallbacks (`|| 'secret'`) in client initializers like `createClient` are a common pattern for "convenience" but introduce critical credential leaks. Removing them naively can crash the app if it expects a valid format (e.g. valid URL) on initialization.
+**Prevention:** Always use safe placeholder values (e.g., `'https://placeholder.supabase.co'` and `'placeholder-key'`) instead of real credentials as fallbacks. This satisfies format validation without exposing sensitive information.
