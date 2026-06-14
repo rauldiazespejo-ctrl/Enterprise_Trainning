@@ -185,8 +185,15 @@ export const db = {
     return { data, error };
   },
 
+  async getProgressByUser(userId: string) {
+    const { data, error } = await supabase.from('course_progress').select('*').eq('user_id', userId);
+    return { data, error };
+  },
+
   async saveProgress(progress: Record<string, unknown>) {
-    const { data, error } = await supabase.from('course_progress').upsert(progress).select();
+    const { data, error } = await supabase.from('course_progress')
+      .upsert(progress, { onConflict: 'user_id,course_id,module_id' })
+      .select();
     return { data, error };
   },
 

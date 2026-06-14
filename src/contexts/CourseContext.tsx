@@ -2,7 +2,8 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Course, Module, CourseAssignment, Certificate, CourseProgress } from '@/types';
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
-import { db } from '@/lib/supabase';
+import { db, supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
 // UUID de la organización KMC/Soldesp que existe en el seed de producción.
@@ -30,20 +31,20 @@ interface CourseContextType {
   setCurrentModule: (module: Module | null) => void;
 
   // Asignaciones
-  assignCourse: (courseId: string, userId: string, assignedBy: string, dueDate?: Date) => CourseAssignment;
+  assignCourse: (courseId: string, userId: string, assignedBy: string, dueDate?: Date) => Promise<CourseAssignment>;
   getUserAssignments: (userId: string) => CourseAssignment[];
   getAssignmentForCourse: (userId: string, courseId: string) => CourseAssignment | undefined;
-  updateAssignmentProgress: (assignmentId: string, progress: number, completed?: boolean) => void;
+  updateAssignmentProgress: (assignmentId: string, progress: number, completed?: boolean) => Promise<void>;
 
   // Certificados
-  issueCertificate: (courseId: string, userId: string, score: number) => Certificate;
+  issueCertificate: (courseId: string, userId: string, score: number) => Promise<Certificate>;
   getUserCertificates: (userId: string) => Certificate[];
   verifyCertificate: (code: string) => Certificate | undefined;
 
   // Progreso
-  saveModuleProgress: (userId: string, courseId: string, moduleId: string, completedSlides: string[]) => void;
+  saveModuleProgress: (userId: string, courseId: string, moduleId: string, completedSlides: string[]) => Promise<void>;
   getModuleProgress: (userId: string, courseId: string, moduleId: string) => CourseProgress | undefined;
-  saveQuizResult: (userId: string, courseId: string, moduleId: string, score: number, passed?: boolean) => void;
+  saveQuizResult: (userId: string, courseId: string, moduleId: string, score: number, passed?: boolean) => Promise<void>;
 }
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
@@ -88,6 +89,59 @@ function mapCourseToSupabase(
     difficulty: course.difficulty || null,
     modules_data: course.modules || [],
     updated_at: new Date().toISOString(),
+  };
+}
+
+function mapSupabaseToAssignment(row: Record<string, any>): CourseAssignment {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    userId: row.user_id,
+    assignedBy: row.assigned_by,
+    assignedAt: new Date(row.assigned_at),
+    dueDate: row.due_date ? new Date(row.due_date) : undefined,
+    status: row.status,
+    progress: row.progress,
+    startedAt: row.started_at ? new Date(row.started_at) : undefined,
+    completedAt: row.completed_at ? new Date(row.completed_at) : undefined
+  };
+}
+
+function mapAssignmentToSupabase(a: CourseAssignment): Record<string, any> {
+  return {
+    id: a.id,
+    course_id: a.courseId,
+    user_id: a.userId,
+    assigned_by: a.assignedBy,
+    assigned_at: a.assignedAt.toISOString(),
+    due_date: a.dueDate?.toISOString(),
+    status: a.status,
+    progress: a.progress,
+    started_at: a.startedAt?.toISOString(),
+    completed_at: a.completedAt?.toISOString()
+  };
+}
+
+function mapSupabaseToCertificate(row: Record<string, any>): Certificate {
+  return {
+    id: row.id,
+    courseId: row.course_id,
+    userId: row.user_id,
+    issuedAt: new Date(row.issued_at),
+    score: row.score,
+    completedAt: new Date(row.issued_at), // In schema issued_at acts as completed_at
+    verificationCode: row.verification_code
+  };
+}
+
+function mapCertificateToSupabase(c: Certificate): Record<string, any> {
+  return {
+    id: c.id,
+    course_id: c.courseId,
+    user_id: c.userId,
+    score: c.score,
+    issued_at: c.issuedAt.toISOString(),
+    verification_code: c.verificationCode
   };
 }
 
@@ -231,6 +285,7 @@ const demoCertificates: Certificate[] = [];
 // ---------------------------------------------------------------------------
 
 export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
   const [courses, setCourses] = useState<Course[]>(() => loadFromStorage(STORAGE_KEYS.courses, demoCourses));
   const [assignments, setAssignments] = useState<CourseAssignment[]>(() => loadFromStorage(STORAGE_KEYS.assignments, demoAssignments));
   const [certificates, setCertificates] = useState<Certificate[]>(() => loadFromStorage(STORAGE_KEYS.certificates, demoCertificates));
@@ -253,6 +308,47 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       }
     })();
   }, []);
+
+  // Carga de datos específicos del usuario (asignaciones, progreso, certificados)
+  useEffect(() => {
+    if (!user) return;
+
+    (async () => {
+      try {
+        // Cargar asignaciones
+        const { data: assignData } = await db.getAssignmentsByUser(user.id);
+        if (assignData && assignData.length > 0) {
+          setAssignments(assignData.map(mapSupabaseToAssignment));
+        }
+
+        // Cargar certificados
+        const { data: certData } = await db.getCertificateByUser(user.id);
+        if (certData && certData.length > 0) {
+          setCertificates(certData.map(mapSupabaseToCertificate));
+        }
+
+        // Cargar progreso de módulos
+        const { data: progData } = await db.getProgressByUser(user.id);
+        if (progData && progData.length > 0) {
+          const loadedProgress: Record<string, CourseProgress[]> = {};
+          progData.forEach((p: any) => {
+            const key = `${p.user_id}-${p.course_id}`;
+            if (!loadedProgress[key]) loadedProgress[key] = [];
+            loadedProgress[key].push({
+              moduleId: p.module_id,
+              completedSlides: p.completed_slides || [],
+              quizScore: p.quiz_score,
+              quizAttempts: p.quiz_attempts || 0,
+              completed: p.completed || false
+            });
+          });
+          setProgress(loadedProgress);
+        }
+      } catch (err) {
+        console.warn('[CourseContext] Error cargando datos del usuario desde Supabase', err);
+      }
+    })();
+  }, [user]);
 
   // Persistir en localStorage como cache / fallback offline
   useEffect(() => { saveToStorage(STORAGE_KEYS.courses, courses); }, [courses]);
@@ -369,10 +465,10 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   // ---------------------------------------------------------------------------
-  // Asignaciones (solo localStorage por ahora — FK requiere profiles reales)
+  // Asignaciones
   // ---------------------------------------------------------------------------
 
-  const assignCourse = (courseId: string, userId: string, assignedBy: string, dueDate?: Date): CourseAssignment => {
+  const assignCourse = async (courseId: string, userId: string, assignedBy: string, dueDate?: Date): Promise<CourseAssignment> => {
     const newAssignment: CourseAssignment = {
       id: uuidv4(),
       courseId,
@@ -384,7 +480,17 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       progress: 0
     };
 
+    // Actualización optimista
     setAssignments(prev => [newAssignment, ...prev]);
+
+    // Persistir
+    try {
+      const { error } = await db.createAssignment(mapAssignmentToSupabase(newAssignment));
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error asignando curso en Supabase', err);
+    }
+
     return newAssignment;
   };
 
@@ -396,7 +502,8 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return assignments.find(a => a.userId === userId && a.courseId === courseId);
   };
 
-  const updateAssignmentProgress = (assignmentId: string, progressValue: number, completed?: boolean): void => {
+  const updateAssignmentProgress = async (assignmentId: string, progressValue: number, completed?: boolean): Promise<void> => {
+    // Optimistic UI update
     setAssignments(prev =>
       prev.map(a =>
         a.id === assignmentId
@@ -410,13 +517,29 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
           : a
       )
     );
+
+    // Get the updated assignment to send to db
+    const assignment = assignments.find(a => a.id === assignmentId);
+    if (!assignment) return;
+    
+    try {
+      const { error } = await db.updateAssignment(assignmentId, {
+        progress: progressValue,
+        status: completed ? 'completed' : 'in_progress',
+        started_at: (assignment.startedAt || new Date()).toISOString(),
+        completed_at: completed ? new Date().toISOString() : null
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error actualizando progreso de asignación en Supabase', err);
+    }
   };
 
   // ---------------------------------------------------------------------------
   // Certificados
   // ---------------------------------------------------------------------------
 
-  const issueCertificate = (courseId: string, userId: string, score: number): Certificate => {
+  const issueCertificate = async (courseId: string, userId: string, score: number): Promise<Certificate> => {
     const certificate: Certificate = {
       id: uuidv4(),
       courseId,
@@ -428,6 +551,14 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     };
 
     setCertificates(prev => [...prev, certificate]);
+
+    try {
+      const { error } = await db.createCertificate(mapCertificateToSupabase(certificate));
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error creando certificado en Supabase', err);
+    }
+
     return certificate;
   };
 
@@ -444,15 +575,23 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   // Progreso
   // ---------------------------------------------------------------------------
 
-  const saveModuleProgress = (userId: string, courseId: string, moduleId: string, completedSlides: string[]): void => {
+  const saveModuleProgress = async (userId: string, courseId: string, moduleId: string, completedSlides: string[]): Promise<void> => {
     const key = `${userId}-${courseId}`;
 
+    let updatedSlides = completedSlides;
+    let isCompleted = false;
+    let quizScore = undefined;
+
+    // Optimistic UI update
     setProgress(prev => {
       const existing = prev[key] || [];
       const moduleProgress = existing.find(p => p.moduleId === moduleId);
 
       if (moduleProgress) {
         const merged = Array.from(new Set([...moduleProgress.completedSlides, ...completedSlides]));
+        updatedSlides = merged;
+        isCompleted = moduleProgress.completed;
+        quizScore = moduleProgress.quizScore;
         return {
           ...prev,
           [key]: existing.map(p => (p.moduleId === moduleId ? { ...p, completedSlides: merged } : p))
@@ -464,6 +603,22 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         [key]: [...existing, { moduleId, completedSlides, completed: false }]
       };
     });
+
+    // Supabase persist
+    try {
+      const { error } = await db.saveProgress({
+        user_id: userId,
+        course_id: courseId,
+        module_id: moduleId,
+        completed_slides: updatedSlides,
+        completed: isCompleted,
+        quiz_score: quizScore,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error guardando progreso de modulo en Supabase', err);
+    }
   };
 
   const getModuleProgress = (userId: string, courseId: string, moduleId: string): CourseProgress | undefined => {
@@ -471,24 +626,25 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return progress[key]?.find(p => p.moduleId === moduleId);
   };
 
-  const saveQuizResult = (userId: string, courseId: string, moduleId: string, score: number, passed?: boolean): void => {
+  const saveQuizResult = async (userId: string, courseId: string, moduleId: string, score: number, passed?: boolean): Promise<void> => {
     const key = `${userId}-${courseId}`;
 
+    let updatedSlides: string[] = [];
+    let attempts = 1;
+
+    // Optimistic update
     setProgress(prev => {
       const existing = prev[key] || [];
       const moduleProgress = existing.find(p => p.moduleId === moduleId);
 
       if (moduleProgress) {
+        updatedSlides = moduleProgress.completedSlides;
+        attempts = (moduleProgress.quizAttempts || 0) + 1;
         return {
           ...prev,
           [key]: existing.map(p =>
             p.moduleId === moduleId
-              ? {
-                  ...p,
-                  quizScore: Math.max(score, p.quizScore || 0),
-                  quizAttempts: (p.quizAttempts || 0) + 1,
-                  completed: p.completed || !!passed
-                }
+              ? { ...p, quizScore: Math.max(score, p.quizScore || 0), quizAttempts: attempts, completed: passed !== undefined ? passed : p.completed }
               : p
           )
         };
@@ -498,10 +654,27 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         ...prev,
         [key]: [
           ...existing,
-          { moduleId, completedSlides: [], quizScore: score, quizAttempts: 1, completed: !!passed }
+          { moduleId, completedSlides: [], quizScore: score, quizAttempts: attempts, completed: !!passed }
         ]
       };
     });
+
+    // Supabase persist
+    try {
+      const { error } = await db.saveProgress({
+        user_id: userId,
+        course_id: courseId,
+        module_id: moduleId,
+        completed_slides: updatedSlides,
+        completed: passed || false,
+        quiz_score: score,
+        quiz_attempts: attempts,
+        updated_at: new Date().toISOString()
+      });
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error guardando resultado de quiz en Supabase', err);
+    }
   };
 
   return (

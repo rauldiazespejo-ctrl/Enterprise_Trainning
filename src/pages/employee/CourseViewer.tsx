@@ -333,13 +333,13 @@ const CourseViewer: React.FC = () => {
     if (passed && currentModuleIndex < totalModules - 1) goToNextModule();
   };
 
-  const handleFinalEvalComplete = (scorePct: number) => {
+  const handleFinalEvalComplete = async (scorePct: number) => {
     setIsFinalEvalOpen(false);
     if (!user) return;
     const passing = course.passingScore || 70;
     if (scorePct >= passing) {
-      const cert = existingCertificate || issueCertificate(course.id, user.id, scorePct);
-      if (assignment) updateAssignmentProgress(assignment.id, 100, true);
+      const cert = existingCertificate || await issueCertificate(course.id, user.id, scorePct);
+      if (assignment) await updateAssignmentProgress(assignment.id, 100, true);
       setFinalEvalFailed(null);
       setCertificateToShow(cert);
     } else {
