@@ -11,26 +11,39 @@ import {
   Calendar,
   Filter,
   ArrowRight
-} from 'lucide-react';
+, CheckCircle, Clock } from 'lucide-react';
+
+import { db } from '@/lib/supabase';
 
 const Reports: React.FC = () => {
-  // Datos de ejemplo para gráficos
-  const completionData = [
-    { month: 'Ene', completed: 12, enrolled: 45 },
-    { month: 'Feb', completed: 18, enrolled: 52 },
-    { month: 'Mar', completed: 25, enrolled: 48 },
-    { month: 'Abr', completed: 22, enrolled: 55 },
-    { month: 'May', completed: 30, enrolled: 60 },
-    { month: 'Jun', completed: 28, enrolled: 58 }
-  ];
+  const [data, setData] = React.useState<any>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  const departmentData = [
-    { department: 'Ventas', courses: 15, employees: 8 },
-    { department: 'Marketing', courses: 12, employees: 6 },
-    { department: 'TI', courses: 20, employees: 10 },
-    { department: 'RH', courses: 8, employees: 4 },
-    { department: 'Finanzas', courses: 10, employees: 5 }
-  ];
+  React.useEffect(() => {
+    let mounted = true;
+    const fetchData = async () => {
+      const { data: reportData } = await db.getReportsData();
+      if (mounted && reportData) {
+        setData(reportData);
+        setLoading(false);
+      }
+    };
+    fetchData();
+    return () => { mounted = false; };
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <MainLayout title="Reportes" subtitle="Estadísticas y análisis de la plataforma" isAdmin>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+        </div>
+      </MainLayout>
+    );
+  }
+
+  const { completionData, departmentData, topPerformers, activeCourses, totalEmployees, totalCertificates, completionRate, recentActivity } = data;
+
 
   // Componente simple de gráfico de barras
   const SimpleBarChart = ({ data, dataKey, fill }: { data: any[]; dataKey: string; fill: string }) => (
@@ -106,7 +119,7 @@ const Reports: React.FC = () => {
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">25</p>
+                <p className="text-2xl font-bold text-white">{totalEmployees}</p>
                 <p className="text-sm text-slate-400">Empleados Activos</p>
               </div>
             </div>
@@ -117,7 +130,7 @@ const Reports: React.FC = () => {
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">135</p>
+                <p className="text-2xl font-bold text-white">{activeCourses}</p>
                 <p className="text-sm text-slate-400">Inscripciones Totales</p>
               </div>
             </div>
@@ -128,7 +141,7 @@ const Reports: React.FC = () => {
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">78%</p>
+                <p className="text-2xl font-bold text-white">{completionRate}%</p>
                 <p className="text-sm text-slate-400">Tasa de Completación</p>
               </div>
             </div>
@@ -139,7 +152,7 @@ const Reports: React.FC = () => {
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">42</p>
+                <p className="text-2xl font-bold text-white">{totalCertificates}</p>
                 <p className="text-sm text-slate-400">Certificados Emitidos</p>
               </div>
             </div>
@@ -185,49 +198,23 @@ const Reports: React.FC = () => {
                   <th className="px-4 py-3 text-left text-sm font-semibold text-slate-400 uppercase tracking-wider">Certificados</th>
                 </tr>
               </thead>
-              <tbody>
-                <tr className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 avatar">AM</div>
-                      <span className="font-medium text-white">Ana Martínez</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Tecnología</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">8</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-semibold">95%</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">6</td>
-                </tr>
-                <tr className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 avatar">JP</div>
-                      <span className="font-medium text-white">Juan Pérez</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Marketing</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">5</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-semibold">88%</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">4</td>
-                </tr>
-                <tr className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 avatar">MG</div>
-                      <span className="font-medium text-white">María García</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Ventas</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">3</td>
-                  <td className="px-4 py-3">
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-semibold">92%</span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-300">2</td>
-                </tr>
+              <tbody className="divide-y divide-slate-700/50">
+                {topPerformers.map((perf: any) => (
+                  <tr key={perf.id} className="hover:bg-slate-800/30 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 avatar">{perf.initials}</div>
+                        <span className="font-medium text-white">{perf.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-300">{perf.department}</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">{perf.courses}</td>
+                    <td className="px-4 py-3">
+                      <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 rounded-lg text-sm font-semibold">{perf.score}</span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-300">{perf.certs}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -236,34 +223,20 @@ const Reports: React.FC = () => {
         {/* Recent Activity */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Actividad Reciente</h3>
-          <div className="space-y-3">
-            <div className="flex items-center gap-4 p-3 glass rounded-xl">
-              <div className="p-2 bg-emerald-500/20 rounded-xl">
-                <Award className="w-4 h-4 text-emerald-400" />
+                    <div className="space-y-3">
+            {recentActivity && recentActivity.map((act: any) => (
+              <div key={act.id} className="flex items-center gap-4 p-3 glass rounded-xl">
+                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                  {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
+                  {act.icon === 'Award' && <Award className="w-4 h-4" />}
+                  {act.icon === 'Clock' && <TrendingUp className="w-4 h-4" />}
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white">{act.user} {act.detail}</p>
+                  <p className="text-xs text-slate-400">{act.time}</p>
+                </div>
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">María García completó "Fundamentos de Gestión"</p>
-                <p className="text-xs text-slate-400">Hace 2 horas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 glass rounded-xl">
-              <div className="p-2 bg-indigo-500/20 rounded-xl">
-                <BookOpen className="w-4 h-4 text-indigo-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">Juan Pérez se inscribió en "Excel Avanzado"</p>
-                <p className="text-xs text-slate-400">Hace 5 horas</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4 p-3 glass rounded-xl">
-              <div className="p-2 bg-purple-500/20 rounded-xl">
-                <TrendingUp className="w-4 h-4 text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">Ana Martínez obtuvo puntuación del 98% en quiz</p>
-                <p className="text-xs text-slate-400">Hace 1 día</p>
-              </div>
-            </div>
+            ))}
           </div>
         </Card>
       </div>
