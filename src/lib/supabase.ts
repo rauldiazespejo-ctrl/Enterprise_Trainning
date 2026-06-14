@@ -215,6 +215,22 @@ export const db = {
   async saveEvaluationResult(result: Record<string, unknown>) {
     const { data, error } = await supabase.from('evaluation_results').insert(result).select().single();
     return { data, error };
+  },
+
+  // Notificaciones
+  async getNotifications(userId: string) {
+    const { data, error } = await supabase.from('notifications')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  async markNotificationAsRead(id: string) {
+    const { data, error } = await supabase.from('notifications')
+      .update({ read: true })
+      .eq('id', id);
+    return { data, error };
   }
 };
 

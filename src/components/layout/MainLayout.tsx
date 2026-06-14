@@ -20,7 +20,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title, subtitle, isAd
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <Header title={title} subtitle={subtitle} />
+        <Header title={title} subtitle={subtitle} /> {/* Includes Bell Notification */}
         <main className="flex-1 p-6 overflow-auto bg-[var(--color-bg-primary)]">
           {children}
         </main>
