@@ -20,6 +20,7 @@ import {
   ListChecks,
   Menu,
   X,
+  Image as ImageIcon,
 } from 'lucide-react';
 
 // ─── Slide Components por tipo ────────────────────────────────────────────────
@@ -172,6 +173,35 @@ const ContentSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
   </div>
 );
 
+
+const ImageSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
+  <div className="h-full flex flex-col bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#020617] rounded-2xl border border-sky-500/20 p-8 overflow-y-auto">
+    <div className="flex items-center gap-3 mb-6">
+      <div className="p-2.5 bg-sky-500/20 border border-sky-500/30 rounded-xl">
+        <ImageIcon className="w-5 h-5 text-sky-400" />
+      </div>
+      <span className="text-xs text-sky-400 font-bold uppercase tracking-widest">Ilustración Visual</span>
+    </div>
+
+    <h2 className="text-2xl md:text-3xl font-bold text-white mb-5 leading-tight">{slide.title}</h2>
+    
+    {slide.imageUrl && (
+      <div className="flex-1 min-h-[200px] flex items-center justify-center mb-6 bg-black/30 rounded-xl border border-sky-500/10 overflow-hidden">
+        <img 
+          src={slide.imageUrl} 
+          alt={slide.title} 
+          className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
+          loading="lazy"
+        />
+      </div>
+    )}
+
+    {slide.content && (
+      <p className="text-gray-300 text-base md:text-lg leading-relaxed mt-auto">{slide.content}</p>
+    )}
+  </div>
+);
+
 // Dispatcher por tipo
 const SlideCard: React.FC<{ slide: Slide; animKey: string }> = ({ slide, animKey }) => {
   const inner = (() => {
@@ -180,6 +210,7 @@ const SlideCard: React.FC<{ slide: Slide; animKey: string }> = ({ slide, animKey
       case 'example': return <ExampleSlide slide={slide} />;
       case 'tip':     return <TipSlide slide={slide} />;
       case 'summary': return <SummarySlide slide={slide} />;
+      case 'image':   return <ImageSlide slide={slide} />;
       default:        return <ContentSlide slide={slide} />;
     }
   })();
@@ -354,6 +385,7 @@ const CourseViewer: React.FC = () => {
       case 'example': return 'bg-orange-500';
       case 'tip':     return 'bg-emerald-500';
       case 'summary': return 'bg-purple-500';
+      case 'image':   return 'bg-sky-500';
       default:        return 'bg-[#D15F3D]';
     }
   };
@@ -364,6 +396,7 @@ const CourseViewer: React.FC = () => {
       case 'example': return 'Ejemplo';
       case 'tip':     return 'Consejo';
       case 'summary': return 'Resumen';
+      case 'image':   return 'Imagen';
       default:        return 'Contenido';
     }
   };
