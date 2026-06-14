@@ -1,0 +1,7 @@
+project_id = "capacita-pro"
+
+[functions.generate-course]
+verify_jwt = true
+
+[functions.import-workers]
+verify_jwt = true

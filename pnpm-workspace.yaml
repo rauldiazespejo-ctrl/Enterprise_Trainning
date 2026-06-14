@@ -1,0 +1,10 @@
+allowBuilds:
+  esbuild: true
+overrides:
+  glob: 10.5.0
+  lodash: 4.17.24
+  minimatch: 9.0.7
+  picomatch: 2.3.2
+  postcss: 8.5.10
+  yaml: 2.8.3
+  uuid: 11.1.1
