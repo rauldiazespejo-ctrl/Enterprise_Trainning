@@ -182,14 +182,14 @@ const Login: React.FC = () => {
               <div className="flex items-center justify-between p-2 bg-[rgba(0,27,75,0.3)] rounded-lg">
                 <div>
                   <span className="text-[10px] text-[#D15F3D] font-semibold uppercase tracking-wider">Admin</span>
-                  <p className="text-xs text-[#D1D5DB]">admin@capacitapro.com</p>
+                  <p className="text-xs text-[#D1D5DB]">demo_admin@capacitapro.com</p>
                 </div>
                 <span className="text-xs text-[#9CA3AF] font-mono bg-[#1F2937] px-2 py-1 rounded">admin123</span>
               </div>
               <div className="flex items-center justify-between p-2 bg-[rgba(0,27,75,0.3)] rounded-lg">
                 <div>
                   <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Empleado</span>
-                  <p className="text-xs text-[#D1D5DB]">empleado@capacitapro.com</p>
+                  <p className="text-xs text-[#D1D5DB]">demo_empleado@capacitapro.com</p>
                 </div>
                 <span className="text-xs text-[#9CA3AF] font-mono bg-[#1F2937] px-2 py-1 rounded">empleado123</span>
               </div>
