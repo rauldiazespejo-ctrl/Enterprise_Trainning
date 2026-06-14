@@ -3,11 +3,26 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
 };
 
-const systemPrompt = `Eres un diseñador instruccional experto en capacitación corporativa.
+const buildSystemPrompt = (numModules: number, difficulty: string, category: string): string => {
+  const difficultyInstruction =
+    difficulty === 'beginner'
+      ? 'Usa lenguaje simple y accesible, sin jerga técnica. Explica todos los conceptos desde cero.'
+      : difficulty === 'advanced'
+      ? 'El contenido debe ser profundo y técnico. Asume que el participante ya tiene experiencia en el tema.'
+      : 'Asume que el participante tiene conocimiento básico del tema. Usa términos técnicos cuando sea necesario, pero explícalos.';
+
+  const categoryInstruction = category && category !== 'general'
+    ? `El curso pertenece a la categoría "${category}". Adapta los ejemplos, escenarios y vocabulario al contexto de esa área.`
+    : '';
+
+  return `Eres un diseñador instruccional experto en capacitación corporativa.
 Tu tarea es generar un curso e-learning COMPLETO y VISUALMENTE ATRACTIVO en español a partir del documento recibido.
 
+NIVEL DE DIFICULTAD: ${difficultyInstruction}
+${categoryInstruction ? `CONTEXTO SECTORIAL: ${categoryInstruction}` : ''}
+
 ESTRUCTURA OBLIGATORIA:
-- Exactamente 5 módulos temáticos que cubran el documento de forma progresiva
+- Exactamente ${numModules} módulos temáticos que cubran el documento de forma progresiva
 - Cada módulo tiene exactamente 5 diapositivas en este orden:
   1. type "concept"  → Explicación del concepto teórico principal
   2. type "example"  → Caso real de aplicación en el trabajo
@@ -117,7 +132,7 @@ ESQUEMA JSON EXACTO A DEVOLVER:
 
 REGLAS CRÍTICAS:
 1. El contenido debe estar 100% basado en el documento proporcionado. No inventes datos.
-2. Los 5 módulos deben cubrir el documento de forma lógica y progresiva (de lo básico a lo avanzado).
+2. Los ${numModules} módulos deben cubrir el documento de forma lógica y progresiva (de lo básico a lo avanzado).
 3. Los ejemplos (type "example") deben ser situaciones reales del contexto descrito en el documento.
 4. Los tips (type "tip") deben ser consejos prácticos, normas de seguridad o procedimientos clave.
 5. El campo "highlight" debe ser una frase corta, directa e impactante (no más de 20 palabras).
@@ -127,6 +142,7 @@ REGLAS CRÍTICAS:
 9. Varía los correctAnswer: no uses siempre el índice 0.
 10. Las preguntas del quiz deben ser variadas: 2 fáciles de comprensión, 2 de aplicación, 1 de análisis.
 11. Devuelve ÚNICAMENTE el JSON, sin texto introductorio, sin bloques de código markdown.`;
+};
 
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
@@ -140,13 +156,18 @@ Deno.serve(async (request) => {
     const body = await request.json();
     const documentText = typeof body.documentText === 'string' ? body.documentText.trim() : '';
     const healthcheck = body.healthcheck === true;
+    const numModules: number = typeof body.numModules === 'number' && body.numModules > 0 ? body.numModules : 5;
+    const difficulty: string = typeof body.difficulty === 'string' ? body.difficulty : 'intermediate';
+    const category: string = typeof body.category === 'string' ? body.category : 'general';
 
-    if (!healthcheck && (documentText.length < 200 || documentText.length > 60000)) {
+    if (!healthcheck && (documentText.length < 200 || documentText.length > 90000)) {
       return Response.json({ error: 'Documento inválido o fuera del límite permitido.' }, {
         status: 400,
         headers: corsHeaders,
       });
     }
+
+    const systemPrompt = buildSystemPrompt(numModules, difficulty, category);
 
     const response = await fetch('https://api.deepseek.com/chat/completions', {
       method: 'POST',
@@ -162,7 +183,7 @@ Deno.serve(async (request) => {
               { role: 'system', content: systemPrompt },
               {
                 role: 'user',
-                content: `Genera el curso completo con 5 módulos y 5 diapositivas por módulo a partir de este documento:\n\n${documentText}`
+                content: `Genera el curso con ${numModules} módulos y 5 diapositivas por módulo a partir de este documento:\n\n${documentText}`
               },
             ],
         response_format: healthcheck ? undefined : { type: 'json_object' },

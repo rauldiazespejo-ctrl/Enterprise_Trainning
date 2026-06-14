@@ -3,32 +3,69 @@ import { supabase } from '@/lib/supabase';
 
 // Límite de texto enviado a la API para no exceder el contexto del modelo
 const MAX_DOCUMENT_CHARS = 60000;
+const CHUNK_FIRST = 30000;
+const CHUNK_LAST = 20000;
+
+export interface CourseGenerationConfig {
+  numModules?: number;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  category?: string;
+}
 
 export interface AIGeneratedCourse {
   title: string;
   description: string;
   modules: GeneratedModule[];
   estimatedDuration: number;
+  wasTruncated?: boolean;
 }
 
 export const isAIConfigured = (): boolean =>
   Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
+/**
+ * Recorta documentos largos tomando el inicio y el final,
+ * preservando la introducción y las conclusiones.
+ */
+const smartTruncate = (text: string): { text: string; truncated: boolean } => {
+  if (text.length <= MAX_DOCUMENT_CHARS) {
+    return { text, truncated: false };
+  }
+  const first = text.slice(0, CHUNK_FIRST);
+  const last = text.slice(-CHUNK_LAST);
+  return {
+    text: `${first}\n\n[...fragmento central omitido por longitud...]\n\n${last}`,
+    truncated: true,
+  };
+};
+
 // Llama a DeepSeek y devuelve el curso generado
 export const generateCourseWithAI = async (
   documentText: string,
-  onStatus?: (status: string) => void
+  onStatus?: (status: string) => void,
+  config?: CourseGenerationConfig
 ): Promise<AIGeneratedCourse> => {
   if (!isAIConfigured()) {
     throw new Error('La generación con IA requiere configurar Supabase.');
   }
 
-  const text = documentText.slice(0, MAX_DOCUMENT_CHARS);
+  const { text, truncated } = smartTruncate(documentText);
+
+  if (truncated) {
+    onStatus?.(
+      'Documento extenso: usando los fragmentos más relevantes (inicio y final del documento)'
+    );
+  }
 
   onStatus?.('Analizando documento con DeepSeek AI...');
 
   const { data, error } = await supabase.functions.invoke('generate-course', {
-    body: { documentText: text }
+    body: {
+      documentText: text,
+      numModules: config?.numModules,
+      difficulty: config?.difficulty,
+      category: config?.category,
+    },
   });
   if (error) throw new Error(`No se pudo generar el curso: ${error.message}`);
 
@@ -42,7 +79,8 @@ export const generateCourseWithAI = async (
   const parsed = parseAIResponse(content);
   return {
     ...parsed,
-    estimatedDuration: parsed.modules.length * 15
+    estimatedDuration: (config?.numModules ?? parsed.modules.length) * 15,
+    wasTruncated: truncated,
   };
 };
 

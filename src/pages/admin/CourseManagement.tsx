@@ -1,6 +1,6 @@
 // Gestión de Cursos - Página del Administrador
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Input, Select, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -18,6 +18,7 @@ import {
 
 const CourseManagement: React.FC = () => {
   const { courses, deleteCourse } = useCourses();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -34,9 +35,9 @@ const CourseManagement: React.FC = () => {
     setShowDeleteModal(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (courseToDelete) {
-      deleteCourse(courseToDelete);
+      await deleteCourse(courseToDelete);
       setShowDeleteModal(false);
       setCourseToDelete(null);
     }
@@ -131,7 +132,7 @@ const CourseManagement: React.FC = () => {
                       Ver
                     </Button>
                   </Link>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" onClick={() => navigate(`/admin/courses/${course.id}/edit`)}>
                     <Edit className="w-4 h-4" />
                   </Button>
                   <Button

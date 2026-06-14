@@ -95,6 +95,21 @@ export const db = {
     return { error };
   },
 
+  async getCourseWithModules(id: string) {
+    const { data, error } = await supabase.from('courses').select('*').eq('id', id).single();
+    return { data, error };
+  },
+
+  async getCoursesWithModules() {
+    const { data, error } = await supabase.from('courses').select('*').order('created_at', { ascending: false });
+    return { data, error };
+  },
+
+  async upsertCourse(course: Record<string, unknown>) {
+    const { data, error } = await supabase.from('courses').upsert(course).select().single();
+    return { data, error };
+  },
+
   // Módulos
   async getModulesByCourse(courseId: string) {
     const { data, error } = await supabase.from('modules').select('*').eq('course_id', courseId).order('order');

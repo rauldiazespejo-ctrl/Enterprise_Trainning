@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Input, Select, ProgressBar } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
-import { generateCourseFromDocument, parseDocument } from '@/lib/documentParser';
+import { parseDocument } from '@/lib/documentParser';
 import { generateCourseWithAI, isAIConfigured } from '@/lib/aiGenerator';
 import {
   Upload,
@@ -30,6 +30,7 @@ const DocumentUpload: React.FC = () => {
   const [processingStatus, setProcessingStatus] = useState('');
   const [generatedCourse, setGeneratedCourse] = useState<any>(null);
   const [error, setError] = useState('');
+  const [isTruncated, setIsTruncated] = useState(false);
 
   // Estados del formulario
   const [courseConfig, setCourseConfig] = useState({
@@ -102,6 +103,7 @@ const DocumentUpload: React.FC = () => {
     setIsProcessing(true);
     setProcessingProgress(0);
     setError('');
+    setIsTruncated(false);
 
     try {
       setProcessingStatus('Extrayendo texto del documento...');
@@ -119,20 +121,28 @@ const DocumentUpload: React.FC = () => {
         setProcessingStatus('Generando curso con IA (DeepSeek)... esto puede tardar un minuto');
         setProcessingProgress(40);
         try {
-          generated = await generateCourseWithAI(text, (status) => setProcessingStatus(status));
+          generated = await generateCourseWithAI(
+            text,
+            (status) => setProcessingStatus(status),
+            {
+              numModules: courseConfig.numModules,
+              difficulty: courseConfig.difficulty as 'beginner' | 'intermediate' | 'advanced',
+              category: courseConfig.category,
+            }
+          );
+          if (generated.wasTruncated) {
+            setIsTruncated(true);
+          }
           setProcessingProgress(90);
         } catch (aiError) {
-          // Si la IA falla, avisar y usar el generador básico
-          console.error('Fallo la generación con IA, usando generador básico:', aiError);
-          setProcessingStatus('La IA no respondió; usando generador básico...');
-          setProcessingProgress(60);
-          generated = await generateCourseFromDocument(selectedFile);
-          setError(`Aviso: la generación con IA falló (${aiError instanceof Error ? aiError.message : 'error desconocido'}). Se usó el generador básico.`);
+          const msg = aiError instanceof Error ? aiError.message : 'Error desconocido';
+          throw new Error(`La IA no pudo generar el curso: ${msg}. Intenta de nuevo o verifica tu API key en Configuración.`);
         }
       } else {
-        setProcessingStatus('Generando módulos (sin IA: configura DeepSeek en Configuración)...');
-        setProcessingProgress(60);
-        generated = await generateCourseFromDocument(selectedFile);
+        throw new Error(
+          'Configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para generar cursos. ' +
+          'Puedes obtener una en platform.deepseek.com'
+        );
       }
 
       setProcessingStatus('Finalizando...');
@@ -148,10 +158,10 @@ const DocumentUpload: React.FC = () => {
     }
   };
 
-  const saveCourse = () => {
+  const saveCourse = async (status: 'draft' | 'published') => {
     if (!generatedCourse) return;
 
-    const course = createCourse({
+    await createCourse({
       title: courseConfig.title || generatedCourse.title,
       description: generatedCourse.description,
       modules: generatedCourse.modules.map((m: any, idx: number) => ({
@@ -192,7 +202,7 @@ const DocumentUpload: React.FC = () => {
       })),
       category: courseConfig.category,
       difficulty: courseConfig.difficulty as 'beginner' | 'intermediate' | 'advanced',
-      status: 'published',
+      status,
       passingScore: 70,
       estimatedDuration: generatedCourse.estimatedDuration
     });
@@ -220,7 +230,7 @@ const DocumentUpload: React.FC = () => {
           <Sparkles className="w-4 h-4 shrink-0" />
           {isAIConfigured()
             ? 'Generación con IA activa (DeepSeek): los cursos se crearán con contenido real del documento.'
-            : 'IA no configurada: se usará el generador básico. Configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para obtener cursos de calidad.'}
+            : 'IA no configurada: configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para poder generar cursos.'}
         </div>
 
         {/* Upload Area */}
@@ -348,6 +358,16 @@ const DocumentUpload: React.FC = () => {
           </Card>
         )}
 
+        {/* Truncation Warning Banner */}
+        {isTruncated && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-700">
+            <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+            <p className="text-sm">
+              El documento tiene más de 60.000 caracteres. Se procesaron el inicio y el final para capturar la introducción y las conclusiones.
+            </p>
+          </div>
+        )}
+
         {/* Generated Course Preview */}
         {generatedCourse && (
           <Card className="p-6">
@@ -392,9 +412,12 @@ const DocumentUpload: React.FC = () => {
               <Button variant="outline" onClick={() => setGeneratedCourse(null)}>
                 Regenerar
               </Button>
-              <Button onClick={saveCourse}>
+              <Button variant="outline" onClick={() => saveCourse('draft')}>
+                Guardar como Borrador
+              </Button>
+              <Button onClick={() => saveCourse('published')}>
                 <CheckCircle className="w-4 h-4" />
-                Guardar Curso
+                Publicar ahora
               </Button>
             </div>
           </Card>

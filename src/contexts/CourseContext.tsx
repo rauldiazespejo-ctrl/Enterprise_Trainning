@@ -2,7 +2,13 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Course, Module, CourseAssignment, Certificate, CourseProgress } from '@/types';
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
+import { db } from '@/lib/supabase';
 import { v4 as uuidv4 } from 'uuid';
+
+// UUID de la organización KMC/Soldesp que existe en el seed de producción.
+// Fallback cuando el usuario no tiene organización en la DB.
+const FALLBACK_ORG_ID = '00000000-0000-0000-0000-000000000001';
+const FALLBACK_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 interface CourseContextType {
   courses: Course[];
@@ -13,14 +19,14 @@ interface CourseContextType {
   progress: Record<string, CourseProgress[]>;
 
   // Cursos
-  createCourse: (course: Partial<Course>) => Course;
-  updateCourse: (id: string, updates: Partial<Course>) => void;
-  deleteCourse: (id: string) => void;
+  createCourse: (course: Partial<Course>) => Promise<Course>;
+  updateCourse: (id: string, updates: Partial<Course>) => Promise<void>;
+  deleteCourse: (id: string) => Promise<void>;
   getCourse: (id: string) => Course | undefined;
   setCurrentCourse: (course: Course | null) => void;
 
   // Módulos
-  addModule: (courseId: string, module: Partial<Module>) => Module;
+  addModule: (courseId: string, module: Partial<Module>) => Promise<Module>;
   setCurrentModule: (module: Module | null) => void;
 
   // Asignaciones
@@ -42,7 +48,52 @@ interface CourseContextType {
 
 const CourseContext = createContext<CourseContextType | undefined>(undefined);
 
-// Cursos de demostración
+// ---------------------------------------------------------------------------
+// Helpers de mapping Supabase <-> TypeScript
+// ---------------------------------------------------------------------------
+
+function mapSupabaseToCourse(row: Record<string, unknown>): Course {
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    description: row.description as string,
+    thumbnail: '',
+    createdBy: row.created_by as string,
+    createdAt: new Date(row.created_at as string),
+    updatedAt: new Date(row.updated_at as string),
+    status: row.status as 'draft' | 'published' | 'archived',
+    passingScore: row.passing_score as number,
+    estimatedDuration: row.estimated_duration as number,
+    category: row.category as string | undefined,
+    difficulty: row.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
+    modules: (row.modules_data as Module[]) || [],
+  };
+}
+
+function mapCourseToSupabase(
+  course: Partial<Course>,
+  organizationId?: string,
+  createdBy?: string
+): Record<string, unknown> {
+  return {
+    ...(course.id && { id: course.id }),
+    organization_id: organizationId || FALLBACK_ORG_ID,
+    created_by: createdBy || course.createdBy || FALLBACK_USER_ID,
+    title: course.title || 'Nuevo Curso',
+    description: course.description || '',
+    status: course.status || 'draft',
+    passing_score: course.passingScore ?? 70,
+    estimated_duration: course.estimatedDuration ?? 60,
+    category: course.category || null,
+    difficulty: course.difficulty || null,
+    modules_data: course.modules || [],
+    updated_at: new Date().toISOString(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Cursos de demostración (usados cuando Supabase no está disponible)
+// ---------------------------------------------------------------------------
 const demoCourses: Course[] = [
   {
     id: 'course-001',
@@ -175,6 +226,10 @@ const demoAssignments: CourseAssignment[] = [
 // Certificados de demostración
 const demoCertificates: Certificate[] = [];
 
+// ---------------------------------------------------------------------------
+// Provider
+// ---------------------------------------------------------------------------
+
 export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [courses, setCourses] = useState<Course[]>(() => loadFromStorage(STORAGE_KEYS.courses, demoCourses));
   const [assignments, setAssignments] = useState<CourseAssignment[]>(() => loadFromStorage(STORAGE_KEYS.assignments, demoAssignments));
@@ -183,64 +238,118 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [currentModule, setCurrentModule] = useState<Module | null>(null);
   const [progress, setProgress] = useState<Record<string, CourseProgress[]>>(() => loadFromStorage(STORAGE_KEYS.progress, {}));
 
-  // Persistir todo el estado ante cualquier cambio
+  // Carga inicial desde Supabase al montar el componente
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data, error } = await db.getCoursesWithModules();
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const mapped = (data as Record<string, unknown>[]).map(mapSupabaseToCourse);
+          setCourses(mapped);
+        }
+      } catch (err) {
+        console.warn('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
+      }
+    })();
+  }, []);
+
+  // Persistir en localStorage como cache / fallback offline
   useEffect(() => { saveToStorage(STORAGE_KEYS.courses, courses); }, [courses]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.assignments, assignments); }, [assignments]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.certificates, certificates); }, [certificates]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.progress, progress); }, [progress]);
 
-  // Crear curso
-  const createCourse = (courseData: Partial<Course>): Course => {
+  // ---------------------------------------------------------------------------
+  // Cursos
+  // ---------------------------------------------------------------------------
+
+  const createCourse = async (courseData: Partial<Course>): Promise<Course> => {
+    const newId = uuidv4();
     const newCourse: Course = {
-      id: uuidv4(),
+      id: newId,
       title: courseData.title || 'Nuevo Curso',
       description: courseData.description || '',
       thumbnail: courseData.thumbnail || '',
-      createdBy: courseData.createdBy || 'admin-001',
+      createdBy: courseData.createdBy || FALLBACK_USER_ID,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: courseData.status || 'draft',
-      passingScore: courseData.passingScore || 70,
-      estimatedDuration: courseData.estimatedDuration || 60,
+      passingScore: courseData.passingScore ?? 70,
+      estimatedDuration: courseData.estimatedDuration ?? 60,
       category: courseData.category,
       difficulty: courseData.difficulty || 'beginner',
       modules: courseData.modules || []
     };
 
+    // Intentar persistir en Supabase primero
+    try {
+      const row = mapCourseToSupabase(newCourse);
+      const { data, error } = await db.upsertCourse(row);
+      if (error) throw error;
+      if (data) {
+        // Usar el registro retornado por Supabase (puede tener timestamps del servidor)
+        const saved = mapSupabaseToCourse(data as Record<string, unknown>);
+        setCourses(prev => [saved, ...prev]);
+        return saved;
+      }
+    } catch (err) {
+      console.warn('[CourseContext] Error al crear curso en Supabase, guardando solo en localStorage.', err);
+    }
+
+    // Fallback: guardar solo en estado local (localStorage via useEffect)
     setCourses(prev => [newCourse, ...prev]);
     return newCourse;
   };
 
-  // Actualizar curso
-  const updateCourse = (id: string, updates: Partial<Course>): void => {
+  const updateCourse = async (id: string, updates: Partial<Course>): Promise<void> => {
+    // Actualizar estado local inmediatamente para UI responsiva
     setCourses(prev =>
       prev.map(course =>
-        course.id === id
-          ? { ...course, ...updates, updatedAt: new Date() }
-          : course
+        course.id === id ? { ...course, ...updates, updatedAt: new Date() } : course
       )
     );
 
     if (currentCourse?.id === id) {
-      setCurrentCourse(prev => prev ? { ...prev, ...updates } : null);
+      setCurrentCourse(prev => prev ? { ...prev, ...updates, updatedAt: new Date() } : null);
+    }
+
+    // Persistir en Supabase
+    try {
+      const existing = courses.find(c => c.id === id);
+      const merged = existing ? { ...existing, ...updates } : updates;
+      const row = mapCourseToSupabase({ ...merged, id });
+      // upsert usa el id para hacer update si ya existe
+      const { error } = await db.upsertCourse(row);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error al actualizar curso en Supabase.', err);
     }
   };
 
-  // Eliminar curso
-  const deleteCourse = (id: string): void => {
+  const deleteCourse = async (id: string): Promise<void> => {
     setCourses(prev => prev.filter(course => course.id !== id));
     if (currentCourse?.id === id) {
       setCurrentCourse(null);
     }
+
+    try {
+      const { error } = await db.deleteCourse(id);
+      if (error) throw error;
+    } catch (err) {
+      console.warn('[CourseContext] Error al eliminar curso en Supabase.', err);
+    }
   };
 
-  // Obtener curso
   const getCourse = (id: string): Course | undefined => {
     return courses.find(course => course.id === id);
   };
 
-  // Agregar módulo
-  const addModule = (courseId: string, moduleData: Partial<Module>): Module => {
+  // ---------------------------------------------------------------------------
+  // Módulos
+  // ---------------------------------------------------------------------------
+
+  const addModule = async (courseId: string, moduleData: Partial<Module>): Promise<Module> => {
     const newModule: Module = {
       id: uuidv4(),
       courseId,
@@ -252,14 +361,17 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       quiz: moduleData.quiz
     };
 
-    updateCourse(courseId, {
+    await updateCourse(courseId, {
       modules: [...(getCourse(courseId)?.modules || []), newModule]
     });
 
     return newModule;
   };
 
-  // Asignar curso
+  // ---------------------------------------------------------------------------
+  // Asignaciones (solo localStorage por ahora — FK requiere profiles reales)
+  // ---------------------------------------------------------------------------
+
   const assignCourse = (courseId: string, userId: string, assignedBy: string, dueDate?: Date): CourseAssignment => {
     const newAssignment: CourseAssignment = {
       id: uuidv4(),
@@ -276,17 +388,14 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return newAssignment;
   };
 
-  // Obtener asignaciones de usuario
   const getUserAssignments = (userId: string): CourseAssignment[] => {
     return assignments.filter(a => a.userId === userId);
   };
 
-  // Obtener la asignación de un usuario para un curso específico
   const getAssignmentForCourse = (userId: string, courseId: string): CourseAssignment | undefined => {
     return assignments.find(a => a.userId === userId && a.courseId === courseId);
   };
 
-  // Actualizar progreso de asignación
   const updateAssignmentProgress = (assignmentId: string, progressValue: number, completed?: boolean): void => {
     setAssignments(prev =>
       prev.map(a =>
@@ -303,7 +412,10 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     );
   };
 
-  // Emitir certificado
+  // ---------------------------------------------------------------------------
+  // Certificados
+  // ---------------------------------------------------------------------------
+
   const issueCertificate = (courseId: string, userId: string, score: number): Certificate => {
     const certificate: Certificate = {
       id: uuidv4(),
@@ -319,18 +431,19 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     return certificate;
   };
 
-  // Obtener certificados de usuario
   const getUserCertificates = (userId: string): Certificate[] => {
     return certificates.filter(c => c.userId === userId);
   };
 
-  // Verificar un certificado por su código
   const verifyCertificate = (code: string): Certificate | undefined => {
     const normalized = code.trim().toUpperCase();
     return certificates.find(c => c.verificationCode.toUpperCase() === normalized);
   };
 
-  // Guardar progreso de módulo
+  // ---------------------------------------------------------------------------
+  // Progreso
+  // ---------------------------------------------------------------------------
+
   const saveModuleProgress = (userId: string, courseId: string, moduleId: string, completedSlides: string[]): void => {
     const key = `${userId}-${courseId}`;
 
@@ -353,13 +466,11 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     });
   };
 
-  // Obtener progreso de módulo
   const getModuleProgress = (userId: string, courseId: string, moduleId: string): CourseProgress | undefined => {
     const key = `${userId}-${courseId}`;
     return progress[key]?.find(p => p.moduleId === moduleId);
   };
 
-  // Guardar resultado de quiz (crea la entrada del módulo si aún no existe)
   const saveQuizResult = (userId: string, courseId: string, moduleId: string, score: number, passed?: boolean): void => {
     const key = `${userId}-${courseId}`;
 

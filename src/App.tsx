@@ -10,6 +10,7 @@ import Login from '@/pages/auth/Login';
 // Páginas del Administrador
 import AdminDashboard from '@/pages/admin/AdminDashboard';
 import CourseManagement from '@/pages/admin/CourseManagement';
+import CourseEditor from '@/pages/admin/CourseEditor';
 import DocumentUpload from '@/pages/admin/DocumentUpload';
 import EmployeeManagement from '@/pages/admin/EmployeeManagement';
 import CertificateManagement from '@/pages/admin/CertificateManagement';
@@ -132,6 +133,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="admin">
             <SettingsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/courses/:courseId/edit"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <CourseEditor />
           </ProtectedRoute>
         }
       />
