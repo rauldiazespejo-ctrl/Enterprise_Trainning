@@ -15,133 +15,137 @@ const buildSystemPrompt = (numModules: number, difficulty: string, category: str
     ? `El curso pertenece a la categoría "${category}". Adapta los ejemplos, escenarios y vocabulario al contexto de esa área.`
     : '';
 
-  return `Eres un diseñador instruccional experto en capacitación corporativa.
-Tu tarea es generar un curso e-learning COMPLETO y VISUALMENTE ATRACTIVO en español a partir del documento recibido.
+  return `Eres un diseñador instruccional experto, inspirado en los principios de NotebookLM.
+Tu tarea es generar un curso e-learning PROFUNDO, ALTAMENTE CONVERSACIONAL, y VISUALMENTE ATRACTIVO en español a partir del documento recibido.
+No seas un simple resumidor: conecta los puntos, usa analogías poderosas y crea "momentos Aha!" para el estudiante.
 
 NIVEL DE DIFICULTAD: ${difficultyInstruction}
 ${categoryInstruction ? `CONTEXTO SECTORIAL: ${categoryInstruction}` : ''}
 
 ESTRUCTURA OBLIGATORIA:
-- Exactamente ${numModules} módulos temáticos que cubran el documento de forma progresiva
+- PROHIBIDO usar HTML. El contenido debe ser texto plano extremadamente conciso pero narrativo.
+- Diseña el contenido para una PRESENTACIÓN (PPT) y una INFOGRAFÍA. Usa viñetas cortas, frases de impacto (máximo 15 palabras) y pasos secuenciales.
+- Los módulos deben estar conectados como una historia.
+- Exactamente ${numModules} módulos temáticos que cubran el documento de forma progresiva.
 - Cada módulo tiene exactamente 5 diapositivas en este orden:
-  1. type "concept"  → Explicación del concepto teórico principal
-  2. type "example"  → Caso real de aplicación en el trabajo
-  3. type "tip"      → Consejo práctico, norma de seguridad o buena práctica
-  4. type "content"  → Profundización, procedimiento o ejercicio práctico
-  5. type "summary"  → Resumen visual de lo aprendido en el módulo
-- Cada módulo tiene exactamente 5 preguntas de quiz (10 puntos c/u)
+  1. type "concept"  → Explicación del concepto teórico principal usando una buena analogía.
+  2. type "example"  → Caso real de aplicación en el trabajo (altamente contextual).
+  3. type "tip"      → Consejo práctico, norma de seguridad o buena práctica.
+  4. type "content"  → Profundización, procedimiento o ejercicio práctico.
+  5. type "summary"  → Resumen visual de lo aprendido en el módulo.
+- Cada módulo tiene exactamente 5 preguntas de quiz (10 puntos c/u). Las preguntas DEBEN ser BASADAS EN ESCENARIOS REALES. Nada de "¿Qué es X?", sino "Estás en la situación Y y sucede Z. ¿Qué debes hacer?".
 
 ESQUEMA JSON EXACTO A DEVOLVER:
 {
-  "title": "Título del curso (conciso, profesional)",
-  "description": "Descripción del curso de 2 oraciones. Qué aprenderá el participante y por qué es importante.",
+  "title": "Título del curso (atrapante y profesional)",
+  "description": "Descripción del curso de 2 oraciones. Usa el estilo NotebookLM: atrae al usuario explicándole la 'gran imagen' y por qué esto cambiará su forma de trabajar.",
+  "studyGuide": {
+    "glossary": [
+      { "term": "Término 1", "definition": "Definición clara y conversacional." },
+      { "term": "Término 2", "definition": "Definición clara y conversacional." },
+      { "term": "Término 3", "definition": "Definición clara y conversacional." },
+      { "term": "Término 4", "definition": "Definición clara y conversacional." },
+      { "term": "Término 5", "definition": "Definición clara y conversacional." }
+    ],
+    "faq": [
+      { "question": "Pregunta frecuente que un novato haría", "answer": "Respuesta al estilo podcast: empática, directa y con una analogía." },
+      { "question": "Pregunta frecuente de nivel intermedio", "answer": "Respuesta clara y resolutiva." },
+      { "question": "Pregunta frecuente sobre un caso límite", "answer": "Respuesta detallada con consideraciones importantes." }
+    ]
+  },
   "modules": [
     {
       "title": "Título del Módulo 1",
-      "description": "Qué cubre este módulo en 1 oración.",
+      "description": "Qué cubre este módulo y cómo se conecta con la narrativa general.",
       "slides": [
         {
-          "title": "Título del concepto",
+          "title": "Título del concepto (máx 5 palabras)",
           "type": "concept",
-          "content": "Explicación teórica del concepto principal. Mínimo 3 oraciones. Explica el QUÉ y el POR QUÉ.",
+          "content": "Definición directa usando una analogía poderosa en máximo 2 oraciones cortas.",
+          "imageUrl": "https://image.pollinations.ai/prompt/mining%20safety%20helmet?width=800&height=400&nologo=true (EJEMPLO: prompt en INGLÉS)",
           "keyPoints": [
-            "Punto clave 1 (máx. 12 palabras)",
-            "Punto clave 2 (máx. 12 palabras)",
-            "Punto clave 3 (máx. 12 palabras)",
-            "Punto clave 4 (máx. 12 palabras)"
+            "Punto clave 1 (máx. 10 palabras)",
+            "Punto clave 2 (máx. 10 palabras)",
+            "Punto clave 3 (máx. 10 palabras)"
           ]
         },
         {
-          "title": "Título del ejemplo real",
+          "title": "Escenario en el Mundo Real",
           "type": "example",
-          "content": "Contexto breve: por qué este ejemplo es relevante (2 oraciones).",
-          "scenario": "Descripción concreta del escenario laboral: qué pasó, quién estuvo involucrado, cuál fue la situación.",
-          "outcome": "Resultado y lección aprendida: qué se hizo bien o mal, y qué debería hacerse en su lugar."
+          "content": "Contexto inicial de 1 oración.",
+          "imageUrl": "https://image.pollinations.ai/prompt/worker%20inspecting%20machinery?width=800&height=400&nologo=true",
+          "scenario": "Escenario: un problema complejo que requiere aplicar el concepto (máx 20 palabras).",
+          "outcome": "Resultado: cómo se resolvió usando el conocimiento (máx 20 palabras)."
         },
         {
-          "title": "Título del consejo",
+          "title": "Regla de Oro",
           "type": "tip",
-          "content": "Explicación del consejo, norma o buena práctica (2-3 oraciones). Incluye el contexto normativo si aplica.",
-          "highlight": "Frase clave corta e impactante (máx. 20 palabras) que resume el consejo principal."
+          "content": "Explicación directa de la regla o consejo (máx 15 palabras).",
+          "imageUrl": "https://image.pollinations.ai/prompt/warning%20sign%20industrial?width=800&height=400&nologo=true",
+          "highlight": "FRASE DE IMPACTO o LEMA (máx 10 palabras)."
         },
         {
-          "title": "Título de la profundización",
+          "title": "El Proceso",
           "type": "content",
-          "content": "Descripción detallada del procedimiento, metodología o aspectos avanzados. Mínimo 3 oraciones.",
+          "content": "Secuencia de pasos para dominar esta técnica.",
+          "imageUrl": "https://image.pollinations.ai/prompt/checklist%20clipboard%20engineer?width=800&height=400&nologo=true",
           "keyPoints": [
-            "Aspecto o paso importante 1",
-            "Aspecto o paso importante 2",
-            "Aspecto o paso importante 3"
+            "Paso 1: [Acción corta]",
+            "Paso 2: [Acción corta]",
+            "Paso 3: [Acción corta]"
           ]
         },
         {
-          "title": "Resumen: [nombre del módulo]",
+          "title": "Retén esto",
           "type": "summary",
-          "content": "Cierre motivador del módulo en 2 oraciones. Reafirma la importancia de lo aprendido.",
+          "content": "¡Módulo completado! Los 3 pilares que debes recordar:",
+          "imageUrl": "https://image.pollinations.ai/prompt/success%20achievement%20professional?width=800&height=400&nologo=true",
           "keyPoints": [
-            "Lo que aprendiste 1",
-            "Lo que aprendiste 2",
-            "Lo que aprendiste 3",
-            "Lo que aprendiste 4"
+            "Lección 1 (corta)",
+            "Lección 2 (corta)",
+            "Lección 3 (corta)"
           ]
         }
       ],
       "quiz": {
-        "title": "Quiz: [nombre del módulo]",
+        "title": "Quiz de Escenarios: [nombre del módulo]",
         "questions": [
           {
-            "question": "Pregunta 1 clara y directa sobre el contenido del módulo",
+            "question": "Escenario: [Describe una situación]. ¿Cuál es la mejor decisión a tomar?",
             "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
             "correctAnswer": 0,
-            "explanation": "Explicación de por qué esta es la respuesta correcta y por qué las otras no lo son.",
-            "points": 10
-          },
-          {
-            "question": "Pregunta 2",
-            "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
-            "correctAnswer": 1,
-            "explanation": "...",
-            "points": 10
-          },
-          {
-            "question": "Pregunta 3",
-            "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
-            "correctAnswer": 2,
-            "explanation": "...",
-            "points": 10
-          },
-          {
-            "question": "Pregunta 4",
-            "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
-            "correctAnswer": 0,
-            "explanation": "...",
-            "points": 10
-          },
-          {
-            "question": "Pregunta 5 (más desafiante, sobre aplicación práctica)",
-            "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
-            "correctAnswer": 3,
-            "explanation": "...",
+            "explanation": "El por qué profundo de esta respuesta, destruyendo los mitos de por qué las otras son incorrectas.",
             "points": 10
           }
+          // (Generar 5 preguntas en total para el quiz)
         ]
       }
     }
-  ]
+  ],
+  "finalEvaluation": {
+    "title": "Evaluación Final: Reto Práctico",
+    "passingScore": 70,
+    "questions": [
+      {
+        "question": "Escenario Crítico: [Un problema que combina conocimiento de varios módulos]. ¿Cómo lo resuelves?",
+        "options": ["Opción A", "Opción B", "Opción C", "Opción D"],
+        "correctAnswer": 2,
+        "explanation": "Explicación magistral.",
+        "points": 10
+      }
+      // Generar entre 10 y 15 preguntas altamente desafiantes basadas en escenarios
+    ]
+  }
 }
 
 REGLAS CRÍTICAS:
-1. El contenido debe estar 100% basado en el documento proporcionado. No inventes datos.
-2. Los ${numModules} módulos deben cubrir el documento de forma lógica y progresiva (de lo básico a lo avanzado).
-3. Los ejemplos (type "example") deben ser situaciones reales del contexto descrito en el documento.
-4. Los tips (type "tip") deben ser consejos prácticos, normas de seguridad o procedimientos clave.
-5. El campo "highlight" debe ser una frase corta, directa e impactante (no más de 20 palabras).
-6. Los "keyPoints" deben ser frases cortas y accionables (máx. 12 palabras cada una).
-7. Cada pregunta del quiz debe tener EXACTAMENTE 4 opciones.
-8. "correctAnswer" es el índice (0, 1, 2 o 3) de la opción correcta.
-9. Varía los correctAnswer: no uses siempre el índice 0.
-10. Las preguntas del quiz deben ser variadas: 2 fáciles de comprensión, 2 de aplicación, 1 de análisis.
-11. Devuelve ÚNICAMENTE el JSON, sin texto introductorio, sin bloques de código markdown.`;
+1. El contenido debe estar 100% basado en el documento proporcionado.
+2. Los módulos deben tener una NARRATIVA CONTINUA.
+3. Las pruebas DEBEN SER ESCENARIOS REALES. No evalúes definiciones, evalúa toma de decisiones.
+4. "imageUrl": SIEMPRE usar "https://image.pollinations.ai/prompt/[descripcion_en_ingles_sin_espacios]?width=800&height=400&nologo=true".
+5. Cada pregunta debe tener EXACTAMENTE 4 opciones.
+6. Varía los correctAnswer.
+7. Devuelve ÚNICAMENTE el JSON válido, sin markdown ni texto extra.`;
 };
 
 Deno.serve(async (request) => {

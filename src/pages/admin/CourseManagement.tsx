@@ -126,7 +126,7 @@ const CourseManagement: React.FC = () => {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
-                  <Link to={`/admin/courses/${course.id}`} className="flex-1">
+                  <Link to={`/admin/courses/${course.id}/edit`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full">
                       <Eye className="w-4 h-4" />
                       Ver

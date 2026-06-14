@@ -23,6 +23,8 @@ const DocumentUpload: React.FC = () => {
   const { createCourse } = useCourses();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [activeTab, setActiveTab] = useState<'file' | 'url'>('file');
+  const [importUrl, setImportUrl] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -97,28 +99,21 @@ const DocumentUpload: React.FC = () => {
     }
   };
 
-  const processDocument = async () => {
-    if (!selectedFile) return;
-
+  const processContent = async (text: string) => {
     setIsProcessing(true);
     setProcessingProgress(0);
     setError('');
     setIsTruncated(false);
 
     try {
-      setProcessingStatus('Extrayendo texto del documento...');
-      setProcessingProgress(15);
-      const text = await parseDocument(selectedFile);
-
       if (text.length < 200) {
-        throw new Error('El documento no contiene suficiente texto para generar un curso.');
+        throw new Error('El contenido no tiene suficiente texto para generar un curso.');
       }
 
       let generated;
 
       if (isAIConfigured()) {
-        // Generación real con IA (DeepSeek)
-        setProcessingStatus('Generando curso con IA (DeepSeek)... esto puede tardar un minuto');
+        setProcessingStatus('Generando curso con IA (DeepSeek)... esto puede tardar un par de minutos');
         setProcessingProgress(40);
         try {
           generated = await generateCourseWithAI(
@@ -140,8 +135,7 @@ const DocumentUpload: React.FC = () => {
         }
       } else {
         throw new Error(
-          'Configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para generar cursos. ' +
-          'Puedes obtener una en platform.deepseek.com'
+          'Configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para generar cursos.'
         );
       }
 
@@ -151,10 +145,41 @@ const DocumentUpload: React.FC = () => {
       setGeneratedCourse(generated);
       setCourseConfig(prev => ({ ...prev, title: generated.title || prev.title }));
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Error al procesar el documento. Por favor intenta de nuevo.');
+      setError(err instanceof Error ? err.message : 'Error al procesar el contenido.');
       console.error(err);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const processDocument = async () => {
+    if (!selectedFile) return;
+    setProcessingStatus('Extrayendo texto del documento...');
+    setProcessingProgress(15);
+    try {
+      const text = await parseDocument(selectedFile);
+      await processContent(text);
+    } catch (err) {
+      setError('Error extrayendo texto del documento.');
+    }
+  };
+
+  const processUrl = async () => {
+    if (!importUrl) return;
+    setIsProcessing(true);
+    setProcessingProgress(10);
+    setError('');
+    setProcessingStatus('Scrapeando URL...');
+    try {
+      const { supabase } = await import('@/lib/supabase');
+      const { data, error } = await supabase.functions.invoke('scrape-url', {
+        body: { url: importUrl }
+      });
+      if (error || !data?.success) throw new Error(error?.message || data?.error || 'Error al obtener URL');
+      await processContent(data.text);
+    } catch (err) {
+      setIsProcessing(false);
+      setError(err instanceof Error ? err.message : 'Error al extraer texto de la URL.');
     }
   };
 
@@ -178,6 +203,7 @@ const DocumentUpload: React.FC = () => {
           content: s.content,
           order: sIdx + 1,
           type: s.type,
+          imageUrl: s.imageUrl,
           keyPoints: s.keyPoints,
           scenario: s.scenario,
           outcome: s.outcome,
@@ -204,7 +230,24 @@ const DocumentUpload: React.FC = () => {
       difficulty: courseConfig.difficulty as 'beginner' | 'intermediate' | 'advanced',
       status,
       passingScore: 70,
-      estimatedDuration: generatedCourse.estimatedDuration
+      estimatedDuration: generatedCourse.estimatedDuration,
+      finalEvaluation: generatedCourse.finalEvaluation ? {
+        id: `final-eval-${Date.now()}`,
+        moduleId: '',
+        title: generatedCourse.finalEvaluation.title || 'Evaluación Final',
+        passingScore: generatedCourse.finalEvaluation.passingScore || 70,
+        timeLimit: 30,
+        questions: generatedCourse.finalEvaluation.questions.map((q: any, qIdx: number) => ({
+          id: `q-final-${Date.now()}-${qIdx}`,
+          quizId: '',
+          question: q.question,
+          options: q.options,
+          correctAnswer: q.correctAnswer,
+          explanation: q.explanation,
+          points: q.points
+        }))
+      } : undefined,
+      studyGuide: generatedCourse.studyGuide
     });
 
     navigate('/admin/courses');
@@ -233,61 +276,100 @@ const DocumentUpload: React.FC = () => {
             : 'IA no configurada: configura tu API key de DeepSeek en Configuración → Inteligencia Artificial para poder generar cursos.'}
         </div>
 
+        {/* Tabs */}
+        <div className="flex border-b border-slate-700 mb-6">
+          <button
+            onClick={() => setActiveTab('file')}
+            className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'file'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Subir Documento
+          </button>
+          <button
+            onClick={() => setActiveTab('url')}
+            className={`py-3 px-6 text-sm font-medium border-b-2 transition-colors ${
+              activeTab === 'url'
+                ? 'border-blue-500 text-blue-400'
+                : 'border-transparent text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            Importar desde Enlace
+          </button>
+        </div>
+
         {/* Upload Area */}
         <Card className="p-6">
-          {!selectedFile ? (
-            <div
-              className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
-                isDragging
-                  ? 'border-blue-500 bg-blue-50'
-                  : 'border-slate-300 hover:border-blue-400'
-              }`}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
-              <div className="flex flex-col items-center">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                  <Upload className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">
-                  Arrastra tu documento aquí
-                </h3>
-                <p className="text-slate-500 mb-4">
-                  o haz clic para seleccionar un archivo
-                </p>
-                <p className="text-xs text-slate-400 mb-4">
-                  Formatos aceptados: PDF, TXT, DOC, DOCX
-                </p>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept=".pdf,.txt,.doc,.docx"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                />
-                <Button onClick={() => fileInputRef.current?.click()}>
-                  Seleccionar Archivo
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
-              <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <FileText className="w-6 h-6 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-slate-900">{selectedFile.name}</p>
-                <p className="text-sm text-slate-500">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
-              </div>
-              <button
-                onClick={removeFile}
-                className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+          {activeTab === 'file' ? (
+            !selectedFile ? (
+              <div
+                className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors ${
+                  isDragging
+                    ? 'border-blue-500 bg-blue-50'
+                    : 'border-slate-300 hover:border-blue-400'
+                }`}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
               >
-                <X className="w-5 h-5" />
-              </button>
+                <div className="flex flex-col items-center">
+                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                    <Upload className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-900 mb-2">
+                    Arrastra tu documento aquí
+                  </h3>
+                  <p className="text-slate-500 mb-4">
+                    o haz clic para seleccionar un archivo
+                  </p>
+                  <p className="text-xs text-slate-400 mb-4">
+                    Formatos aceptados: PDF, TXT, DOC, DOCX
+                  </p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.txt,.doc,.docx"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                  <Button onClick={() => fileInputRef.current?.click()}>
+                    Seleccionar Archivo
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-lg">
+                <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <FileText className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-medium text-slate-900">{selectedFile.name}</p>
+                  <p className="text-sm text-slate-500">
+                    {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                  </p>
+                </div>
+                <button
+                  onClick={removeFile}
+                  className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            )
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-slate-900">Importar desde Enlace Web</h3>
+              <p className="text-sm text-slate-500">Pega la URL de un artículo, manual web o página pública. La IA extraerá su contenido para crear el curso.</p>
+              <Input
+                value={importUrl}
+                onChange={(e) => {
+                  setImportUrl(e.target.value);
+                  setError('');
+                }}
+                placeholder="https://ejemplo.com/articulo-interesante"
+              />
             </div>
           )}
 
@@ -300,7 +382,7 @@ const DocumentUpload: React.FC = () => {
         </Card>
 
         {/* Course Configuration */}
-        {selectedFile && !generatedCourse && (
+        {((activeTab === 'file' && selectedFile) || (activeTab === 'url' && importUrl)) && !generatedCourse && (
           <Card className="p-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Configuración del Curso</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -325,10 +407,10 @@ const DocumentUpload: React.FC = () => {
             </div>
 
             <div className="mt-6 flex justify-end gap-4">
-              <Button variant="outline" onClick={removeFile}>
+              <Button variant="outline" onClick={activeTab === 'file' ? removeFile : () => setImportUrl('')}>
                 Cancelar
               </Button>
-              <Button onClick={processDocument} disabled={isProcessing}>
+              <Button onClick={activeTab === 'file' ? processDocument : processUrl} disabled={isProcessing}>
                 {isProcessing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -363,7 +445,7 @@ const DocumentUpload: React.FC = () => {
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3 text-amber-700">
             <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
             <p className="text-sm">
-              El documento tiene más de 60.000 caracteres. Se procesaron el inicio y el final para capturar la introducción y las conclusiones.
+              El documento tiene más de 500.000 caracteres. Se procesaron el inicio y el final para capturar la introducción y las conclusiones.
             </p>
           </div>
         )}

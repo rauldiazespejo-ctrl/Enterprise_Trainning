@@ -54,6 +54,11 @@ const CourseContext = createContext<CourseContextType | undefined>(undefined);
 // ---------------------------------------------------------------------------
 
 function mapSupabaseToCourse(row: Record<string, unknown>): Course {
+  const rawModules = (row.modules_data as any[]) || [];
+  const realModules = rawModules.filter(m => !m.isFinalEvaluation && !m.isStudyGuide);
+  const finalEvalModule = rawModules.find(m => m.isFinalEvaluation);
+  const studyGuideModule = rawModules.find(m => m.isStudyGuide);
+
   return {
     id: row.id as string,
     title: row.title as string,
@@ -67,7 +72,9 @@ function mapSupabaseToCourse(row: Record<string, unknown>): Course {
     estimatedDuration: row.estimated_duration as number,
     category: row.category as string | undefined,
     difficulty: row.difficulty as 'beginner' | 'intermediate' | 'advanced' | undefined,
-    modules: (row.modules_data as Module[]) || [],
+    modules: realModules as Module[],
+    finalEvaluation: finalEvalModule ? finalEvalModule.quiz : undefined,
+    studyGuide: studyGuideModule ? studyGuideModule.studyGuide : undefined,
   };
 }
 
@@ -76,6 +83,35 @@ function mapCourseToSupabase(
   organizationId?: string,
   createdBy?: string
 ): Record<string, unknown> {
+  const modulesData = [...(course.modules || [])] as any[];
+  if (course.finalEvaluation) {
+    modulesData.push({
+      id: 'final-evaluation',
+      courseId: course.id || '',
+      title: 'Evaluación Final',
+      description: 'Evaluación Final',
+      order: 9999,
+      slides: [],
+      quiz: course.finalEvaluation,
+      estimatedDuration: 10,
+      isFinalEvaluation: true
+    });
+  }
+  
+  if (course.studyGuide) {
+    modulesData.push({
+      id: 'study-guide',
+      courseId: course.id || '',
+      title: 'Guía de Estudio',
+      description: 'Guía de Estudio',
+      order: 10000,
+      slides: [],
+      studyGuide: course.studyGuide,
+      estimatedDuration: 0,
+      isStudyGuide: true
+    });
+  }
+
   return {
     ...(course.id && { id: course.id }),
     organization_id: organizationId || FALLBACK_ORG_ID,
@@ -87,7 +123,7 @@ function mapCourseToSupabase(
     estimated_duration: course.estimatedDuration ?? 60,
     category: course.category || null,
     difficulty: course.difficulty || null,
-    modules_data: course.modules || [],
+    modules_data: modulesData,
     updated_at: new Date().toISOString(),
   };
 }

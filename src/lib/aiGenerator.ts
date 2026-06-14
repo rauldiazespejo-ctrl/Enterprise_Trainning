@@ -2,9 +2,9 @@ import { GeneratedModule } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 // Límite de texto enviado a la API para no exceder el contexto del modelo
-const MAX_DOCUMENT_CHARS = 60000;
-const CHUNK_FIRST = 30000;
-const CHUNK_LAST = 20000;
+const MAX_DOCUMENT_CHARS = 500000;
+const CHUNK_FIRST = 250000;
+const CHUNK_LAST = 250000;
 
 export interface CourseGenerationConfig {
   numModules?: number;

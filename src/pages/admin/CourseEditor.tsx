@@ -607,6 +607,10 @@ const CourseEditor: React.FC = () => {
           <Button variant="outline" onClick={() => navigate('/admin/courses')}>
             Cancelar
           </Button>
+          <Button variant="outline" onClick={() => navigate(`/admin/courses/${courseId}/preview`)}>
+            <BookOpen className="w-4 h-4" />
+            Vista Previa
+          </Button>
           <Button variant="secondary" onClick={() => handleSave()}>
             <Save className="w-4 h-4" />
             Guardar cambios

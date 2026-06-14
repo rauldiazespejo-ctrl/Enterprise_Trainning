@@ -16,6 +16,21 @@ export interface User {
   status?: 'active' | 'inactive';
 }
 
+export interface GlossaryTerm {
+  term: string;
+  definition: string;
+}
+
+export interface FAQ {
+  question: string;
+  answer: string;
+}
+
+export interface StudyGuide {
+  glossary: GlossaryTerm[];
+  faq: FAQ[];
+}
+
 export interface Course {
   id: string;
   title: string;
@@ -30,6 +45,8 @@ export interface Course {
   estimatedDuration: number; // en minutos
   category?: string;
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
+  finalEvaluation?: Quiz;
+  studyGuide?: StudyGuide;
 }
 
 export interface Module {

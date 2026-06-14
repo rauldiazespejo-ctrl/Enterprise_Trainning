@@ -4,6 +4,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import CertificateView from '@/pages/employee/CertificateView';
+import CourseInfographic from '@/components/courses/CourseInfographic';
 import { Slide, Quiz, Question, Certificate } from '@/types';
 import {
   ChevronLeft,
@@ -245,6 +246,7 @@ const CourseViewer: React.FC = () => {
 
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [viewMode, setViewMode] = useState<'slides' | 'infographic'>('slides');
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [isFinalEvalOpen, setIsFinalEvalOpen] = useState(false);
   const [showModuleList, setShowModuleList] = useState(true);
@@ -297,7 +299,7 @@ const CourseViewer: React.FC = () => {
     </div>
   );
 
-  if (!assignment) return (
+  if (!assignment && user?.role !== 'admin' && user?.role !== 'super_admin') return (
     <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
       <div className="text-center">
         <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
@@ -314,6 +316,9 @@ const CourseViewer: React.FC = () => {
   const currentModuleCompleted = moduleStatus[currentModuleIndex]?.completed;
 
   const buildFinalEvaluation = (): Quiz => {
+    if (course.finalEvaluation) {
+      return course.finalEvaluation;
+    }
     const allQuestions: Question[] = course.modules.flatMap(m => m.quiz?.questions || []);
     const selected = [...allQuestions].sort(() => Math.random() - 0.5).slice(0, 20);
     return {
@@ -417,7 +422,7 @@ const CourseViewer: React.FC = () => {
           <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <button
-                onClick={() => navigate('/employee')}
+                onClick={() => user?.role === 'admin' ? navigate(`/admin/courses/${courseId}/edit`) : navigate('/employee')}
                 className="flex items-center gap-1.5 px-3 py-2 bg-white/5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl text-sm font-medium transition-all border border-white/10"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -453,9 +458,30 @@ const CourseViewer: React.FC = () => {
                 </button>
               )}
 
+              {/* View Mode Toggle */}
+              <div className="flex bg-[#0A0E1A] rounded-xl p-1 border border-white/10">
+                <button
+                  onClick={() => setViewMode('slides')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                    viewMode === 'slides' ? 'bg-[#D15F3D] text-white shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Presentación
+                </button>
+                <button
+                  onClick={() => setViewMode('infographic')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                    viewMode === 'infographic' ? 'bg-[#D15F3D] text-white shadow-md' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  Infografía
+                </button>
+              </div>
+
               <button
                 onClick={() => setShowModuleList(!showModuleList)}
                 className="p-2 bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+                title="Mostrar/Ocultar Menú"
               >
                 {showModuleList ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
               </button>
@@ -476,6 +502,11 @@ const CourseViewer: React.FC = () => {
         )}
 
         {/* ── Body ── */}
+        {viewMode === 'infographic' ? (
+          <div className="flex-1 overflow-y-auto">
+            <CourseInfographic course={course} />
+          </div>
+        ) : (
         <div className="flex-1 flex overflow-hidden">
           {/* ── Sidebar ── */}
           {showModuleList && (
@@ -673,6 +704,7 @@ const CourseViewer: React.FC = () => {
             </div>
           </main>
         </div>
+        )}
 
         {/* ── Quiz Modal ── */}
         {isQuizOpen && currentModule?.quiz && (

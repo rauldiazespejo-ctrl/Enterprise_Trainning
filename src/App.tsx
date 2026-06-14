@@ -144,6 +144,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/admin/courses/:courseId/preview"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <CourseViewer />
+          </ProtectedRoute>
+        }
+      />
       <Route path="/admin/assignments" element={<Navigate to="/admin/employees" replace />} />
 
       {/* Ruta Super Admin */}
