@@ -19,6 +19,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
     if (user?.id) {
       loadNotifications();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const loadNotifications = async () => {
