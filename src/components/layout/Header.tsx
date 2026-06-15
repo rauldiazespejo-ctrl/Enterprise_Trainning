@@ -15,17 +15,18 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
 
-  useEffect(() => {
-    if (user?.id) {
-      loadNotifications();
-    }
-  }, [user]);
-
   const loadNotifications = async () => {
     if (!user?.id) return;
     const { data } = await db.getNotifications(user.id);
     if (data) setNotifications(data);
   };
+
+  useEffect(() => {
+    if (user?.id) {
+      loadNotifications();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const handleMarkAsRead = async (id: string) => {
     await db.markNotificationAsRead(id);
@@ -40,9 +41,10 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
         <div className="flex items-center gap-4">
           <button
             onClick={onMenuClick}
-            className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors"
+            aria-label="Abrir menú de navegación"
+            className="lg:hidden p-2 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
-            <Menu className="w-6 h-6" />
+            <Menu className="w-6 h-6" aria-hidden="true" />
           </button>
           <div>
             <h1 className="text-2xl font-bold text-white">{title}</h1>
@@ -52,11 +54,12 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
 
         <div className="flex items-center gap-4">
           {/* Search */}
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--color-bg-tertiary)] rounded-xl border border-slate-700/50 focus-within:border-indigo-500/50 transition-colors">
-            <Search className="w-4 h-4 text-slate-500" />
+          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-[var(--color-bg-tertiary)] rounded-xl border border-slate-700/50 focus-within:border-indigo-500/50 transition-colors focus-within:ring-2 focus-within:ring-indigo-500">
+            <Search className="w-4 h-4 text-slate-500" aria-hidden="true" />
             <input
               type="text"
               placeholder="Buscar..."
+              aria-label="Buscar en la plataforma"
               className="bg-transparent border-none outline-none text-sm w-48 text-slate-300 placeholder-slate-500"
             />
           </div>
@@ -65,11 +68,13 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
           <div className="relative">
             <button 
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors"
+              aria-label={`Notificaciones${unreadCount > 0 ? ` (${unreadCount} sin leer)` : ''}`}
+              aria-expanded={showNotifications}
+              className="relative p-2.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
             >
-              <Bell className="w-5 h-5" />
+              <Bell className="w-5 h-5" aria-hidden="true" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse" aria-hidden="true"></span>
               )}
             </button>
 
