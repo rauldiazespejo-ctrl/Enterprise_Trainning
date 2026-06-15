@@ -76,7 +76,7 @@ const MatrixCellView: React.FC<{
     <td className="px-3 py-2 text-center border border-[#1e2a3a]">
       <button
         onClick={onAssign}
-        className="text-slate-500 hover:text-indigo-400 text-xs transition-colors"
+        className="text-slate-500 hover:text-[#D15F3D] text-xs transition-colors"
         title="Asignar curso"
       >
         —
@@ -124,7 +124,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ employee, course, onConfirm, 
           <span className="font-medium text-white">{employee.name}</span>
         </p>
         <p className="text-slate-400 text-sm mb-6">
-          Curso: <span className="text-indigo-400 font-medium">{course.title}</span>
+          Curso: <span className="text-[#D15F3D] font-medium">{course.title}</span>
         </p>
         {error && (
           <p className="text-red-400 text-sm mb-4">{error}</p>
@@ -139,7 +139,7 @@ const AssignModal: React.FC<AssignModalProps> = ({ employee, course, onConfirm, 
           <button
             onClick={handleConfirm}
             disabled={loading}
-            className="px-4 py-2 text-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="px-4 py-2 text-sm bg-[#D15F3D] hover:bg-[#D15F3D]/100 disabled:opacity-50 text-white rounded-lg transition-colors"
           >
             {loading ? 'Asignando…' : 'Confirmar'}
           </button>
@@ -364,13 +364,13 @@ const TrainingMatrix: React.FC = () => {
             placeholder="Buscar por nombre o departamento…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#111827] border border-[#1e2a3a] rounded-lg text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full pl-9 pr-4 py-2 bg-[#111827] border border-[#1e2a3a] rounded-lg text-sm text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-[#D15F3D]"
           />
         </div>
         <select
           value={filter}
           onChange={(e) => setFilter(e.target.value as FilterType)}
-          className="px-3 py-2 bg-[#111827] border border-[#1e2a3a] rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500"
+          className="px-3 py-2 bg-[#111827] border border-[#1e2a3a] rounded-lg text-sm text-slate-200 focus:outline-none focus:border-[#D15F3D]"
         >
           <option value="all">Todos los cursos</option>
           <option value="pending">Solo pendientes</option>
@@ -378,7 +378,7 @@ const TrainingMatrix: React.FC = () => {
         </select>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-sm rounded-lg transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-[#D15F3D] hover:bg-[#D15F3D]/100 text-white text-sm rounded-lg transition-colors"
         >
           <Download size={16} />
           Exportar Excel

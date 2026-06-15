@@ -69,7 +69,7 @@ const CourseManagement: React.FC = () => {
                 placeholder="Buscar cursos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-4 py-2 border border-slate-300 rounded-lg w-64 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                className="input-modern pl-10 pr-4 py-2 w-64"
               />
             </div>
             <Select
@@ -96,7 +96,7 @@ const CourseManagement: React.FC = () => {
           {filteredCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden">
               {/* Course Thumbnail */}
-              <div className="h-40 bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <div className="h-40 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] flex items-center justify-center">
                 <BookOpen className="w-16 h-16 text-white/50" />
               </div>
 

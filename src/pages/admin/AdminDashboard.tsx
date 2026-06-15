@@ -42,7 +42,7 @@ const AdminDashboard: React.FC = () => {
     return (
       <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D15F3D]"></div>
         </div>
       </MainLayout>
     );
@@ -111,7 +111,7 @@ const AdminDashboard: React.FC = () => {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Progreso de Empleados</h3>
-              <Link to="/admin/employees" className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 transition-colors">
+              <Link to="/admin/employees" className="text-[#D15F3D] hover:text-[#E87A58] text-sm flex items-center gap-1 transition-colors">
                 Ver todos <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -137,7 +137,7 @@ const AdminDashboard: React.FC = () => {
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-semibold text-white">Inscripciones por Curso</h3>
-              <Link to="/admin/courses" className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 transition-colors">
+              <Link to="/admin/courses" className="text-[#D15F3D] hover:text-[#E87A58] text-sm flex items-center gap-1 transition-colors">
                 Ver todos <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
@@ -164,7 +164,7 @@ const AdminDashboard: React.FC = () => {
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Asignaciones Pendientes</h3>
-            <Link to="/admin/assignments" className="text-indigo-400 hover:text-indigo-300 text-sm flex items-center gap-1 transition-colors">
+            <Link to="/admin/assignments" className="text-[#D15F3D] hover:text-[#E87A58] text-sm flex items-center gap-1 transition-colors">
               Ver todas <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
@@ -214,7 +214,7 @@ const AdminDashboard: React.FC = () => {
           <div className="space-y-3">
             {recentActivity && recentActivity.map((act: any) => (
               <div key={act.id} className="flex items-center gap-3 p-3 glass rounded-xl">
-                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-[#D15F3D]/15 text-[#D15F3D]' : 'bg-amber-500/20 text-amber-400'}`}>
                   {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
                   {act.icon === 'Award' && <Award className="w-4 h-4" />}
                   {act.icon === 'Clock' && <Clock className="w-4 h-4" />}

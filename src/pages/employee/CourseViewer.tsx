@@ -122,12 +122,12 @@ const TipSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
 );
 
 const SummarySlide: React.FC<{ slide: Slide }> = ({ slide }) => (
-  <div className="h-full flex flex-col bg-gradient-to-br from-[#1A0E2B] via-[#130A20] to-[#111827] rounded-2xl border border-purple-500/20 p-8 overflow-y-auto">
+  <div className="h-full flex flex-col bg-gradient-to-br from-[#1a1200] via-[#141000] to-[#111827] rounded-2xl border border-amber-500/20 p-8 overflow-y-auto">
     <div className="flex items-center gap-3 mb-6">
-      <div className="p-2.5 bg-purple-500/20 border border-purple-500/30 rounded-xl">
-        <ListChecks className="w-5 h-5 text-purple-400" />
+      <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl">
+        <ListChecks className="w-5 h-5 text-amber-400" />
       </div>
-      <span className="text-xs text-purple-400 font-bold uppercase tracking-widest">Resumen del Módulo</span>
+      <span className="text-xs text-amber-400 font-bold uppercase tracking-widest">Resumen del Módulo</span>
     </div>
 
     <h2 className="text-2xl md:text-3xl font-bold text-white mb-5 leading-tight">{slide.title}</h2>
@@ -135,11 +135,11 @@ const SummarySlide: React.FC<{ slide: Slide }> = ({ slide }) => (
 
     {slide.keyPoints && slide.keyPoints.length > 0 && (
       <div>
-        <p className="text-purple-400 text-xs font-bold uppercase tracking-widest mb-3">Lo que aprendiste en este módulo</p>
+        <p className="text-amber-400 text-xs font-bold uppercase tracking-widest mb-3">Lo que aprendiste en este módulo</p>
         <div className="space-y-2.5">
           {slide.keyPoints.map((point, i) => (
-            <div key={i} className="flex items-center gap-3 p-3.5 bg-purple-500/10 rounded-xl border border-purple-500/20">
-              <CheckCircle className="w-5 h-5 text-purple-400 shrink-0" />
+            <div key={i} className="flex items-center gap-3 p-3.5 bg-amber-500/10 rounded-xl border border-amber-500/20">
+              <CheckCircle className="w-5 h-5 text-amber-400 shrink-0" />
               <span className="text-gray-200 text-sm md:text-base">{point}</span>
             </div>
           ))}
@@ -389,7 +389,7 @@ const CourseViewer: React.FC = () => {
       case 'concept': return 'bg-blue-500';
       case 'example': return 'bg-orange-500';
       case 'tip':     return 'bg-emerald-500';
-      case 'summary': return 'bg-purple-500';
+      case 'summary': return 'bg-amber-500';
       case 'image':   return 'bg-sky-500';
       default:        return 'bg-[#D15F3D]';
     }

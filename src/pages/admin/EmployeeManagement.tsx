@@ -250,7 +250,7 @@ const EmployeeManagement: React.FC = () => {
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-100 rounded-lg text-purple-600">
+              <div className="p-3 bg-[#D15F3D]/10 rounded-lg text-[#D15F3D]">
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div>
@@ -281,7 +281,7 @@ const EmployeeManagement: React.FC = () => {
               placeholder="Buscar empleados por nombre, correo o departamento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
             />
           </div>
           <div className="flex gap-2">
@@ -341,7 +341,7 @@ const EmployeeManagement: React.FC = () => {
                       <tr key={employee.id} className="border-b border-slate-100 hover:bg-slate-50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                            <div className="w-10 h-10 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] rounded-full flex items-center justify-center text-white font-semibold">
                               {employee.name.charAt(0)}
                             </div>
                             <div>
@@ -432,7 +432,7 @@ const EmployeeManagement: React.FC = () => {
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
             >
               <option value="">-- Seleccionar curso --</option>
               {courses.filter(c => c.status === 'published').map(course => {
@@ -472,7 +472,7 @@ const EmployeeManagement: React.FC = () => {
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
               placeholder="Ej. María García"
             />
           </div>
@@ -482,7 +482,7 @@ const EmployeeManagement: React.FC = () => {
               type="text"
               value={form.rut}
               onChange={(e) => setForm({ ...form, rut: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
               placeholder="Ej. 12.345.678-9"
             />
           </div>
@@ -492,7 +492,7 @@ const EmployeeManagement: React.FC = () => {
               type="email"
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
               placeholder="correo@empresa.com"
             />
           </div>
@@ -503,7 +503,7 @@ const EmployeeManagement: React.FC = () => {
                 type="text"
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
                 placeholder="Ventas"
               />
             </div>
@@ -513,7 +513,7 @@ const EmployeeManagement: React.FC = () => {
                 type="text"
                 value={form.position}
                 onChange={(e) => setForm({ ...form, position: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
                 placeholder="Ejecutivo"
               />
             </div>
@@ -527,7 +527,7 @@ const EmployeeManagement: React.FC = () => {
                 type="password"
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
                 placeholder={editingId ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres'}
               />
             </div>
@@ -536,7 +536,7 @@ const EmployeeManagement: React.FC = () => {
               <select
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
               >
                 <option value="active">Activo</option>
                 <option value="inactive">Inactivo</option>

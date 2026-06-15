@@ -46,16 +46,21 @@ const EmployeeDashboard: React.FC = () => {
     <MainLayout title="Mi Aprendizaje" subtitle={`Bienvenido, ${user?.name}`} isAdmin={false}>
       <div className="space-y-6">
         {/* Welcome Banner */}
-        <div className="bg-gradient-modern rounded-2xl p-6 text-white relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-2">¡Bienvenido de vuelta, {user?.name}!</h2>
-            <p className="text-indigo-100 mb-4">Continúa tu aprendizaje y obtén nuevos certificados.</p>
+        <div className="relative rounded-2xl p-6 text-white overflow-hidden" style={{ background: 'linear-gradient(135deg, #1a0e06 0%, #2d1508 40%, #001B4B 100%)', border: '1px solid rgba(209,95,61,0.25)' }}>
+          {/* decorative orbs */}
+          <div className="absolute top-0 right-0 w-56 h-56 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(209,95,61,0.25) 0%, transparent 70%)', filter: 'blur(40px)' }} />
+          <div className="absolute bottom-0 left-1/3 w-40 h-40 rounded-full pointer-events-none" style={{ background: 'radial-gradient(circle, rgba(0,27,75,0.4) 0%, transparent 70%)', filter: 'blur(30px)' }} />
+          <div className="relative z-10 flex items-center justify-between gap-6 flex-wrap">
+            <div>
+              <p className="text-xs text-[#D15F3D] font-semibold uppercase tracking-widest mb-1">Portal del Empleado</p>
+              <h2 className="text-2xl font-bold text-white mb-1">¡Bienvenido, {user?.name?.split(' ')[0]}!</h2>
+              <p className="text-slate-400 text-sm">Continúa tu aprendizaje y obtén nuevos certificados.</p>
+            </div>
             {nextCourse && (
               <Link to={`/employee/course/${nextCourse.id}`}>
-                <Button className="bg-white text-indigo-600 hover:bg-indigo-50 shadow-lg">
+                <Button>
                   <Play className="w-4 h-4" />
-                  Continuar: {nextCourse.title}
+                  Continuar curso
                 </Button>
               </Link>
             )}
@@ -66,7 +71,7 @@ const EmployeeDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
@@ -88,7 +93,7 @@ const EmployeeDashboard: React.FC = () => {
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
                 <Clock className="w-6 h-6" />
               </div>
               <div>
@@ -114,7 +119,7 @@ const EmployeeDashboard: React.FC = () => {
         {inProgressList.length > 0 && (
           <div>
             <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+              <Sparkles className="w-5 h-5 text-[#D15F3D]" />
               Continuar Aprendiendo
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -201,7 +206,7 @@ const EmployeeDashboard: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {certificates.slice(0, 2).map((cert) => (
-                <Card key={cert.id} className="p-4 hover:border-indigo-500/50 transition-colors">
+                <Card key={cert.id} className="p-4 hover:border-[#D15F3D]/50 transition-colors">
                   <div className="flex items-center gap-4">
                     <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Award className="w-8 h-8 text-white" />

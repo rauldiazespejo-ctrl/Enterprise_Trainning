@@ -36,7 +36,7 @@ const Reports: React.FC = () => {
     return (
       <MainLayout title="Reportes" subtitle="Estadísticas y análisis de la plataforma" isAdmin>
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D15F3D]"></div>
         </div>
       </MainLayout>
     );
@@ -115,7 +115,7 @@ const Reports: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
                 <Users className="w-6 h-6" />
               </div>
               <div>
@@ -137,7 +137,7 @@ const Reports: React.FC = () => {
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
                 <TrendingUp className="w-6 h-6" />
               </div>
               <div>
@@ -167,7 +167,7 @@ const Reports: React.FC = () => {
             <SimpleLineChart data={completionData} />
             <div className="flex justify-center gap-6 mt-4">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-indigo-500 rounded"></div>
+                <div className="w-3 h-3 bg-[#D15F3D] rounded"></div>
                 <span className="text-sm text-slate-400">Inscritos</span>
               </div>
               <div className="flex items-center gap-2">
@@ -226,7 +226,7 @@ const Reports: React.FC = () => {
                     <div className="space-y-3">
             {recentActivity && recentActivity.map((act: any) => (
               <div key={act.id} className="flex items-center gap-4 p-3 glass rounded-xl">
-                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-purple-500/20 text-purple-400'}`}>
+                <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-[#D15F3D]/15 text-[#D15F3D]' : 'bg-purple-500/20 text-purple-400'}`}>
                   {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
                   {act.icon === 'Award' && <Award className="w-4 h-4" />}
                   {act.icon === 'Clock' && <TrendingUp className="w-4 h-4" />}

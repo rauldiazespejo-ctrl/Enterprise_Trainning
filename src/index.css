@@ -526,6 +526,11 @@ select.input-modern {
   padding-right: 40px;
 }
 
+/* ===== GRADIENT MODERN (brand) ===== */
+.bg-gradient-modern {
+  background: linear-gradient(135deg, #D15F3D 0%, #B34E2D 45%, #001B4B 100%);
+}
+
 /* ===== UTILITY CLASSES ===== */
 .border-brand {
   border-color: var(--brand-orange);
