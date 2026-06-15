@@ -1,6 +1,7 @@
 const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 const buildSystemPrompt = (numModules: number, difficulty: string, category: string): string => {
@@ -252,7 +253,7 @@ Deno.serve(async (request) => {
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
-          max_tokens: 16000,
+          max_tokens: 8000,
         }),
       });
 

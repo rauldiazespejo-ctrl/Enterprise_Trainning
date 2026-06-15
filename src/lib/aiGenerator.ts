@@ -67,7 +67,19 @@ export const generateCourseWithAI = async (
       category: config?.category,
     },
   });
-  if (error) throw new Error(`No se pudo generar el curso: ${error.message}`);
+  if (error) {
+    // FunctionsHttpError.context contiene el body real de la respuesta
+    const ctx = (error as unknown as { context?: unknown }).context;
+    let realMsg = error.message;
+    if (ctx !== null && ctx !== undefined) {
+      if (typeof ctx === 'string') {
+        try { realMsg = (JSON.parse(ctx) as { error?: string }).error ?? ctx; } catch { realMsg = ctx; }
+      } else if (typeof ctx === 'object' && (ctx as Record<string, unknown>).error) {
+        realMsg = String((ctx as Record<string, unknown>).error);
+      }
+    }
+    throw new Error(`No se pudo generar el curso: ${realMsg}`);
+  }
 
   const content: string | undefined = data?.content;
   if (!content) {

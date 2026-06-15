@@ -156,11 +156,13 @@ const DocumentUpload: React.FC = () => {
     if (!selectedFile) return;
     setProcessingStatus('Extrayendo texto del documento...');
     setProcessingProgress(15);
+    setIsProcessing(true);
     try {
       const text = await parseDocument(selectedFile);
       await processContent(text);
     } catch (err) {
-      setError('Error extrayendo texto del documento.');
+      setError(err instanceof Error ? err.message : 'Error al extraer texto del documento.');
+      setIsProcessing(false);
     }
   };
 

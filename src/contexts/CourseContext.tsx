@@ -6,10 +6,11 @@ import { db, supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
-// UUID de la organización KMC/Soldesp que existe en el seed de producción.
-// Fallback cuando el usuario no tiene organización en la DB.
 const FALLBACK_ORG_ID = '00000000-0000-0000-0000-000000000001';
 const FALLBACK_USER_ID = '00000000-0000-0000-0000-000000000001';
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isValidUUID = (id: string) => UUID_REGEX.test(id);
 
 interface CourseContextType {
   courses: Course[];
@@ -446,12 +447,12 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       setCurrentCourse(prev => prev ? { ...prev, ...updates, updatedAt: new Date() } : null);
     }
 
-    // Persistir en Supabase
+    if (!isValidUUID(id)) return; // Curso demo/local — no existe en Supabase
+
     try {
       const existing = courses.find(c => c.id === id);
       const merged = existing ? { ...existing, ...updates } : updates;
       const row = mapCourseToSupabase({ ...merged, id });
-      // upsert usa el id para hacer update si ya existe
       const { error } = await db.upsertCourse(row);
       if (error) throw error;
     } catch (err) {
@@ -461,9 +462,9 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
   const deleteCourse = async (id: string): Promise<void> => {
     setCourses(prev => prev.filter(course => course.id !== id));
-    if (currentCourse?.id === id) {
-      setCurrentCourse(null);
-    }
+    if (currentCourse?.id === id) setCurrentCourse(null);
+
+    if (!isValidUUID(id)) return; // Curso demo/local — no existe en Supabase
 
     try {
       const { error } = await db.deleteCourse(id);
