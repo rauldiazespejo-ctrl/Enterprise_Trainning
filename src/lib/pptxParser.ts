@@ -8,45 +8,64 @@ export interface PptxSlide {
 }
 
 function extractSlideNumber(filename: string): number {
-  const match = filename.match(/slide(\d+)\.xml$/);
-  return match ? parseInt(match[1], 10) : 0;
+  const match = filename.match(/\d+/g);
+  return match ? parseInt(match[match.length - 1], 10) : 0;
 }
 
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, h) => String.fromCharCode(parseInt(h, 16)))
+    .replace(/&#(\d+);/g, (_, d) => String.fromCharCode(parseInt(d, 10)));
+}
+
+// Extract all text runs from any XML — handles <a:t>, <t>, and fld elements
 function extractAllText(xml: string): string[] {
-  // Handle both <a:t>text</a:t> and <a:t xml:space="preserve">text</a:t>
   const results: string[] = [];
-  // Primary: namespace-prefixed tags
+
+  // Primary: <a:t ...>text</a:t>
   const re1 = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
   let m = re1.exec(xml);
   while (m) {
-    const t = m[1].replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").trim();
+    const t = decodeEntities(m[1]).trim();
     if (t) results.push(t);
     m = re1.exec(xml);
   }
-  // Fallback: no-prefix <t> tags if nothing found
-  if (results.length === 0) {
-    const re2 = /<t[^>]*>([\s\S]*?)<\/t>/g;
-    let m2 = re2.exec(xml);
-    while (m2) {
-      const t = m2[1].trim();
-      if (t && t.length < 500) results.push(t);
-      m2 = re2.exec(xml);
-    }
+
+  if (results.length > 0) return results;
+
+  // Fallback A: bare <t>text</t> (some non-standard generators)
+  const re2 = /<t[^>]*>([\s\S]*?)<\/t>/g;
+  let m2 = re2.exec(xml);
+  while (m2) {
+    const t = decodeEntities(m2[1]).trim();
+    if (t && t.length < 500) results.push(t);
+    m2 = re2.exec(xml);
   }
+
+  if (results.length > 0) return results;
+
+  // Fallback B: strip all tags and collect remaining words (last resort)
+  const stripped = xml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  if (stripped.length > 2 && stripped.length < 10000) results.push(stripped);
+
   return results;
 }
 
+// Parse <p:sp> blocks and detect title placeholders
 function extractSpBlocks(xml: string): Array<{ block: string; isTitle: boolean }> {
   const results: Array<{ block: string; isTitle: boolean }> = [];
-  let start = 0;
-  // Try <p:sp> first, fall back to <sp>
   const openTag = xml.includes('<p:sp') ? '<p:sp' : '<sp';
   const closeTag = xml.includes('</p:sp>') ? '</p:sp>' : '</sp>';
-
+  let start = 0;
   while (true) {
     const open = xml.indexOf(openTag, start);
     if (open === -1) break;
-    // Find the matching close tag
     const close = xml.indexOf(closeTag, open);
     if (close === -1) break;
     const block = xml.slice(open, close + closeTag.length);
@@ -54,8 +73,7 @@ function extractSpBlocks(xml: string): Array<{ block: string; isTitle: boolean }
       block.includes('type="title"') ||
       block.includes('type="ctrTitle"') ||
       block.includes("type='title'") ||
-      block.includes("type='ctrTitle'") ||
-      block.includes('idx="0"') && (block.indexOf('idx="0"') < block.indexOf('<a:t'));
+      block.includes("type='ctrTitle'");
     results.push({ block, isTitle });
     start = close + closeTag.length;
   }
@@ -68,70 +86,112 @@ export async function parsePptx(file: File): Promise<PptxSlide[]> {
   try {
     zip = await JSZip.loadAsync(arrayBuffer);
   } catch {
-    throw new Error('No se pudo abrir el archivo PPTX. Verifica que no esté dañado o protegido con contraseña.');
+    throw new Error(
+      'No se pudo abrir el archivo PPTX. Verifica que no esté dañado o protegido con contraseña.'
+    );
   }
 
-  const slideFiles = Object.keys(zip.files).filter(name =>
+  // Locate slide XML files
+  let slideFiles = Object.keys(zip.files).filter(name =>
     /^ppt\/slides\/slide\d+\.xml$/.test(name)
   );
-
   if (slideFiles.length === 0) {
-    // Try alternative PPTX structures
-    const altFiles = Object.keys(zip.files).filter(name =>
-      name.includes('slides/slide') && name.endsWith('.xml') && !name.includes('_rels')
+    slideFiles = Object.keys(zip.files).filter(
+      name =>
+        name.includes('slides/slide') &&
+        name.endsWith('.xml') &&
+        !name.includes('_rels')
     );
-    if (altFiles.length === 0) {
-      throw new Error('No se encontraron diapositivas en el archivo. Asegúrate de que sea un archivo .pptx válido.');
-    }
-    slideFiles.push(...altFiles);
   }
-
+  if (slideFiles.length === 0) {
+    throw new Error(
+      'No se encontraron diapositivas en el archivo. Asegúrate de que sea un archivo .pptx válido.'
+    );
+  }
   slideFiles.sort((a, b) => extractSlideNumber(a) - extractSlideNumber(b));
+
+  // Pre-load SmartArt diagram data files (text stored outside slide XML)
+  const diagramTexts: string[] = [];
+  const diagramFiles = Object.keys(zip.files).filter(
+    name => name.includes('diagrams/data') && name.endsWith('.xml')
+  );
+  for (const df of diagramFiles) {
+    try {
+      const xml = await zip.files[df].async('string');
+      diagramTexts.push(...extractAllText(xml));
+    } catch { /* ignore */ }
+  }
 
   const slides: PptxSlide[] = [];
 
   for (const slideName of slideFiles) {
     const slideNumber = extractSlideNumber(slideName);
-    const xml = await zip.files[slideName].async('string');
+    let xml: string;
+    try {
+      xml = await zip.files[slideName].async('string');
+    } catch {
+      continue;
+    }
 
+    // ── Pass 1: extract text from <p:sp> shape blocks ──────────────────────
     const spBlocks = extractSpBlocks(xml);
-
     let title = '';
     const bodyTexts: string[] = [];
 
-    if (spBlocks.length > 0) {
-      for (const { block, isTitle } of spBlocks) {
-        const texts = extractAllText(block);
-        if (texts.length === 0) continue;
-        if (isTitle && !title) {
-          title = texts.join(' ');
-        } else {
-          bodyTexts.push(...texts);
-        }
-      }
-    } else {
-      // Fallback: extract ALL text from slide without shape distinction
-      const allTexts = extractAllText(xml);
-      if (allTexts.length > 0) {
-        title = allTexts[0];
-        bodyTexts.push(...allTexts.slice(1));
+    for (const { block, isTitle } of spBlocks) {
+      const texts = extractAllText(block);
+      if (texts.length === 0) continue;
+      if (isTitle && !title) {
+        title = texts.join(' ');
+      } else {
+        bodyTexts.push(...texts);
       }
     }
 
-    const allTexts = [title, ...bodyTexts].filter(Boolean);
-    if (allTexts.length === 0) continue;
+    // ── Pass 2: full-XML scan (catches tables, grpSp, graphicFrame, etc.) ──
+    if (!title && bodyTexts.length === 0) {
+      const allFromXml = extractAllText(xml);
+      if (allFromXml.length > 0) {
+        title = allFromXml[0];
+        bodyTexts.push(...allFromXml.slice(1));
+      }
+    }
+
+    // ── Pass 3: slide notes ─────────────────────────────────────────────────
+    if (!title && bodyTexts.length === 0) {
+      const noteName = `ppt/notesSlides/notesSlide${slideNumber}.xml`;
+      const noteFile = zip.files[noteName];
+      if (noteFile) {
+        try {
+          const noteXml = await noteFile.async('string');
+          const noteTexts = extractAllText(noteXml);
+          if (noteTexts.length > 0) {
+            title = `Diapositiva ${slideNumber}`;
+            bodyTexts.push(...noteTexts.slice(0, 10));
+          }
+        } catch { /* ignore */ }
+      }
+    }
+
+    // ── Placeholder for image-only slides (never skip) ──────────────────────
+    const effectiveTitle = title || `Diapositiva ${slideNumber}`;
+    const effectiveBullets = bodyTexts.filter(Boolean);
+    const rawText =
+      effectiveBullets.length > 0
+        ? [effectiveTitle, ...effectiveBullets].join('\n')
+        : `[${effectiveTitle} — contenido visual]`;
 
     slides.push({
       slideNumber,
-      title: title || `Diapositiva ${slideNumber}`,
-      bullets: bodyTexts.filter(Boolean),
-      rawText: allTexts.join('\n'),
+      title: effectiveTitle,
+      bullets: effectiveBullets,
+      rawText,
     });
   }
 
   if (slides.length === 0) {
     throw new Error(
-      'No se pudo extraer texto de las diapositivas. El archivo puede tener solo imágenes o estar en un formato incompatible.'
+      'No se encontraron diapositivas válidas en el archivo.'
     );
   }
 
