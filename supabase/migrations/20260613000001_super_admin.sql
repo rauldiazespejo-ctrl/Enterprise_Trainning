@@ -3,6 +3,9 @@
 -- Ejecutar en Supabase SQL Editor
 -- ============================================================
 
+-- 0. Habilitar extensiones necesarias
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 -- 1. Agregar super_admin al enum de roles
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'super_admin';
 
@@ -57,45 +60,42 @@ DECLARE
   v_org_id  uuid;
   v_user_id uuid;
 BEGIN
-  -- Obtener organización (Soldesp S.A.)
+  -- Obtener o crear organización (Soldesp S.A.)
   SELECT id INTO v_org_id FROM public.organizations LIMIT 1;
-
-  -- Si no existe organización, crearla
   IF v_org_id IS NULL THEN
     INSERT INTO public.organizations (name) VALUES ('Soldesp S.A.') RETURNING id INTO v_org_id;
   END IF;
 
-  -- Crear usuario en auth.users
-  INSERT INTO auth.users (
-    id,
-    email,
-    encrypted_password,
-    email_confirmed_at,
-    raw_app_meta_data,
-    raw_user_meta_data,
-    created_at,
-    updated_at,
-    confirmation_token,
-    recovery_token
-  )
-  VALUES (
-    gen_random_uuid(),
-    'raul.diaz@soldesp.cl',
-    crypt('CAMBIAME_POR_FAVOR', gen_salt('bf')),
-    now(),
-    '{"provider":"email","providers":["email"]}',
-    '{"name":"Raul Diaz Espejo","role":"super_admin"}',
-    now(),
-    now(),
-    '',
-    ''
-  )
-  ON CONFLICT (email) DO NOTHING
-  RETURNING id INTO v_user_id;
+  -- Buscar si el usuario ya existe en auth.users
+  SELECT id INTO v_user_id FROM auth.users WHERE email = 'raul.diaz@soldesp.cl';
 
-  -- Si ya existía el usuario, obtener su ID
+  -- Solo crear si no existe
   IF v_user_id IS NULL THEN
-    SELECT id INTO v_user_id FROM auth.users WHERE email = 'raul.diaz@soldesp.cl';
+    INSERT INTO auth.users (
+      id,
+      email,
+      encrypted_password,
+      email_confirmed_at,
+      raw_app_meta_data,
+      raw_user_meta_data,
+      created_at,
+      updated_at,
+      confirmation_token,
+      recovery_token
+    )
+    VALUES (
+      gen_random_uuid(),
+      'raul.diaz@soldesp.cl',
+      extensions.crypt('CAMBIAME_POR_FAVOR', extensions.gen_salt('bf')),
+      now(),
+      '{"provider":"email","providers":["email"]}',
+      '{"name":"Raul Diaz Espejo","role":"super_admin"}',
+      now(),
+      now(),
+      '',
+      ''
+    )
+    RETURNING id INTO v_user_id;
   END IF;
 
   -- Crear o actualizar el perfil como super_admin
