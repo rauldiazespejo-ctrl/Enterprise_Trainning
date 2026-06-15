@@ -154,14 +154,17 @@ REGLAS CRÍTICAS:
 const buildQuestionsSystemPrompt = (
   numQuestions: number,
   difficulty: string,
-  category: string
+  category: string,
+  topic?: string
 ): string =>
-  `Eres un evaluador experto. Tu tarea es generar exactamente ${numQuestions} preguntas de opción múltiple en español basadas ÚNICAMENTE en el siguiente contenido de una presentación.
+  `Eres un evaluador experto en capacitación industrial y HSEQ. Tu tarea es generar exactamente ${numQuestions} preguntas de opción múltiple en español basadas en el siguiente contenido de una presentación.
+${topic ? `\nEl tema general del curso es: "${topic}". Usa esto como contexto adicional para asegurarte de que las preguntas sean 100% relevantes al tema.` : ''}
 
 REGLAS:
 - Cada pregunta debe tener exactamente 4 opciones (A, B, C, D)
 - Varía el índice de la respuesta correcta (correctAnswer: 0, 1, 2 o 3)
-- Las preguntas deben ser sobre escenarios prácticos, no solo definiciones
+- Las preguntas deben ser sobre escenarios prácticos reales, no solo definiciones
+- Basate EXCLUSIVAMENTE en el contenido proporcionado — no inventes temas ajenos
 - Dificultad: ${difficulty}
 - Contexto/categoría: ${category}
 
@@ -258,20 +261,22 @@ Deno.serve(async (request) => {
         );
       }
 
-      // Detectar si el contenido es solo placeholders (diapositivas sin texto)
+      // Detectar si el contenido es solo placeholders (diapositivas sin texto extraíble).
+      // Ignorar líneas vacías y separadores '---' que el parser inserta entre slides.
       const isPlaceholderOnly =
         !slideTexts ||
+        !slideTexts.trim() ||
         slideTexts.split('\n').every(
-          (line) =>
-            !line.trim() ||
-            line.trim().startsWith('[') ||
-            /^\[diapositiva \d+/i.test(line.trim())
+          (line) => {
+            const t = line.trim();
+            return !t || t === '---' || t.startsWith('[') || /^\[diapositiva \d+/i.test(t);
+          }
         );
 
       const systemPrompt =
         isPlaceholderOnly && topic
           ? buildTopicQuestionsPrompt(numQuestions, difficulty, category, topic)
-          : buildQuestionsSystemPrompt(numQuestions, difficulty, category);
+          : buildQuestionsSystemPrompt(numQuestions, difficulty, category, topic);
 
       const userContent =
         isPlaceholderOnly && topic

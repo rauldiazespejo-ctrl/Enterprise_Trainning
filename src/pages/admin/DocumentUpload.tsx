@@ -132,14 +132,38 @@ const DocumentUpload: React.FC = () => {
     setIsGenerating(true);
     setGenerateError('');
     setGeneratedQuestions(null);
-    const allText = slides.map(s => s.rawText).join('\n\n---\n\n');
+
+    // Build text from slides:
+    //   - Slides with body text: send full text
+    //   - Slides with meaningful title but no body: send just the title
+    //   - Pure image-only slides (generic "[Diapositiva N — contenido visual]"): skip entirely
+    const GENERIC_PLACEHOLDER = /^\[diapositiva\s*\d+\s*[—-]/i;
+    const slideParts: string[] = [];
+    for (const s of slides) {
+      if (s.bullets.length > 0) {
+        // Real body content
+        slideParts.push([s.title, ...s.bullets].filter(Boolean).join('\n'));
+      } else if (!s.rawText.startsWith('[')) {
+        // Real text without bullets
+        slideParts.push(s.rawText);
+      } else if (!GENERIC_PLACEHOLDER.test(s.rawText)) {
+        // Title-only slide with a meaningful title (e.g. "[Procedimiento de Soldadura — contenido visual]")
+        // Extract the title portion and use it as context
+        const titleMatch = s.rawText.match(/^\[(.+?)\s*[—-]/);
+        if (titleMatch) slideParts.push(titleMatch[1].trim());
+      }
+      // else: pure generic image placeholder → skip (no useful text)
+    }
+
+    const allText = slideParts.join('\n\n');
     const topic = courseConfig.title || selectedFile?.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || '';
+
     try {
       const questions = await generateQuestionsWithAI(allText, courseConfig.numQuestions, {
         difficulty: courseConfig.difficulty,
         category: courseConfig.category,
-        // When slides are image-only, pass the course title so the AI generates relevant questions
-        topic: !hasRealContent ? topic : undefined,
+        // Pass topic always as extra context; Edge Fn uses it as PRIMARY source when allText is empty
+        topic,
       });
       setGeneratedQuestions(questions);
     } catch (err) {
