@@ -69,6 +69,12 @@ const DocumentUpload: React.FC = () => {
   const [saveError, setSaveError] = useState('');
 
   const totalChars = slides.reduce((acc, s) => acc + s.rawText.length, 0);
+  // True when at least one slide has extractable XML text (not image-only placeholders)
+  const hasRealContent = slides.some(
+    s =>
+      s.bullets.length > 0 ||
+      (!s.rawText.startsWith('[') && s.rawText.replace(/\s+/g, '').length > 20)
+  );
 
   const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
   const handleDragLeave = () => setIsDragging(false);
@@ -99,8 +105,11 @@ const DocumentUpload: React.FC = () => {
     try {
       const parsed = await parsePptx(file);
       setSlides(parsed);
+      // Use filename as title when first slide has no real title (placeholder)
       const autoTitle = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ');
-      setCourseConfig(prev => ({ ...prev, title: parsed[0]?.title || autoTitle }));
+      const firstTitle = parsed[0]?.title || '';
+      const isPlaceholderTitle = /^diapositiva\s*\d+$/i.test(firstTitle.trim());
+      setCourseConfig(prev => ({ ...prev, title: isPlaceholderTitle ? autoTitle : (firstTitle || autoTitle) }));
     } catch (err) {
       setParseError(err instanceof Error ? err.message : 'Error al leer el archivo PPTX.');
     } finally {
@@ -124,10 +133,13 @@ const DocumentUpload: React.FC = () => {
     setGenerateError('');
     setGeneratedQuestions(null);
     const allText = slides.map(s => s.rawText).join('\n\n---\n\n');
+    const topic = courseConfig.title || selectedFile?.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ') || '';
     try {
       const questions = await generateQuestionsWithAI(allText, courseConfig.numQuestions, {
         difficulty: courseConfig.difficulty,
         category: courseConfig.category,
+        // When slides are image-only, pass the course title so the AI generates relevant questions
+        topic: !hasRealContent ? topic : undefined,
       });
       setGeneratedQuestions(questions);
     } catch (err) {
@@ -331,6 +343,17 @@ const DocumentUpload: React.FC = () => {
         {/* Generate questions with AI */}
         {slides.length > 0 && (
           <Card className="p-6">
+            {/* Warning when PPTX has no extractable text */}
+            {!hasRealContent && !generatedQuestions && (
+              <div className="mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg flex items-start gap-2 text-blue-300 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>
+                  Las diapositivas contienen imágenes sin texto extraíble. La IA generará las preguntas
+                  basándose en el <strong>título del curso</strong>: "<em>{courseConfig.title}</em>".
+                  Asegúrate de que el título describe correctamente el tema antes de generar.
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-start gap-3">
                 <Sparkles className="w-5 h-5 text-[#D15F3D] mt-0.5 shrink-0" />
@@ -343,7 +366,9 @@ const DocumentUpload: React.FC = () => {
                   <p className="text-sm text-slate-400">
                     {generatedQuestions
                       ? 'La evaluación se incluirá al guardar el curso.'
-                      : `Genera ${courseConfig.numQuestions} preguntas automáticas basadas en las ${slides.length} diapositivas.`}
+                      : hasRealContent
+                      ? `Genera ${courseConfig.numQuestions} preguntas basadas en el contenido de las ${slides.length} diapositivas.`
+                      : `Genera ${courseConfig.numQuestions} preguntas sobre el tema del curso usando IA.`}
                   </p>
                 </div>
               </div>

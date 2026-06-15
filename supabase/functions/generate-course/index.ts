@@ -168,6 +168,28 @@ REGLAS:
 DEVUELVE ÚNICAMENTE este JSON válido, sin texto extra:
 {"questions": [{"question": "...", "options": ["...","...","...","..."], "correctAnswer": 0, "explanation": "Por qué esta respuesta es correcta."}]}`;
 
+// ─── System prompt: quiz questions from topic name (no slide text available) ──
+
+const buildTopicQuestionsPrompt = (
+  numQuestions: number,
+  difficulty: string,
+  category: string,
+  topic: string
+): string =>
+  `Eres un evaluador experto en capacitación industrial y HSEQ. Tu tarea es generar exactamente ${numQuestions} preguntas de opción múltiple en español sobre el siguiente tema de capacitación: "${topic}".
+
+REGLAS:
+- Cada pregunta debe tener exactamente 4 opciones (A, B, C, D)
+- Varía el índice de la respuesta correcta (correctAnswer: 0, 1, 2 o 3)
+- Las preguntas deben simular situaciones reales de trabajo: "Estás realizando X y ocurre Y, ¿qué haces?"
+- NO evalúes solo definiciones — evalúa toma de decisiones en terreno
+- Dificultad: ${difficulty}
+- Categoría: ${category}
+- Asume que los estudiantes son trabajadores de planta, operadores o técnicos
+
+DEVUELVE ÚNICAMENTE este JSON válido, sin texto extra:
+{"questions": [{"question": "...", "options": ["...","...","...","..."], "correctAnswer": 0, "explanation": "Por qué esta respuesta es correcta y las otras no."}]}`;
+
 // ─── Main handler ─────────────────────────────────────────────────────────────
 
 Deno.serve(async (request) => {
@@ -218,6 +240,8 @@ Deno.serve(async (request) => {
     if (mode === 'questions') {
       const slideTexts: string =
         typeof body.slideTexts === 'string' ? body.slideTexts.trim() : '';
+      const topic: string =
+        typeof body.topic === 'string' ? body.topic.trim() : '';
       const numQuestions: number =
         typeof body.numQuestions === 'number' && body.numQuestions > 0
           ? body.numQuestions
@@ -227,14 +251,32 @@ Deno.serve(async (request) => {
       const category: string =
         typeof body.category === 'string' ? body.category : 'general';
 
-      if (!slideTexts) {
+      if (!slideTexts && !topic) {
         return Response.json(
-          { error: 'slideTexts es requerido para el modo questions.' },
+          { error: 'Se requiere slideTexts o topic para el modo questions.' },
           { status: 400, headers: corsHeaders }
         );
       }
 
-      const systemPrompt = buildQuestionsSystemPrompt(numQuestions, difficulty, category);
+      // Detectar si el contenido es solo placeholders (diapositivas sin texto)
+      const isPlaceholderOnly =
+        !slideTexts ||
+        slideTexts.split('\n').every(
+          (line) =>
+            !line.trim() ||
+            line.trim().startsWith('[') ||
+            /^\[diapositiva \d+/i.test(line.trim())
+        );
+
+      const systemPrompt =
+        isPlaceholderOnly && topic
+          ? buildTopicQuestionsPrompt(numQuestions, difficulty, category, topic)
+          : buildQuestionsSystemPrompt(numQuestions, difficulty, category);
+
+      const userContent =
+        isPlaceholderOnly && topic
+          ? `Genera ${numQuestions} preguntas prácticas sobre el tema: "${topic}". Categoría: ${category}. Dificultad: ${difficulty}.`
+          : slideTexts;
 
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -246,7 +288,7 @@ Deno.serve(async (request) => {
           model: 'deepseek-chat',
           messages: [
             { role: 'system', content: systemPrompt },
-            { role: 'user', content: slideTexts },
+            { role: 'user', content: userContent },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.7,

@@ -191,7 +191,7 @@ const parseAIResponse = (content: string): Omit<AIGeneratedCourse, 'estimatedDur
 export const generateQuestionsWithAI = async (
   slideTexts: string,
   numQuestions: number,
-  config: { difficulty: string; category: string }
+  config: { difficulty: string; category: string; topic?: string }
 ): Promise<GeneratedQuestion[]> => {
   if (!isAIConfigured()) {
     throw new Error('La generación con IA requiere configurar Supabase.');
@@ -204,6 +204,7 @@ export const generateQuestionsWithAI = async (
       numQuestions,
       difficulty: config.difficulty,
       category: config.category,
+      ...(config.topic ? { topic: config.topic } : {}),
     },
   });
 
