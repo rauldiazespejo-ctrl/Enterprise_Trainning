@@ -5,25 +5,25 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CourseProvider } from '@/contexts/CourseContext';
 
 // Páginas de autenticación
-import Login from '@/pages/auth/Login';
+const Login = React.lazy(() => import('@/pages/auth/Login'));
 
 // Páginas del Administrador
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import CourseManagement from '@/pages/admin/CourseManagement';
-import CourseEditor from '@/pages/admin/CourseEditor';
-import DocumentUpload from '@/pages/admin/DocumentUpload';
-import EmployeeManagement from '@/pages/admin/EmployeeManagement';
-import CertificateManagement from '@/pages/admin/CertificateManagement';
-import Reports from '@/pages/admin/Reports';
-import SettingsPage from '@/pages/admin/Settings';
+const AdminDashboard = React.lazy(() => import('@/pages/admin/AdminDashboard'));
+const CourseManagement = React.lazy(() => import('@/pages/admin/CourseManagement'));
+const CourseEditor = React.lazy(() => import('@/pages/admin/CourseEditor'));
+const DocumentUpload = React.lazy(() => import('@/pages/admin/DocumentUpload'));
+const EmployeeManagement = React.lazy(() => import('@/pages/admin/EmployeeManagement'));
+const CertificateManagement = React.lazy(() => import('@/pages/admin/CertificateManagement'));
+const Reports = React.lazy(() => import('@/pages/admin/Reports'));
+const SettingsPage = React.lazy(() => import('@/pages/admin/Settings'));
 
 // Páginas del Empleado
-import EmployeeDashboard from '@/pages/employee/EmployeeDashboard';
-import CourseViewer from '@/pages/employee/CourseViewer';
-import EmployeeCertificates from '@/pages/employee/EmployeeCertificates';
+const EmployeeDashboard = React.lazy(() => import('@/pages/employee/EmployeeDashboard'));
+const CourseViewer = React.lazy(() => import('@/pages/employee/CourseViewer'));
+const EmployeeCertificates = React.lazy(() => import('@/pages/employee/EmployeeCertificates'));
 
 // Panel Super Admin
-import SuperAdminPanel from '@/pages/super-admin/SuperAdminPanel';
+const SuperAdminPanel = React.lazy(() => import('@/pages/super-admin/SuperAdminPanel'));
 
 // Componente de protección de rutas
 const ProtectedRoute: React.FC<{
@@ -69,10 +69,22 @@ const RoleRedirect: React.FC = () => {
   return <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />;
 };
 
+
+// Loading Fallback para Suspense
+const LoadingFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg-primary)]">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+      <p className="text-slate-400 font-medium">Cargando...</p>
+    </div>
+  </div>
+);
+
 // Rutas de la aplicación
 const AppRoutes: React.FC = () => {
   return (
-    <Routes>
+    <React.Suspense fallback={<LoadingFallback />}>
+      <Routes>
       {/* Ruta raíz */}
       <Route path="/" element={<RoleRedirect />} />
 
@@ -208,6 +220,7 @@ const AppRoutes: React.FC = () => {
         }
       />
     </Routes>
+    </React.Suspense>
   );
 };
 

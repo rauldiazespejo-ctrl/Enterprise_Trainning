@@ -3,7 +3,7 @@ import { BookOpen, CheckCircle, Lightbulb, PenTool, Image as ImageIcon, AlertTri
 
 interface Slide {
   title: string;
-  type: 'concept' | 'example' | 'tip' | 'content' | 'summary' | 'image';
+  type: 'concept' | 'example' | 'tip' | 'content' | 'summary' | 'image' | 'video';
   content?: string;
   imageUrl?: string;
   keyPoints?: string[];
