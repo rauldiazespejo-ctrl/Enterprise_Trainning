@@ -389,7 +389,7 @@ const CourseEditor: React.FC = () => {
     setTimeout(() => setToast(t => ({ ...t, visible: false })), 3000);
   };
 
-  const handleSave = (overrideStatus?: Course['status']) => {
+  const handleSave = async (overrideStatus?: Course['status']) => {
     if (!draft || !courseId) return;
     const updates: Partial<Course> = {
       title: draft.title,
@@ -401,11 +401,15 @@ const CourseEditor: React.FC = () => {
       estimatedDuration: draft.estimatedDuration,
       modules: draft.modules,
     };
-    updateCourse(courseId, updates);
-    if (overrideStatus) {
-      setDraft(d => d ? { ...d, status: overrideStatus } : d);
+    try {
+      await updateCourse(courseId, updates);
+      if (overrideStatus) {
+        setDraft(d => d ? { ...d, status: overrideStatus } : d);
+      }
+      showToast(overrideStatus === 'published' ? 'Curso publicado correctamente' : 'Cambios guardados');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Error al guardar', 'error');
     }
-    showToast(overrideStatus === 'published' ? 'Curso publicado correctamente' : 'Cambios guardados');
   };
 
   const handleModuleChange = (idx: number, updated: Module) => {

@@ -186,37 +186,60 @@ const DocumentUpload: React.FC = () => {
   const saveCourse = async (status: 'draft' | 'published') => {
     if (!generatedCourse) return;
 
-    await createCourse({
-      title: courseConfig.title || generatedCourse.title,
-      description: generatedCourse.description,
-      modules: generatedCourse.modules.map((m: any, idx: number) => ({
-        id: `mod-${Date.now()}-${idx}`,
-        courseId: '',
-        title: m.title,
-        description: m.description,
-        order: idx + 1,
-        estimatedDuration: 15,
-        slides: m.slides.map((s: any, sIdx: number) => ({
-          id: `slide-${Date.now()}-${idx}-${sIdx}`,
-          moduleId: '',
-          title: s.title,
-          content: s.content,
-          order: sIdx + 1,
-          type: s.type,
-          imageUrl: s.imageUrl,
-          keyPoints: s.keyPoints,
-          scenario: s.scenario,
-          outcome: s.outcome,
-          highlight: s.highlight,
+    try {
+      await createCourse({
+        title: courseConfig.title || generatedCourse.title,
+        description: generatedCourse.description,
+        modules: generatedCourse.modules.map((m: any, idx: number) => ({
+          id: `mod-${Date.now()}-${idx}`,
+          courseId: '',
+          title: m.title,
+          description: m.description,
+          order: idx + 1,
+          estimatedDuration: 15,
+          slides: m.slides.map((s: any, sIdx: number) => ({
+            id: `slide-${Date.now()}-${idx}-${sIdx}`,
+            moduleId: '',
+            title: s.title,
+            content: s.content,
+            order: sIdx + 1,
+            type: s.type,
+            imageUrl: s.imageUrl,
+            keyPoints: s.keyPoints,
+            scenario: s.scenario,
+            outcome: s.outcome,
+            highlight: s.highlight,
+          })),
+          quiz: {
+            id: `quiz-${Date.now()}-${idx}`,
+            moduleId: '',
+            title: m.quiz.title,
+            passingScore: 70,
+            timeLimit: 10,
+            questions: m.quiz.questions.map((q: any, qIdx: number) => ({
+              id: `q-${Date.now()}-${idx}-${qIdx}`,
+              quizId: '',
+              question: q.question,
+              options: q.options,
+              correctAnswer: q.correctAnswer,
+              explanation: q.explanation,
+              points: q.points
+            }))
+          }
         })),
-        quiz: {
-          id: `quiz-${Date.now()}-${idx}`,
+        category: courseConfig.category,
+        difficulty: courseConfig.difficulty as 'beginner' | 'intermediate' | 'advanced',
+        status,
+        passingScore: 70,
+        estimatedDuration: generatedCourse.estimatedDuration,
+        finalEvaluation: generatedCourse.finalEvaluation ? {
+          id: `final-eval-${Date.now()}`,
           moduleId: '',
-          title: m.quiz.title,
-          passingScore: 70,
-          timeLimit: 10,
-          questions: m.quiz.questions.map((q: any, qIdx: number) => ({
-            id: `q-${Date.now()}-${idx}-${qIdx}`,
+          title: generatedCourse.finalEvaluation.title || 'Evaluación Final',
+          passingScore: generatedCourse.finalEvaluation.passingScore || 70,
+          timeLimit: 30,
+          questions: generatedCourse.finalEvaluation.questions.map((q: any, qIdx: number) => ({
+            id: `q-final-${Date.now()}-${qIdx}`,
             quizId: '',
             question: q.question,
             options: q.options,
@@ -224,33 +247,13 @@ const DocumentUpload: React.FC = () => {
             explanation: q.explanation,
             points: q.points
           }))
-        }
-      })),
-      category: courseConfig.category,
-      difficulty: courseConfig.difficulty as 'beginner' | 'intermediate' | 'advanced',
-      status,
-      passingScore: 70,
-      estimatedDuration: generatedCourse.estimatedDuration,
-      finalEvaluation: generatedCourse.finalEvaluation ? {
-        id: `final-eval-${Date.now()}`,
-        moduleId: '',
-        title: generatedCourse.finalEvaluation.title || 'Evaluación Final',
-        passingScore: generatedCourse.finalEvaluation.passingScore || 70,
-        timeLimit: 30,
-        questions: generatedCourse.finalEvaluation.questions.map((q: any, qIdx: number) => ({
-          id: `q-final-${Date.now()}-${qIdx}`,
-          quizId: '',
-          question: q.question,
-          options: q.options,
-          correctAnswer: q.correctAnswer,
-          explanation: q.explanation,
-          points: q.points
-        }))
-      } : undefined,
-      studyGuide: generatedCourse.studyGuide
-    });
-
-    navigate('/admin/courses');
+        } : undefined,
+        studyGuide: generatedCourse.studyGuide
+      });
+      navigate('/admin/courses');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al guardar el curso. Intenta de nuevo.');
+    }
   };
 
   const removeFile = () => {
@@ -403,6 +406,19 @@ const DocumentUpload: React.FC = () => {
                 value={courseConfig.difficulty}
                 onChange={(e) => setCourseConfig({ ...courseConfig, difficulty: e.target.value })}
                 options={difficulties}
+              />
+              <Select
+                label="Número de Módulos"
+                value={String(courseConfig.numModules)}
+                onChange={(e) => setCourseConfig({ ...courseConfig, numModules: Number(e.target.value) })}
+                options={[
+                  { value: '3', label: '3 módulos' },
+                  { value: '4', label: '4 módulos' },
+                  { value: '5', label: '5 módulos (recomendado)' },
+                  { value: '6', label: '6 módulos' },
+                  { value: '7', label: '7 módulos' },
+                  { value: '8', label: '8 módulos' },
+                ]}
               />
             </div>
 
