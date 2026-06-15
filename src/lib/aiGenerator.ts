@@ -1,4 +1,4 @@
-import { GeneratedModule } from '@/types';
+import { GeneratedModule, GeneratedQuestion } from '@/types';
 import { supabase } from '@/lib/supabase';
 
 // Límite de texto enviado a la API para no exceder el contexto del modelo
@@ -182,6 +182,77 @@ const parseAIResponse = (content: string): Omit<AIGeneratedCourse, 'estimatedDur
     description: String(course.description || ''),
     modules
   };
+};
+
+/**
+ * Llama a la Edge Function en modo "questions" para generar preguntas de opción
+ * múltiple a partir del texto de las diapositivas de un curso.
+ */
+export const generateQuestionsWithAI = async (
+  slideTexts: string,
+  numQuestions: number,
+  config: { difficulty: string; category: string }
+): Promise<GeneratedQuestion[]> => {
+  if (!isAIConfigured()) {
+    throw new Error('La generación con IA requiere configurar Supabase.');
+  }
+
+  const { data, error } = await supabase.functions.invoke('generate-course', {
+    body: {
+      mode: 'questions',
+      slideTexts,
+      numQuestions,
+      difficulty: config.difficulty,
+      category: config.category,
+    },
+  });
+
+  if (error) {
+    const ctx = (error as unknown as { context?: unknown }).context;
+    let realMsg = error.message;
+    if (ctx !== null && ctx !== undefined) {
+      if (typeof ctx === 'string') {
+        try { realMsg = (JSON.parse(ctx) as { error?: string }).error ?? ctx; } catch { realMsg = ctx; }
+      } else if (typeof ctx === 'object' && (ctx as Record<string, unknown>).error) {
+        realMsg = String((ctx as Record<string, unknown>).error);
+      }
+    }
+    throw new Error(`No se pudieron generar las preguntas: ${realMsg}`);
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawQuestions: any[] = Array.isArray(data?.questions) ? data.questions : [];
+
+  if (rawQuestions.length === 0) {
+    throw new Error('La IA no devolvió preguntas. Intenta de nuevo.');
+  }
+
+  // Validate and normalise each question
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const validated: GeneratedQuestion[] = rawQuestions
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((q: any) =>
+      typeof q?.question === 'string' &&
+      Array.isArray(q?.options) &&
+      q.options.length === 4 &&
+      typeof q?.correctAnswer === 'number' &&
+      q.correctAnswer >= 0 &&
+      q.correctAnswer <= 3
+    )
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((q: any): GeneratedQuestion => ({
+      question: String(q.question),
+      options: (q.options as unknown[]).slice(0, 4).map(String),
+      correctAnswer: Math.min(Math.max(Number(q.correctAnswer), 0), 3),
+      explanation: String(q.explanation ?? ''),
+      points: 10,
+    }));
+
+  if (validated.length === 0) {
+    throw new Error('Las preguntas generadas no pasaron la validación. Intenta de nuevo.');
+  }
+
+  return validated;
 };
 
 // Prueba la conexión con la API de DeepSeek

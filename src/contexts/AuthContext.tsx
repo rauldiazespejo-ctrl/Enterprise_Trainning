@@ -16,9 +16,9 @@ interface AuthContextType {
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
   // Gestión de usuarios (admin)
-  addUser: (data: Omit<User, 'id' | 'createdAt'>) => { success: boolean; error?: string };
-  updateUser: (id: string, updates: Partial<User>) => void;
-  deleteUser: (id: string) => void;
+  addUser: (data: Omit<User, 'id' | 'createdAt'>) => Promise<{ success: boolean; error?: string }>;
+  updateUser: (id: string, updates: Partial<User>) => Promise<void>;
+  deleteUser: (id: string) => Promise<void>;
   // Privilegios exclusivos super_admin
   promoteToAdmin: (userId: string) => Promise<{ success: boolean; error?: string }>;
   demoteToEmployee: (userId: string) => Promise<{ success: boolean; error?: string }>;
@@ -70,11 +70,22 @@ const demoUsers: User[] = [
 const seedUsers = import.meta.env.DEV ? demoUsers : [];
 const isSupabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
-// Nunca exponer la contraseña en la sesión ni en el estado del usuario activo
 const sanitize = (u: User): User => {
   const { password: _password, ...safe } = u;
   return safe;
 };
+
+const mapProfile = (p: Record<string, unknown>): User => ({
+  id: p.id as string,
+  rut: (p.rut as string) ?? undefined,
+  email: p.email as string,
+  name: p.name as string,
+  role: p.role as UserRole,
+  department: (p.department as string) ?? undefined,
+  position: (p.position as string) ?? undefined,
+  createdAt: new Date(p.created_at as string),
+  status: p.status as 'active' | 'inactive'
+});
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [users, setUsers] = useState<User[]>(() => loadFromStorage(STORAGE_KEYS.users, seedUsers));
@@ -82,11 +93,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [isLoading, setIsLoading] = useState(true);
   const isSuperAdmin = user?.role === 'super_admin';
 
-  // Persistir usuarios ante cualquier cambio
   useEffect(() => {
     if (!import.meta.env.DEV) return;
     saveToStorage(STORAGE_KEYS.users, users);
   }, [users]);
+
+  // Cargar usuarios desde Supabase al montar
+  useEffect(() => {
+    if (!isSupabaseConfigured) return;
+    const loadProfiles = async () => {
+      const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (data && data.length > 0) {
+        setUsers(data.map(p => mapProfile(p as Record<string, unknown>)));
+      }
+    };
+    void loadProfiles();
+  }, []);
 
   // Verificar sesión almacenada al cargar
   useEffect(() => {
@@ -96,17 +118,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (data.session?.user) {
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).single();
           if (profile) {
-            setUser({
-              id: profile.id,
-              rut: profile.rut ?? undefined,
-              email: profile.email,
-              name: profile.name,
-              role: profile.role,
-              department: profile.department ?? undefined,
-              position: profile.position ?? undefined,
-              createdAt: new Date(profile.created_at),
-              status: profile.status
-            });
+            setUser(mapProfile(profile as Record<string, unknown>));
           }
         }
         setIsLoading(false);
@@ -141,17 +153,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsLoading(false);
           return { success: false, error: 'La cuenta no tiene un perfil habilitado.' };
         }
-        setUser({
-          id: profile.id,
-          rut: profile.rut ?? undefined,
-          email: profile.email,
-          name: profile.name,
-          role: profile.role,
-          department: profile.department ?? undefined,
-          position: profile.position ?? undefined,
-          createdAt: new Date(profile.created_at),
-          status: profile.status
-        });
+        setUser(mapProfile(profile as Record<string, unknown>));
         setIsLoading(false);
         return { success: true };
       }
@@ -245,33 +247,68 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   // --- Gestión de usuarios (admin) ---
 
-  const addUser = (data: Omit<User, 'id' | 'createdAt'>): { success: boolean; error?: string } => {
-    if (!import.meta.env.DEV) {
-      return { success: false, error: 'La creación segura de usuarios debe realizarse desde una función administrativa.' };
-    }
+  const addUser = async (data: Omit<User, 'id' | 'createdAt'>): Promise<{ success: boolean; error?: string }> => {
     const exists = users.find(u => u.email.toLowerCase() === data.email.toLowerCase());
     if (exists) {
       return { success: false, error: 'Ya existe un usuario con ese correo' };
     }
 
+    const newId = uuidv4();
     const newUser: User = {
       ...data,
-      id: uuidv4(),
+      id: newId,
       createdAt: new Date(),
       status: data.status || 'active'
     };
     setUsers(prev => [...prev, newUser]);
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('profiles').insert({
+        id: newId,
+        email: data.email,
+        name: data.name,
+        role: data.role || 'employee',
+        department: data.department ?? null,
+        position: data.position ?? null,
+        rut: data.rut ?? null,
+        status: data.status || 'active',
+        organization_id: '00000000-0000-0000-0000-000000000001'
+      });
+      if (error) {
+        console.warn('Supabase profile insert error:', error.message);
+      }
+    }
+
     return { success: true };
   };
 
-  const updateUser = (id: string, updates: Partial<User>): void => {
-    if (!import.meta.env.DEV) return;
+  const updateUser = async (id: string, updates: Partial<User>): Promise<void> => {
     setUsers(prev => prev.map(u => (u.id === id ? { ...u, ...updates } : u)));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('profiles').update({
+        name: updates.name,
+        department: updates.department ?? null,
+        position: updates.position ?? null,
+        status: updates.status,
+        role: updates.role,
+        rut: updates.rut ?? null
+      }).eq('id', id);
+      if (error) {
+        console.warn('Supabase profile update error:', error.message);
+      }
+    }
   };
 
-  const deleteUser = (id: string): void => {
-    if (!import.meta.env.DEV) return;
+  const deleteUser = async (id: string): Promise<void> => {
     setUsers(prev => prev.filter(u => u.id !== id));
+
+    if (isSupabaseConfigured) {
+      const { error } = await supabase.from('profiles').delete().eq('id', id);
+      if (error) {
+        console.warn('Supabase profile delete error:', error.message);
+      }
+    }
   };
 
   // ── Super Admin: cambiar rol a admin ──────────────────────────────────────
@@ -301,18 +338,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const getAllUsers = async (): Promise<User[]> => {
     if (!isSupabaseConfigured) return users;
     const { data, error } = await supabase.from('profiles').select('*').order('name');
-    if (error || !data) return [];
-    return data.map((p: Record<string, unknown>) => ({
-      id: p.id as string,
-      rut: p.rut as string | undefined,
-      email: p.email as string,
-      name: p.name as string,
-      role: p.role as UserRole,
-      department: p.department as string | undefined,
-      position: p.position as string | undefined,
-      createdAt: new Date(p.created_at as string),
-      status: p.status as 'active' | 'inactive'
-    }));
+    if (error || !data) return users;
+    return data.map(p => mapProfile(p as Record<string, unknown>));
   };
 
   return (

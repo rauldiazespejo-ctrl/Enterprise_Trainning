@@ -4,7 +4,9 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-const buildSystemPrompt = (numModules: number, difficulty: string, category: string): string => {
+// ─── System prompt: full course generation ────────────────────────────────────
+
+const buildCourseSystemPrompt = (numModules: number, difficulty: string, category: string): string => {
   const difficultyInstruction =
     difficulty === 'beginner'
       ? 'Usa lenguaje simple y accesible, sin jerga técnica. Explica todos los conceptos desde cero.'
@@ -63,7 +65,7 @@ ESQUEMA JSON EXACTO A DEVOLVER:
           "title": "Título del concepto (máx 5 palabras)",
           "type": "concept",
           "content": "Definición directa usando una analogía poderosa en máximo 2 oraciones cortas.",
-          "imageUrl": "https://image.pollinations.ai/prompt/mining%20safety%20helmet?width=800&height=400&nologo=true (EJEMPLO: prompt en INGLÉS)",
+          "imageUrl": "https://image.pollinations.ai/prompt/mining%20safety%20helmet?width=800&height=400&nologo=true",
           "keyPoints": [
             "Punto clave 1 (máx. 10 palabras)",
             "Punto clave 2 (máx. 10 palabras)",
@@ -118,7 +120,6 @@ ESQUEMA JSON EXACTO A DEVOLVER:
             "explanation": "El por qué profundo de esta respuesta, destruyendo los mitos de por qué las otras son incorrectas.",
             "points": 10
           }
-          // (Generar 5 preguntas en total para el quiz)
         ]
       }
     }
@@ -134,7 +135,6 @@ ESQUEMA JSON EXACTO A DEVOLVER:
         "explanation": "Explicación magistral.",
         "points": 10
       }
-      // Generar entre 10 y 15 preguntas altamente desafiantes basadas en escenarios
     ]
   }
 }
@@ -149,6 +149,27 @@ REGLAS CRÍTICAS:
 7. Devuelve ÚNICAMENTE el JSON válido, sin markdown ni texto extra.`;
 };
 
+// ─── System prompt: quiz questions from slide texts ───────────────────────────
+
+const buildQuestionsSystemPrompt = (
+  numQuestions: number,
+  difficulty: string,
+  category: string
+): string =>
+  `Eres un evaluador experto. Tu tarea es generar exactamente ${numQuestions} preguntas de opción múltiple en español basadas ÚNICAMENTE en el siguiente contenido de una presentación.
+
+REGLAS:
+- Cada pregunta debe tener exactamente 4 opciones (A, B, C, D)
+- Varía el índice de la respuesta correcta (correctAnswer: 0, 1, 2 o 3)
+- Las preguntas deben ser sobre escenarios prácticos, no solo definiciones
+- Dificultad: ${difficulty}
+- Contexto/categoría: ${category}
+
+DEVUELVE ÚNICAMENTE este JSON válido, sin texto extra:
+{"questions": [{"question": "...", "options": ["...","...","...","..."], "correctAnswer": 0, "explanation": "Por qué esta respuesta es correcta."}]}`;
+
+// ─── Main handler ─────────────────────────────────────────────────────────────
+
 Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -159,20 +180,9 @@ Deno.serve(async (request) => {
     if (!apiKey) throw new Error('DEEPSEEK_API_KEY no está configurada.');
 
     const body = await request.json();
-    const documentText = typeof body.documentText === 'string' ? body.documentText.trim() : '';
-    const healthcheck = body.healthcheck === true;
-    const numModules: number = typeof body.numModules === 'number' && body.numModules > 0 ? body.numModules : 5;
-    const difficulty: string = typeof body.difficulty === 'string' ? body.difficulty : 'intermediate';
-    const category: string = typeof body.category === 'string' ? body.category : 'general';
 
-    if (!healthcheck && (documentText.length < 200 || documentText.length > 500000)) {
-      return Response.json({ error: 'Documento inválido o fuera del límite permitido.' }, {
-        status: 400,
-        headers: corsHeaders,
-      });
-    }
-
-    if (healthcheck) {
+    // ── Healthcheck ──────────────────────────────────────────────────────────
+    if (body.healthcheck === true) {
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
         headers: {
@@ -196,17 +206,104 @@ Deno.serve(async (request) => {
       }
 
       const data = await response.json();
-      return Response.json({
-        content: data?.choices?.[0]?.message?.content ?? '',
-      }, { headers: corsHeaders });
+      return Response.json(
+        { content: data?.choices?.[0]?.message?.content ?? '' },
+        { headers: corsHeaders }
+      );
+    }
+
+    const mode: string = typeof body.mode === 'string' ? body.mode : 'course';
+
+    // ── Mode: questions ──────────────────────────────────────────────────────
+    if (mode === 'questions') {
+      const slideTexts: string =
+        typeof body.slideTexts === 'string' ? body.slideTexts.trim() : '';
+      const numQuestions: number =
+        typeof body.numQuestions === 'number' && body.numQuestions > 0
+          ? body.numQuestions
+          : 10;
+      const difficulty: string =
+        typeof body.difficulty === 'string' ? body.difficulty : 'intermediate';
+      const category: string =
+        typeof body.category === 'string' ? body.category : 'general';
+
+      if (!slideTexts) {
+        return Response.json(
+          { error: 'slideTexts es requerido para el modo questions.' },
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      const systemPrompt = buildQuestionsSystemPrompt(numQuestions, difficulty, category);
+
+      const response = await fetch('https://api.deepseek.com/chat/completions', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'deepseek-chat',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: slideTexts },
+          ],
+          response_format: { type: 'json_object' },
+          temperature: 0.7,
+          max_tokens: 3000,
+        }),
+      });
+
+      if (!response.ok) {
+        const errText = await response.text().catch(() => '');
+        return Response.json(
+          { error: `El proveedor de IA respondió ${response.status}. ${errText}` },
+          { status: 502, headers: corsHeaders }
+        );
+      }
+
+      const data = await response.json();
+      const contentText: string = data?.choices?.[0]?.message?.content ?? '{}';
+
+      let parsed: Record<string, unknown>;
+      try {
+        parsed = JSON.parse(contentText);
+      } catch {
+        const match = contentText.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error('La IA no devolvió un JSON válido de preguntas.');
+        parsed = JSON.parse(match[0]);
+      }
+
+      const questions = Array.isArray(parsed.questions) ? parsed.questions : [];
+      return Response.json({ questions }, { headers: corsHeaders });
+    }
+
+    // ── Mode: course (default / backward compat) ─────────────────────────────
+    const documentText =
+      typeof body.documentText === 'string' ? body.documentText.trim() : '';
+    const numModules: number =
+      typeof body.numModules === 'number' && body.numModules > 0 ? body.numModules : 5;
+    const difficulty: string =
+      typeof body.difficulty === 'string' ? body.difficulty : 'intermediate';
+    const category: string =
+      typeof body.category === 'string' ? body.category : 'general';
+
+    if (documentText.length < 200 || documentText.length > 500000) {
+      return Response.json(
+        { error: 'Documento inválido o fuera del límite permitido.' },
+        { status: 400, headers: corsHeaders }
+      );
     }
 
     const maxChunkLength = 40000;
-    const textChunks = [];
+    const textChunks: string[] = [];
     let currentChunk = '';
     const lines = documentText.split('\n');
     for (const line of lines) {
-      if (currentChunk.length + line.length + 1 > maxChunkLength && currentChunk.length > 0) {
+      if (
+        currentChunk.length + line.length + 1 > maxChunkLength &&
+        currentChunk.length > 0
+      ) {
         textChunks.push(currentChunk);
         currentChunk = '';
       }
@@ -216,25 +313,32 @@ Deno.serve(async (request) => {
       textChunks.push(currentChunk);
     }
 
-    let allModules = [];
+    // deno-lint-ignore no-explicit-any
+    let allModules: any[] = [];
     let courseTitle = '';
     let courseDescription = '';
-    
+
     let remainingModulesToGenerate = Math.max(numModules, textChunks.length);
     const totalModules = remainingModulesToGenerate;
 
     for (let i = 0; i < textChunks.length; i++) {
       const chunk = textChunks[i];
-      const modulesForThisChunk = i === textChunks.length - 1 
-        ? remainingModulesToGenerate 
-        : Math.ceil(totalModules / textChunks.length);
-      
+      const modulesForThisChunk =
+        i === textChunks.length - 1
+          ? remainingModulesToGenerate
+          : Math.ceil(totalModules / textChunks.length);
+
       remainingModulesToGenerate -= modulesForThisChunk;
 
-      const startModuleIdx = totalModules - remainingModulesToGenerate - modulesForThisChunk + 1;
+      const startModuleIdx =
+        totalModules - remainingModulesToGenerate - modulesForThisChunk + 1;
       const endModuleIdx = totalModules - remainingModulesToGenerate;
 
-      const systemPrompt = buildSystemPrompt(modulesForThisChunk, difficulty, category);
+      const systemPrompt = buildCourseSystemPrompt(
+        modulesForThisChunk,
+        difficulty,
+        category
+      );
 
       const response = await fetch('https://api.deepseek.com/chat/completions', {
         method: 'POST',
@@ -248,26 +352,32 @@ Deno.serve(async (request) => {
             { role: 'system', content: systemPrompt },
             {
               role: 'user',
-              content: `Genera ${modulesForThisChunk} módulos (del módulo ${startModuleIdx} al ${endModuleIdx}) con 5 diapositivas por módulo a partir de este documento (Parte ${i + 1} de ${textChunks.length}):\n\n${chunk}`
+              content: `Genera ${modulesForThisChunk} módulos (del módulo ${startModuleIdx} al ${endModuleIdx}) con 5 diapositivas por módulo a partir de este documento (Parte ${
+                i + 1
+              } de ${textChunks.length}):\n\n${chunk}`,
             },
           ],
           response_format: { type: 'json_object' },
           temperature: 0.5,
-          max_tokens: 8000,
+          max_tokens: 6000,
         }),
       });
 
       if (!response.ok) {
         const errText = await response.text().catch(() => '');
         return Response.json(
-          { error: `El proveedor de IA respondió ${response.status} en la parte ${i + 1}. ${errText}` },
+          {
+            error: `El proveedor de IA respondió ${response.status} en la parte ${
+              i + 1
+            }. ${errText}`,
+          },
           { status: 502, headers: corsHeaders }
         );
       }
 
       const data = await response.json();
-      const contentText = data?.choices?.[0]?.message?.content ?? '{}';
-      
+      const contentText: string = data?.choices?.[0]?.message?.content ?? '{}';
+
       try {
         const parsed = JSON.parse(contentText);
         if (i === 0) {
@@ -280,22 +390,24 @@ Deno.serve(async (request) => {
           allModules = allModules.concat(parsed.course.modules);
         }
       } catch (e) {
-        console.error("Error parsing JSON from DeepSeek for chunk", i, e);
+        console.error('Error parsing JSON from DeepSeek for chunk', i, e);
       }
     }
 
     const finalCourse = {
       title: courseTitle,
       description: courseDescription,
-      modules: allModules
+      modules: allModules,
     };
 
-    return Response.json({
-      content: JSON.stringify(finalCourse)
-    }, { headers: corsHeaders });
+    return Response.json(
+      { content: JSON.stringify(finalCourse) },
+      { headers: corsHeaders }
+    );
   } catch (error) {
-    return Response.json({
-      error: error instanceof Error ? error.message : 'Error inesperado.',
-    }, { status: 500, headers: corsHeaders });
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Error inesperado.' },
+      { status: 500, headers: corsHeaders }
+    );
   }
 });

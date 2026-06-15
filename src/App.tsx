@@ -1,5 +1,5 @@
 // Aplicación principal CapacitaPro
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CourseProvider } from '@/contexts/CourseContext';
@@ -16,6 +16,9 @@ import EmployeeManagement from '@/pages/admin/EmployeeManagement';
 import CertificateManagement from '@/pages/admin/CertificateManagement';
 import Reports from '@/pages/admin/Reports';
 import SettingsPage from '@/pages/admin/Settings';
+
+// Páginas lazy-loaded
+const TrainingMatrix = lazy(() => import('@/pages/admin/TrainingMatrix'));
 
 // Páginas del Empleado
 import EmployeeDashboard from '@/pages/employee/EmployeeDashboard';
@@ -149,6 +152,20 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="admin">
             <CourseViewer />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/matrix"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <Suspense fallback={
+              <div className="min-h-screen flex items-center justify-center bg-[#0D1321]">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
+              </div>
+            }>
+              <TrainingMatrix />
+            </Suspense>
           </ProtectedRoute>
         }
       />

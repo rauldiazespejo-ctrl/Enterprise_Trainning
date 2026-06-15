@@ -15,7 +15,8 @@ import {
   Sparkles,
   GraduationCap,
   Crown,
-  Shield
+  Shield,
+  LayoutGrid
 } from 'lucide-react';
 import { SoldesPLogoSmall } from '@/components/SoldesPLogo';
 
@@ -34,6 +35,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
     { path: '/admin/assignments', icon: UserCheck, label: 'Asignaciones' },
     { path: '/admin/certificates', icon: Award, label: 'Certificados' },
     { path: '/admin/reports', icon: BarChart3, label: 'Reportes' },
+    { path: '/admin/matrix', icon: LayoutGrid, label: 'Matriz' },
     { path: '/admin/documents', icon: FileText, label: 'Documentos' },
     { path: '/admin/settings', icon: Settings, label: 'Configuración' }
   ];

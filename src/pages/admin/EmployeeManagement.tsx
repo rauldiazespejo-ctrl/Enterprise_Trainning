@@ -21,6 +21,7 @@ import {
 
 interface EmployeeForm {
   name: string;
+  rut: string;
   email: string;
   department: string;
   position: string;
@@ -30,6 +31,7 @@ interface EmployeeForm {
 
 const emptyForm: EmployeeForm = {
   name: '',
+  rut: '',
   email: '',
   department: '',
   position: '',
@@ -84,6 +86,7 @@ const EmployeeManagement: React.FC = () => {
     setEditingId(employee.id);
     setForm({
       name: employee.name,
+      rut: employee.rut || '',
       email: employee.email,
       department: employee.department || '',
       position: employee.position || '',
@@ -94,7 +97,7 @@ const EmployeeManagement: React.FC = () => {
     setShowFormModal(true);
   };
 
-  const saveEmployee = () => {
+  const saveEmployee = async () => {
     if (!form.name.trim() || !form.email.trim()) {
       setFormError('Nombre y correo son obligatorios');
       return;
@@ -103,6 +106,7 @@ const EmployeeManagement: React.FC = () => {
     if (editingId) {
       const updates: Partial<User> = {
         name: form.name.trim(),
+        rut: form.rut.trim() || undefined,
         email: form.email.trim(),
         department: form.department.trim() || undefined,
         position: form.position.trim() || undefined,
@@ -111,14 +115,15 @@ const EmployeeManagement: React.FC = () => {
       if (form.password.trim()) {
         updates.password = form.password.trim();
       }
-      updateUser(editingId, updates);
+      await updateUser(editingId, updates);
     } else {
       if (!form.password.trim()) {
         setFormError('Define una contraseña inicial para el empleado');
         return;
       }
-      const result = addUser({
+      const result = await addUser({
         name: form.name.trim(),
+        rut: form.rut.trim() || undefined,
         email: form.email.trim(),
         role: 'employee',
         department: form.department.trim() || undefined,
@@ -136,9 +141,9 @@ const EmployeeManagement: React.FC = () => {
     setShowFormModal(false);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedEmployee) {
-      deleteUser(selectedEmployee.id);
+      await deleteUser(selectedEmployee.id);
       setShowDeleteModal(false);
       setSelectedEmployee(null);
     }
@@ -183,9 +188,9 @@ const EmployeeManagement: React.FC = () => {
     setImportError('');
     try {
       if (import.meta.env.DEV) {
-        const credentials = importRows.map(row => {
+        const credentials = await Promise.all(importRows.map(async row => {
           const password = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
-          addUser({
+          await addUser({
             rut: row.rut,
             name: row.name,
             email: row.email,
@@ -197,7 +202,7 @@ const EmployeeManagement: React.FC = () => {
             avatar: ''
           });
           return { rut: row.rut, name: row.name, email: row.email, password };
-        });
+        }));
         downloadCredentialsCsv(credentials);
       } else {
         const { data, error } = await supabase.functions.invoke('import-workers', { body: { workers: importRows } });
@@ -472,6 +477,16 @@ const EmployeeManagement: React.FC = () => {
             />
           </div>
           <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">RUT</label>
+            <input
+              type="text"
+              value={form.rut}
+              onChange={(e) => setForm({ ...form, rut: e.target.value })}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              placeholder="Ej. 12.345.678-9"
+            />
+          </div>
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Correo electrónico *</label>
             <input
               type="email"
@@ -537,7 +552,7 @@ const EmployeeManagement: React.FC = () => {
             <Button variant="outline" onClick={() => setShowFormModal(false)}>
               Cancelar
             </Button>
-            <Button onClick={saveEmployee}>
+            <Button onClick={() => void saveEmployee()}>
               {editingId ? 'Guardar Cambios' : 'Crear Empleado'}
             </Button>
           </div>
