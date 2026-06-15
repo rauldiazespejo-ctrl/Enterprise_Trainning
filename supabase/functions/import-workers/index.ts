@@ -40,7 +40,7 @@ Deno.serve(async request => {
 
     const credentials = [];
     for (const worker of workers) {
-      const password = randomPassword();
+      const password = worker.password || randomPassword();
       const { data, error } = await adminClient.auth.admin.createUser({
         email: worker.email,
         password,

@@ -4,6 +4,7 @@ export interface EmployeeImportRow {
   position: string;
   department: string;
   email: string;
+  password: string;
 }
 
 const normalizeText = (value: unknown): string => String(value ?? '').trim();
@@ -12,9 +13,20 @@ export const normalizeRut = (rut: string): string =>
   rut.replace(/\./g, '').replace(/\s/g, '').toUpperCase();
 
 export const isValidRut = (rut: string): boolean => {
-  const normalized = normalizeRut(rut);
-  if (!/^\d{7,8}-[\dK]$/.test(normalized)) return false;
-  const [body, verifier] = normalized.split('-');
+  const clean = normalizeRut(rut);
+  let body: string, dv: string;
+  if (clean.includes('-')) {
+    const parts = clean.split('-');
+    if (parts.length !== 2) return false;
+    [body, dv] = parts;
+  } else {
+    // Sin guión: último carácter es el dígito verificador
+    if (clean.length < 8 || clean.length > 9) return false;
+    body = clean.slice(0, -1);
+    dv = clean.slice(-1);
+  }
+  if (!/^\d{7,8}$/.test(body)) return false;
+  if (!/^[\dK]$/.test(dv)) return false;
   let sum = 0;
   let multiplier = 2;
   for (let index = body.length - 1; index >= 0; index -= 1) {
@@ -23,7 +35,14 @@ export const isValidRut = (rut: string): boolean => {
   }
   const result = 11 - (sum % 11);
   const expected = result === 11 ? '0' : result === 10 ? 'K' : String(result);
-  return verifier === expected;
+  return dv === expected;
+};
+
+/** Retorna el cuerpo del RUT sin el dígito verificador (contraseña inicial). */
+export const rutBodyNoDv = (rut: string): string => {
+  const clean = normalizeRut(rut);
+  if (clean.includes('-')) return clean.split('-')[0];
+  return clean.slice(0, -1);
 };
 
 export const employeeEmailFromRut = (rut: string): string =>
@@ -66,7 +85,8 @@ export const parseEmployeeWorkbook = async (file: File): Promise<EmployeeImportR
       name,
       position: normalizeText(row.CARGO),
       department: normalizeText(row.AREA),
-      email: employeeEmailFromRut(rut)
+      email: employeeEmailFromRut(rut),
+      password: rutBodyNoDv(normalizedRut)
     };
   });
 };

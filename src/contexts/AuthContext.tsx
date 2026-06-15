@@ -28,46 +28,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Usuarios iniciales (se cargan solo la primera vez, luego viven en localStorage)
-const demoUsers: User[] = [
-  {
-    id: 'admin-001',
-    email: 'admin@capacitapro.com',
-    name: 'Administrador',
-    role: 'admin',
-    department: 'Recursos Humanos',
-    position: 'Gerente de Capacitación',
-    createdAt: new Date('2026-01-01'),
-    avatar: '',
-    password: 'admin123',
-    status: 'active'
-  },
-  {
-    id: 'emp-001',
-    email: 'empleado@capacitapro.com',
-    name: 'María García',
-    role: 'employee',
-    department: 'Ventas',
-    position: 'Ejecutivo de Ventas',
-    createdAt: new Date('2026-02-15'),
-    avatar: '',
-    password: 'empleado123',
-    status: 'active'
-  },
-  {
-    id: 'emp-002',
-    email: 'juan@capacitapro.com',
-    name: 'Juan Pérez',
-    role: 'employee',
-    department: 'Marketing',
-    position: 'Analista de Marketing',
-    createdAt: new Date('2026-03-01'),
-    avatar: '',
-    password: 'empleado123',
-    status: 'active'
-  }
-];
-const seedUsers = import.meta.env.DEV ? demoUsers : [];
+const seedUsers: User[] = [];
 const isSupabaseConfigured = Boolean(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
 
 const sanitize = (u: User): User => {
@@ -263,19 +224,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setUsers(prev => [...prev, newUser]);
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('profiles').insert({
-        id: newId,
-        email: data.email,
+      const worker = {
+        rut: data.rut || '',
         name: data.name,
-        role: data.role || 'employee',
-        department: data.department ?? null,
-        position: data.position ?? null,
-        rut: data.rut ?? null,
-        status: data.status || 'active',
-        organization_id: '00000000-0000-0000-0000-000000000001'
+        email: data.email,
+        position: data.position || '',
+        department: data.department || '',
+        password: data.password || undefined
+      };
+      const { error } = await supabase.functions.invoke('import-workers', {
+        body: { workers: [worker] }
       });
       if (error) {
-        console.warn('Supabase profile insert error:', error.message);
+        console.warn('Error creating Supabase auth user:', error.message);
+        return { success: false, error: 'No se pudo crear la cuenta en el sistema de acceso.' };
       }
     }
 

@@ -101,21 +101,21 @@ const Login: React.FC = () => {
             <div className="space-y-1">
               <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
                 <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
-                RUT o Correo Electrónico
+                RUT
               </label>
               <input
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="12.345.678-9 o correo@ejemplo.com"
+                placeholder="15422822-5 o 154228225"
                 required
                 autoComplete="username"
-                className="input-modern focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                className="input-modern font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
               />
               {isRutMode && (
                 <p className="text-xs text-emerald-400 flex items-center gap-1 mt-1">
                   <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
-                  RUT detectado — ingresa tu contraseña inicial
+                  RUT reconocido
                 </p>
               )}
             </div>
@@ -129,9 +129,9 @@ const Login: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Tu contraseña"
+                placeholder={isRutMode ? 'RUT sin dígito verificador (ej. 15422822)' : 'Tu contraseña'}
                 required
-                className="input-modern pr-12 focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
               />
               <button
                 type="button"
@@ -172,30 +172,12 @@ const Login: React.FC = () => {
             </Button>
           </form>
 
-          {import.meta.env.DEV && (
-          <div className="mt-6 p-4 bg-[rgba(0,27,75,0.3)] rounded-xl border border-[rgba(0,27,75,0.5)]">
-            <p className="text-xs font-semibold text-[#D15F3D] mb-3 flex items-center gap-2">
-              <div className="w-1.5 h-1.5 bg-[#D15F3D] rounded-full" />
-              CREDENCIALES DE DEMO
+          <div className="mt-5 p-4 bg-[rgba(0,27,75,0.2)] rounded-xl border border-[rgba(0,27,75,0.4)]">
+            <p className="text-xs text-[#9CA3AF] text-center leading-relaxed">
+              <span className="text-[#D15F3D] font-semibold">Usuario:</span> RUT con dígito verificador — <span className="font-mono">15422822-5</span><br />
+              <span className="text-[#D15F3D] font-semibold">Contraseña:</span> RUT sin dígito verificador — <span className="font-mono">15422822</span>
             </p>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between p-2 bg-[rgba(0,27,75,0.3)] rounded-lg">
-                <div>
-                  <span className="text-[10px] text-[#D15F3D] font-semibold uppercase tracking-wider">Admin</span>
-                  <p className="text-xs text-[#D1D5DB]">demo_admin@capacitapro.com</p>
-                </div>
-                <span className="text-xs text-[#9CA3AF] font-mono bg-[#1F2937] px-2 py-1 rounded">admin123</span>
-              </div>
-              <div className="flex items-center justify-between p-2 bg-[rgba(0,27,75,0.3)] rounded-lg">
-                <div>
-                  <span className="text-[10px] text-emerald-400 font-semibold uppercase tracking-wider">Empleado</span>
-                  <p className="text-xs text-[#D1D5DB]">demo_empleado@capacitapro.com</p>
-                </div>
-                <span className="text-xs text-[#9CA3AF] font-mono bg-[#1F2937] px-2 py-1 rounded">empleado123</span>
-              </div>
-            </div>
           </div>
-          )}
         </Card>
 
         {/* Footer */}

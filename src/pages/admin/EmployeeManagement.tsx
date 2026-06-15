@@ -6,7 +6,7 @@ import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { downloadCredentialsCsv, EmployeeImportRow, parseEmployeeWorkbook } from '@/lib/employeeImport';
+import { downloadCredentialsCsv, EmployeeImportRow, parseEmployeeWorkbook, employeeEmailFromRut, isValidRut, normalizeRut, rutBodyNoDv } from '@/lib/employeeImport';
 import {
   Plus,
   Search,
@@ -98,8 +98,23 @@ const EmployeeManagement: React.FC = () => {
   };
 
   const saveEmployee = async () => {
-    if (!form.name.trim() || !form.email.trim()) {
-      setFormError('Nombre y correo son obligatorios');
+    if (!form.name.trim()) {
+      setFormError('El nombre es obligatorio');
+      return;
+    }
+
+    // Derivar email y contraseña del RUT si se proporcionó
+    const rutClean = normalizeRut(form.rut.trim());
+    const rutProvided = form.rut.trim().length > 0;
+    if (rutProvided && !isValidRut(rutClean)) {
+      setFormError('El RUT ingresado no es válido. Ej: 15422822-5 o 154228225');
+      return;
+    }
+    const derivedEmail = rutProvided ? employeeEmailFromRut(rutClean) : form.email.trim();
+    const derivedPassword = rutProvided ? rutBodyNoDv(rutClean) : form.password.trim();
+
+    if (!derivedEmail) {
+      setFormError('Ingresa un RUT o un correo electrónico');
       return;
     }
 
@@ -107,28 +122,21 @@ const EmployeeManagement: React.FC = () => {
       const updates: Partial<User> = {
         name: form.name.trim(),
         rut: form.rut.trim() || undefined,
-        email: form.email.trim(),
+        email: derivedEmail,
         department: form.department.trim() || undefined,
         position: form.position.trim() || undefined,
         status: form.status
       };
-      if (form.password.trim()) {
-        updates.password = form.password.trim();
-      }
       await updateUser(editingId, updates);
     } else {
-      if (!form.password.trim()) {
-        setFormError('Define una contraseña inicial para el empleado');
-        return;
-      }
       const result = await addUser({
         name: form.name.trim(),
         rut: form.rut.trim() || undefined,
-        email: form.email.trim(),
+        email: derivedEmail,
         role: 'employee',
         department: form.department.trim() || undefined,
         position: form.position.trim() || undefined,
-        password: form.password.trim(),
+        password: derivedPassword,
         status: form.status,
         avatar: ''
       });
@@ -189,7 +197,7 @@ const EmployeeManagement: React.FC = () => {
     try {
       if (import.meta.env.DEV) {
         const credentials = await Promise.all(importRows.map(async row => {
-          const password = crypto.randomUUID().replace(/-/g, '').slice(0, 12);
+          const password = row.password;
           await addUser({
             rut: row.rut,
             name: row.name,
@@ -477,24 +485,30 @@ const EmployeeManagement: React.FC = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">RUT</label>
+            <label className="block text-sm font-medium text-slate-700 mb-1">RUT *</label>
             <input
               type="text"
               value={form.rut}
-              onChange={(e) => setForm({ ...form, rut: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
-              placeholder="Ej. 12.345.678-9"
+              onChange={(e) => {
+                const rut = e.target.value;
+                const clean = normalizeRut(rut);
+                const valid = isValidRut(clean);
+                setForm({
+                  ...form,
+                  rut,
+                  email: valid ? employeeEmailFromRut(clean) : form.email,
+                  password: valid ? rutBodyNoDv(clean) : form.password
+                });
+              }}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none font-mono"
+              placeholder="Ej. 15422822-5 o 154228225"
             />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Correo electrónico *</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
-              placeholder="correo@empresa.com"
-            />
+            {form.rut && isValidRut(normalizeRut(form.rut)) && (
+              <p className="text-xs text-emerald-600 mt-1">
+                Acceso: <span className="font-mono">{normalizeRut(form.rut).replace(/\./g, '').replace('-', '')}</span>
+                {' '}/ Clave inicial: <span className="font-mono">{rutBodyNoDv(normalizeRut(form.rut))}</span>
+              </p>
+            )}
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -518,30 +532,16 @@ const EmployeeManagement: React.FC = () => {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña inicial *'}
-              </label>
-              <input
-                type="password"
-                value={form.password}
-                onChange={(e) => setForm({ ...form, password: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
-                placeholder={editingId ? 'Dejar en blanco para no cambiar' : 'Mínimo 6 caracteres'}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
-              <select
-                value={form.status}
-                onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
-              >
-                <option value="active">Activo</option>
-                <option value="inactive">Inactivo</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+            <select
+              value={form.status}
+              onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
+            >
+              <option value="active">Activo</option>
+              <option value="inactive">Inactivo</option>
+            </select>
           </div>
 
           {formError && (
