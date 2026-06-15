@@ -193,10 +193,10 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, variant = 'default' }) => {
   const iconColors = {
-    default: 'bg-indigo-500/20 text-indigo-400',
-    primary: 'bg-indigo-500/20 text-indigo-400',
-    success: 'bg-emerald-500/20 text-emerald-400',
-    warning: 'bg-amber-500/20 text-amber-400'
+    default: 'bg-[#D15F3D]/15 text-[#D15F3D]',
+    primary: 'bg-[#D15F3D]/15 text-[#D15F3D]',
+    success: 'bg-emerald-500/15 text-emerald-400',
+    warning: 'bg-amber-500/15 text-amber-400'
   };
 
   return (

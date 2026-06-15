@@ -1,22 +1,9 @@
-// Componente Sidebar - Premium Dark Theme con logo original SoldesP
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Home,
-  BookOpen,
-  Users,
-  Award,
-  Settings,
-  LogOut,
-  FileText,
-  BarChart3,
-  UserCheck,
-  Sparkles,
-  GraduationCap,
-  Crown,
-  Shield,
-  LayoutGrid
+  Home, BookOpen, Users, Award, Settings, LogOut, FileText,
+  BarChart3, UserCheck, GraduationCap, Crown, Shield, LayoutGrid,
 } from 'lucide-react';
 import { SoldesPLogoSmall } from '@/components/SoldesPLogo';
 
@@ -24,115 +11,96 @@ interface SidebarProps {
   isAdmin?: boolean;
 }
 
+const adminLinks = [
+  { path: '/admin',              icon: Home,       label: 'Dashboard'     },
+  { path: '/admin/courses',      icon: BookOpen,   label: 'Cursos'        },
+  { path: '/admin/employees',    icon: Users,      label: 'Empleados'     },
+  { path: '/admin/assignments',  icon: UserCheck,  label: 'Asignaciones'  },
+  { path: '/admin/certificates', icon: Award,      label: 'Certificados'  },
+  { path: '/admin/reports',      icon: BarChart3,  label: 'Reportes'      },
+  { path: '/admin/matrix',       icon: LayoutGrid, label: 'Matriz'        },
+  { path: '/admin/documents',    icon: FileText,   label: 'Documentos'    },
+  { path: '/admin/settings',     icon: Settings,   label: 'Configuración' },
+];
+
+const employeeLinks = [
+  { path: '/employee',              icon: Home,     label: 'Mi Aprendizaje' },
+  { path: '/employee/courses',      icon: BookOpen, label: 'Mis Cursos'     },
+  { path: '/employee/certificates', icon: Award,    label: 'Certificados'   },
+  { path: '/employee/profile',      icon: Settings, label: 'Mi Perfil'      },
+];
+
 const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const { user, logout, isSuperAdmin } = useAuth();
   const location = useLocation();
-
-  const adminLinks = [
-    { path: '/admin', icon: Home, label: 'Dashboard' },
-    { path: '/admin/courses', icon: BookOpen, label: 'Cursos' },
-    { path: '/admin/employees', icon: Users, label: 'Empleados' },
-    { path: '/admin/assignments', icon: UserCheck, label: 'Asignaciones' },
-    { path: '/admin/certificates', icon: Award, label: 'Certificados' },
-    { path: '/admin/reports', icon: BarChart3, label: 'Reportes' },
-    { path: '/admin/matrix', icon: LayoutGrid, label: 'Matriz' },
-    { path: '/admin/documents', icon: FileText, label: 'Documentos' },
-    { path: '/admin/settings', icon: Settings, label: 'Configuración' }
-  ];
-
-  const employeeLinks = [
-    { path: '/employee', icon: Home, label: 'Mi Aprendizaje' },
-    { path: '/employee/courses', icon: BookOpen, label: 'Mis Cursos' },
-    { path: '/employee/certificates', icon: Award, label: 'Certificados' },
-    { path: '/employee/profile', icon: Settings, label: 'Mi Perfil' }
-  ];
-
   const links = isAdmin ? adminLinks : employeeLinks;
 
+  const roleLabel = isSuperAdmin ? 'Super Admin' : isAdmin ? 'Administrador' : 'Empleado';
+  const roleBadgeClass = isSuperAdmin
+    ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
+    : isAdmin
+    ? 'bg-[#D15F3D]/15 text-[#D15F3D] border-[#D15F3D]/30'
+    : 'bg-slate-700/50 text-slate-400 border-slate-600/50';
+
   return (
-    <aside className="w-72 bg-[#111827] text-white min-h-screen flex flex-col border-r border-[rgba(209,95,61,0.15)] relative overflow-hidden">
-      {/* Decorative Top Gradient */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[rgba(209,95,61,0.1)] to-transparent pointer-events-none" />
-
-      {/* Logo Header */}
-      <div className="p-6 border-b border-[rgba(255,255,255,0.05)] relative">
-        <div className="flex items-center gap-4">
-          {/* Logo Original SoldesP */}
-          <div className="relative w-24 shrink-0">
-            <SoldesPLogoSmall size={96} />
-          </div>
-
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <span className="gradient-text">CapacitaPro</span>
-            </h1>
-            <p className="text-xs text-[#9CA3AF] flex items-center gap-2 mt-1">
-              <Sparkles className="w-3 h-3 text-[#D15F3D]" />
-              {isAdmin ? 'Panel de Administración' : 'Portal del Empleado'}
-            </p>
-          </div>
+    <aside className="sidebar-root w-64 flex flex-col min-h-screen select-none">
+      {/* ── Logo ─────────────────────────────────────────────────── */}
+      <div className="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/[0.05]">
+        <div className="shrink-0">
+          <SoldesPLogoSmall size={44} />
         </div>
-
-        {/* Powered by SoldesP */}
-        <div className="mt-4 flex items-center gap-2 px-3 py-2 bg-[rgba(0,27,75,0.3)] rounded-lg border border-[rgba(0,27,75,0.5)]">
-          <div className="w-2 h-2 bg-[#D15F3D] rounded-full animate-pulse" />
-          <span className="text-[10px] text-[#9CA3AF] font-medium tracking-wider uppercase">Powered by SoldesP</span>
+        <div>
+          <p className="text-[15px] font-bold tracking-tight text-white leading-tight">
+            Capacita<span className="text-[#D15F3D]">Pro</span>
+          </p>
+          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+            {isAdmin ? 'Administración' : 'Portal Empleado'}
+          </p>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 overflow-y-auto">
-        {/* Super Admin Section */}
+      {/* ── Navigation ───────────────────────────────────────────── */}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto space-y-5">
+
+        {/* Super Admin */}
         {isSuperAdmin && (
-          <div className="mb-4">
-            <p className="text-[10px] text-yellow-500 font-semibold uppercase tracking-wider px-4 mb-2 flex items-center gap-1">
-              <Crown className="w-3 h-3" /> Super Admin
+          <div>
+            <p className="sidebar-section-label flex items-center gap-1.5">
+              <Crown className="w-3 h-3 text-yellow-500" /> Super Admin
             </p>
-            <ul className="space-y-1">
+            <ul className="space-y-0.5">
               <li>
                 <Link
                   to="/super-admin"
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                    location.pathname === '/super-admin'
-                      ? 'bg-gradient-to-r from-yellow-600 to-yellow-500 text-black shadow-lg shadow-yellow-500/30'
-                      : 'text-yellow-400 hover:bg-yellow-500/10 hover:text-yellow-300'
-                  }`}
+                  className={`sidebar-item ${location.pathname === '/super-admin' ? 'sidebar-item-active sidebar-item-active--gold' : 'text-yellow-400/80 hover:text-yellow-300 hover:bg-yellow-500/8'}`}
                 >
-                  <div className={`p-1.5 rounded-lg ${location.pathname === '/super-admin' ? 'bg-black/20' : 'bg-yellow-500/10 group-hover:bg-yellow-500/20'}`}>
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <span className="font-medium">Gestión de Admins</span>
-                  {location.pathname === '/super-admin' && <div className="ml-auto w-1.5 h-1.5 bg-black rounded-full" />}
+                  <span className={`sidebar-icon ${location.pathname === '/super-admin' ? 'bg-black/20' : 'bg-yellow-500/10'}`}>
+                    <Shield className="w-4 h-4" />
+                  </span>
+                  <span>Gestión de Admins</span>
                 </Link>
               </li>
             </ul>
           </div>
         )}
 
-        <div className="mb-4">
-          <p className="text-[10px] text-[#64748B] font-semibold uppercase tracking-wider px-4 mb-2">Menú Principal</p>
-          <ul className="space-y-1">
-            {links.map((link) => {
-              const Icon = link.icon;
-              const isActive = location.pathname === link.path;
-
+        {/* Main Links */}
+        <div>
+          <p className="sidebar-section-label">Navegación</p>
+          <ul className="space-y-0.5">
+            {links.map(({ path, icon: Icon, label }) => {
+              const active = location.pathname === path;
               return (
-                <li key={link.path}>
+                <li key={path}>
                   <Link
-                    to={link.path}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-                      isActive
-                        ? 'bg-gradient-to-r from-[#D15F3D] to-[#B34E2D] text-white shadow-lg shadow-[rgba(209,95,61,0.3)]'
-                        : 'text-[#9CA3AF] hover:bg-[rgba(209,95,61,0.1)] hover:text-white'
-                    }`}
+                    to={path}
+                    className={`sidebar-item ${active ? 'sidebar-item-active' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'}`}
                   >
-                    <div className={`p-1.5 rounded-lg ${isActive ? 'bg-white/20' : 'bg-[rgba(0,27,75,0.3)] group-hover:bg-[rgba(209,95,61,0.2)]'}`}>
-                      <Icon className="w-5 h-5" />
-                    </div>
-                    <span className="font-medium">{link.label}</span>
-                    {isActive && (
-                      <div className="ml-auto w-1.5 h-1.5 bg-white rounded-full" />
-                    )}
+                    <span className={`sidebar-icon ${active ? 'bg-white/20' : 'bg-white/[0.04] group-hover:bg-[#D15F3D]/10'}`}>
+                      <Icon className="w-4 h-4" />
+                    </span>
+                    <span>{label}</span>
+                    {active && <span className="sidebar-active-dot" />}
                   </Link>
                 </li>
               );
@@ -141,38 +109,40 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
         </div>
       </nav>
 
-      {/* User Info & Logout */}
-      <div className="p-4 border-t border-[rgba(255,255,255,0.05)]">
-        {/* User Card */}
-        <div className="flex items-center gap-3 p-3 bg-[rgba(0,27,75,0.3)] rounded-xl border border-[rgba(0,27,75,0.5)] mb-3">
-          <div className="w-11 h-11 avatar text-sm border-2 border-[#D15F3D]">
+      {/* ── User ─────────────────────────────────────────────────── */}
+      <div className="px-3 pb-4 border-t border-white/[0.05] pt-4 space-y-2">
+        {/* User card */}
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-white text-sm truncate">{user?.name}</p>
-            <p className="text-xs text-[#9CA3AF] truncate">{user?.email}</p>
+            <p className="text-sm font-semibold text-white truncate leading-tight">{user?.name}</p>
+            <span className={`inline-flex items-center mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${roleBadgeClass}`}>
+              {roleLabel}
+            </span>
           </div>
-          <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
         </div>
 
-        {/* Logout Button */}
+        {/* Logout */}
         <button
           onClick={logout}
-          className="flex items-center gap-2 w-full px-4 py-3 text-[#9CA3AF] hover:text-white hover:bg-[rgba(239,68,68,0.1)] rounded-xl transition-all duration-200 border border-transparent hover:border-[rgba(239,68,68,0.3)]"
+          className="sidebar-item w-full text-slate-500 hover:text-red-400 hover:bg-red-500/[0.08]"
         >
-          <div className="p-1.5 bg-[rgba(239,68,68,0.1)] rounded-lg">
-            <LogOut className="w-4 h-4 text-red-400" />
-          </div>
-          <span className="font-medium">Cerrar Sesión</span>
+          <span className="sidebar-icon bg-red-500/[0.08]">
+            <LogOut className="w-4 h-4 text-red-400/70" />
+          </span>
+          <span>Cerrar Sesión</span>
         </button>
       </div>
 
-      {/* Bottom Brand */}
-      <div className="p-4 border-t border-[rgba(255,255,255,0.05)] bg-[rgba(0,27,75,0.2)]">
-        <div className="flex items-center justify-center gap-2 text-[#64748B]">
-          <GraduationCap className="w-4 h-4 text-[#D15F3D]" />
-          <span className="text-xs">© 2026 SoldesP</span>
-        </div>
+      {/* ── Footer brand ─────────────────────────────────────────── */}
+      <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-center gap-1.5">
+        <GraduationCap className="w-3.5 h-3.5 text-[#D15F3D]/60" />
+        <span className="text-[10px] text-slate-600 font-medium tracking-wider uppercase">
+          © 2026 SoldesP
+        </span>
       </div>
     </aside>
   );
