@@ -267,21 +267,17 @@ export const db = {
         id: u.id,
         name: u.name || (u.email ? u.email.split('@')[0] : 'Usuario'),
         department: u.department || 'General',
-        progress: u.progress || Math.floor(Math.random() * 100)
+        progress: u.progress || 0
       }));
 
       const recentCourses = (recentCoursesData || []).map((c) => ({
         id: c.id,
         title: c.title,
-        enrolled: c.enrolled || Math.floor(Math.random() * 20),
-        completion: c.completion || Math.floor(Math.random() * 100)
+        enrolled: c.enrolled || 0,
+        completion: c.completion || 0
       }));
 
-      const recentActivity = [
-        { id: 1, type: 'course_completed', user: 'María García', detail: 'completó el curso de Gestión Empresarial', time: 'Hace 2 horas', icon: 'CheckCircle' },
-        { id: 2, type: 'certificate_issued', user: 'Carlos López', detail: 'Certificado emitido para', time: 'Hace 5 horas', icon: 'Award' },
-        { id: 3, type: 'assignment_created', user: 'Juan Pérez', detail: 'Nueva asignación creada para', time: 'Hace 1 día', icon: 'Clock' }
-      ];
+      const recentActivity: any[] = [];
 
       return {
         data: {
@@ -305,37 +301,50 @@ export const db = {
   async getReportsData() {
     try {
       const stats = await this.getStats();
-      const completionData = [
-        { month: 'Ene', completed: 12, enrolled: 45 },
-        { month: 'Feb', completed: 18, enrolled: 52 },
-        { month: 'Mar', completed: 25, enrolled: 48 },
-        { month: 'Abr', completed: 22, enrolled: 55 },
-        { month: 'May', completed: 30, enrolled: 60 },
-        { month: 'Jun', completed: 28, enrolled: 58 }
-      ];
-      const departmentData = [
-        { department: 'Ventas', courses: 15, employees: 8 },
-        { department: 'Marketing', courses: 12, employees: 6 },
-        { department: 'TI', courses: 20, employees: 10 },
-        { department: 'RH', courses: 8, employees: 4 },
-        { department: 'Finanzas', courses: 10, employees: 5 }
-      ];
-      const topPerformers = [
-        { id: '1', initials: 'AM', name: 'Ana Martínez', department: 'Tecnología', courses: 8, score: '95%', certs: 6 },
-        { id: '2', initials: 'JP', name: 'Juan Pérez', department: 'Marketing', courses: 5, score: '88%', certs: 4 },
-        { id: '3', initials: 'MG', name: 'María García', department: 'Ventas', courses: 3, score: '92%', certs: 2 }
-      ];
       return {
         data: {
           ...(stats.data || {}),
-          completionData,
-          departmentData,
-          topPerformers
+          completionData: [] as any[],
+          departmentData: [] as any[],
+          topPerformers: [] as any[]
         },
         error: null
       };
     } catch (error) {
       return { data: null, error };
+    }
+  },
+
+  async getPendingAssignments() {
+    try {
+      const { data: assignmentsRaw } = await supabase
+        .from('course_assignments')
+        .select('id, user_id, course_id, status, due_date')
+        .neq('status', 'completed')
+        .order('due_date', { ascending: true })
+        .limit(10);
+
+      if (!assignmentsRaw || assignmentsRaw.length === 0) return { data: [], error: null };
+
+      const userIds = [...new Set(assignmentsRaw.map((a: any) => a.user_id))];
+      const courseIds = [...new Set(assignmentsRaw.map((a: any) => a.course_id))];
+
+      const [{ data: usersData }, { data: coursesData }] = await Promise.all([
+        supabase.from('users').select('id, name').in('id', userIds),
+        supabase.from('courses').select('id, title').in('id', courseIds)
+      ]);
+
+      const result = assignmentsRaw.map((a: any) => ({
+        id: a.id,
+        employeeName: (usersData as any[])?.find(u => u.id === a.user_id)?.name || 'Empleado',
+        courseTitle: (coursesData as any[])?.find(c => c.id === a.course_id)?.title || 'Curso',
+        dueDate: a.due_date as string | null,
+        status: a.status as 'pending' | 'in_progress'
+      }));
+
+      return { data: result, error: null };
+    } catch (error) {
+      return { data: [], error };
     }
   }
 };

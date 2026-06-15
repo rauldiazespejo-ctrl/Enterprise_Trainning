@@ -185,135 +185,6 @@ function mapCertificateToSupabase(c: Certificate): Record<string, any> {
 // ---------------------------------------------------------------------------
 // Cursos de demostración (usados cuando Supabase no está disponible)
 // ---------------------------------------------------------------------------
-const demoCourses: Course[] = [
-  {
-    id: 'course-001',
-    title: 'Fundamentos de Gestión Empresarial',
-    description: 'Aprende los conceptos básicos de administración y gestión de empresas.',
-    thumbnail: '',
-    createdBy: 'admin-001',
-    createdAt: new Date('2026-01-15'),
-    updatedAt: new Date('2026-01-15'),
-    status: 'published',
-    passingScore: 70,
-    estimatedDuration: 120,
-    category: 'Gestión',
-    difficulty: 'beginner',
-    modules: [
-      {
-        id: 'mod-001',
-        courseId: 'course-001',
-        title: 'Introducción a la Gestión',
-        description: 'Conceptos fundamentales de la administración',
-        order: 1,
-        estimatedDuration: 30,
-        slides: [
-          { id: 'slide-001', moduleId: 'mod-001', title: '¿Qué es la Gestión?', content: 'La gestión es el proceso de planificar, organizar, dirigir y controlar los recursos de una organización.', order: 1, type: 'content' },
-          { id: 'slide-002', moduleId: 'mod-001', title: 'Funciones del Gerente', content: 'Las cuatro funciones principales son: Planificación, Organización, Dirección y Control.', order: 2, type: 'content' },
-          { id: 'slide-003', moduleId: 'mod-001', title: 'Resumen', content: 'La gestión empresarial es esencial para el éxito de cualquier organización.', order: 3, type: 'summary' }
-        ],
-        quiz: {
-          id: 'quiz-001',
-          moduleId: 'mod-001',
-          title: 'Quiz: Introducción a la Gestión',
-          passingScore: 70,
-          timeLimit: 10,
-          questions: [
-            { id: 'q-001', quizId: 'quiz-001', question: '¿Cuál no es una función del gerente?', options: ['Planificación', 'Espionaje', 'Dirección', 'Control'], correctAnswer: 1, explanation: 'Espionaje no es una función de gestión', points: 20 },
-            { id: 'q-002', quizId: 'quiz-001', question: 'La gestión implica:', options: ['Solo planificar', 'Administrar recursos', 'Ignorar empleados', 'Evitar cambios'], correctAnswer: 1, explanation: 'La gestión implica administrar recursos', points: 20 }
-          ]
-        }
-      },
-      {
-        id: 'mod-002',
-        courseId: 'course-001',
-        title: 'Planificación Estratégica',
-        description: 'Aprende a desarrollar planes estratégicos efectivos',
-        order: 2,
-        estimatedDuration: 30,
-        slides: [
-          { id: 'slide-004', moduleId: 'mod-002', title: '¿Qué es la Planificación?', content: 'La planificación es el proceso de establecer objetivos y determinar las acciones necesarias para alcanzarlos.', order: 1, type: 'content' },
-          { id: 'slide-005', moduleId: 'mod-002', title: 'Tipos de Planificación', content: 'Existe planificación estratégica, táctica y operativa.', order: 2, type: 'content' },
-          { id: 'slide-006', moduleId: 'mod-002', title: 'Resumen', content: 'La planificación es crucial para el éxito organizacional.', order: 3, type: 'summary' }
-        ],
-        quiz: {
-          id: 'quiz-002',
-          moduleId: 'mod-002',
-          title: 'Quiz: Planificación Estratégica',
-          passingScore: 70,
-          timeLimit: 10,
-          questions: [
-            { id: 'q-003', quizId: 'quiz-002', question: 'La planificación estratégica se enfoca en:', options: ['Corto plazo', 'Largo plazo', 'Día a día', 'Pasado'], correctAnswer: 1, explanation: 'La planificación estratégica se enfoca en el largo plazo', points: 20 }
-          ]
-        }
-      }
-    ]
-  },
-  {
-    id: 'course-002',
-    title: 'Comunicación Efectiva en el Trabajo',
-    description: 'Mejora tus habilidades de comunicación profesional.',
-    thumbnail: '',
-    createdBy: 'admin-001',
-    createdAt: new Date('2026-02-01'),
-    updatedAt: new Date('2026-02-01'),
-    status: 'published',
-    passingScore: 70,
-    estimatedDuration: 90,
-    category: 'Habilidades Blandas',
-    difficulty: 'beginner',
-    modules: [
-      {
-        id: 'mod-003',
-        courseId: 'course-002',
-        title: 'Fundamentos de la Comunicación',
-        description: 'Aprende los conceptos básicos de la comunicación efectiva',
-        order: 1,
-        estimatedDuration: 25,
-        slides: [
-          { id: 'slide-007', moduleId: 'mod-003', title: 'El Proceso Comunicativo', content: 'La comunicación implica emisor, mensaje, canal, receptor y retroalimentación.', order: 1, type: 'content' },
-          { id: 'slide-008', moduleId: 'mod-003', title: 'Barreras de la Comunicación', content: 'Las barreras incluyen: ruido, falta de claridad, filtros, emociones.', order: 2, type: 'content' },
-          { id: 'slide-009', moduleId: 'mod-003', title: 'Resumen', content: 'La comunicación efectiva requiere claridad y atención.', order: 3, type: 'summary' }
-        ],
-        quiz: {
-          id: 'quiz-003',
-          moduleId: 'mod-003',
-          title: 'Quiz: Comunicación',
-          passingScore: 70,
-          timeLimit: 10,
-          questions: [
-            { id: 'q-004', quizId: 'quiz-003', question: '¿Cuál no es parte del proceso comunicativo?', options: ['Emisor', 'Receptor', 'Bloqueo', 'Mensaje'], correctAnswer: 2, explanation: 'Bloqueo no es un elemento del proceso', points: 20 }
-          ]
-        }
-      }
-    ]
-  }
-];
-
-// Asignaciones de demostración
-const demoAssignments: CourseAssignment[] = [
-  {
-    id: 'assign-001',
-    courseId: 'course-001',
-    userId: 'emp-001',
-    assignedBy: 'admin-001',
-    assignedAt: new Date('2026-03-01'),
-    dueDate: new Date('2026-03-15'),
-    status: 'in_progress',
-    progress: 50
-  },
-  {
-    id: 'assign-002',
-    courseId: 'course-002',
-    userId: 'emp-001',
-    assignedBy: 'admin-001',
-    assignedAt: new Date('2026-03-05'),
-    dueDate: new Date('2026-03-20'),
-    status: 'pending',
-    progress: 0
-  }
-];
-
 // Certificados de demostración
 const demoCertificates: Certificate[] = [];
 
@@ -323,8 +194,8 @@ const demoCertificates: Certificate[] = [];
 
 export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [courses, setCourses] = useState<Course[]>(() => loadFromStorage(STORAGE_KEYS.courses, demoCourses));
-  const [assignments, setAssignments] = useState<CourseAssignment[]>(() => loadFromStorage(STORAGE_KEYS.assignments, demoAssignments));
+  const [courses, setCourses] = useState<Course[]>(() => loadFromStorage(STORAGE_KEYS.courses, []));
+  const [assignments, setAssignments] = useState<CourseAssignment[]>(() => loadFromStorage(STORAGE_KEYS.assignments, []));
   const [certificates, setCertificates] = useState<Certificate[]>(() => loadFromStorage(STORAGE_KEYS.certificates, demoCertificates));
   const [currentCourse, setCurrentCourse] = useState<Course | null>(null);
   const [currentModule, setCurrentModule] = useState<Module | null>(null);
@@ -336,10 +207,8 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         const { data, error } = await db.getCoursesWithModules();
         if (error) throw error;
-        if (data && data.length > 0) {
-          const mapped = (data as Record<string, unknown>[]).map(mapSupabaseToCourse);
-          setCourses(mapped);
-        }
+        const mapped = (data as Record<string, unknown>[] || []).map(mapSupabaseToCourse);
+        setCourses(mapped);
       } catch (err) {
         console.warn('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
       }
@@ -354,9 +223,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         // Cargar asignaciones
         const { data: assignData } = await db.getAssignmentsByUser(user.id);
-        if (assignData && assignData.length > 0) {
-          setAssignments(assignData.map(mapSupabaseToAssignment));
-        }
+        setAssignments((assignData || []).map(mapSupabaseToAssignment));
 
         // Cargar certificados
         const { data: certData } = await db.getCertificateByUser(user.id);

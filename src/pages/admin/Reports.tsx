@@ -46,14 +46,19 @@ const Reports: React.FC = () => {
 
 
   // Componente simple de gráfico de barras
-  const SimpleBarChart = ({ data, dataKey, fill }: { data: any[]; dataKey: string; fill: string }) => (
+  const SimpleBarChart = ({ data, dataKey, fill }: { data: any[]; dataKey: string; fill: string }) => {
+    if (!data || data.length === 0) return (
+      <div className="h-48 flex items-center justify-center text-slate-500 text-sm">Sin datos disponibles</div>
+    );
+    const maxVal = Math.max(...data.map(d => d[dataKey]), 1);
+    return (
     <div className="flex items-end justify-around h-48 gap-2">
       {data.map((item, idx) => (
         <div key={idx} className="flex flex-col items-center">
           <div
             className="w-12 rounded-t-lg transition-all hover:opacity-80"
             style={{
-              height: `${(item[dataKey] / Math.max(...data.map(d => d[dataKey]))) * 160}px`,
+              height: `${(item[dataKey] / maxVal) * 160}px`,
               backgroundColor: fill
             }}
           />
@@ -61,10 +66,17 @@ const Reports: React.FC = () => {
         </div>
       ))}
     </div>
-  );
+    );
+  };
 
   // Componente simple de gráfico de línea
-  const SimpleLineChart = ({ data }: { data: any[] }) => (
+  const SimpleLineChart = ({ data }: { data: any[] }) => {
+    if (!data || data.length === 0) return (
+      <div className="h-48 flex items-center justify-center text-slate-500 text-sm">Sin datos disponibles</div>
+    );
+    const maxEnrolled = Math.max(...data.map(d => d.enrolled), 1);
+    const maxCompleted = Math.max(...data.map(d => d.completed), 1);
+    return (
     <div className="h-48 flex items-end justify-around gap-4">
       {data.map((item, idx) => (
         <div key={idx} className="flex flex-col items-center">
@@ -72,14 +84,14 @@ const Reports: React.FC = () => {
             <div
               className="w-6 rounded-t-lg transition-all hover:opacity-80"
               style={{
-                height: `${(item.enrolled / Math.max(...data.map(d => d.enrolled))) * 100}px`,
-                backgroundColor: '#6366F1'
+                height: `${(item.enrolled / maxEnrolled) * 100}px`,
+                backgroundColor: '#D15F3D'
               }}
             />
             <div
               className="w-6 rounded-t-lg transition-all hover:opacity-80"
               style={{
-                height: `${(item.completed / Math.max(...data.map(d => d.completed))) * 100}px`,
+                height: `${(item.completed / maxCompleted) * 100}px`,
                 backgroundColor: '#10B981'
               }}
             />
@@ -88,7 +100,8 @@ const Reports: React.FC = () => {
         </div>
       ))}
     </div>
-  );
+    );
+  };
 
   return (
     <MainLayout title="Reportes" subtitle="Estadísticas y análisis de la plataforma" isAdmin>
@@ -215,6 +228,13 @@ const Reports: React.FC = () => {
                     <td className="px-4 py-3 text-sm text-slate-300">{perf.certs}</td>
                   </tr>
                 ))}
+                {(!topPerformers || topPerformers.length === 0) && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-slate-500 text-sm">
+                      Sin datos de desempeño disponibles
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -223,8 +243,8 @@ const Reports: React.FC = () => {
         {/* Recent Activity */}
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Actividad Reciente</h3>
-                    <div className="space-y-3">
-            {recentActivity && recentActivity.map((act: any) => (
+          <div className="space-y-3">
+            {recentActivity && recentActivity.length > 0 ? recentActivity.map((act: any) => (
               <div key={act.id} className="flex items-center gap-4 p-3 glass rounded-xl">
                 <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-[#D15F3D]/15 text-[#D15F3D]' : 'bg-purple-500/20 text-purple-400'}`}>
                   {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
@@ -236,7 +256,9 @@ const Reports: React.FC = () => {
                   <p className="text-xs text-slate-400">{act.time}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-slate-500 text-center py-4">Sin actividad reciente</p>
+            )}
           </div>
         </Card>
       </div>

@@ -24,21 +24,26 @@ const AdminDashboard: React.FC = () => {
   const { user } = useAuth();
   const [stats, setStats] = React.useState<any>(null);
   const [loading, setLoading] = React.useState(true);
+  const [pendingAssignments, setPendingAssignments] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     let mounted = true;
-    const fetchStats = async () => {
-      const { data } = await db.getStats();
-      if (mounted && data) {
-        setStats(data);
+    const fetchAll = async () => {
+      const [{ data }, { data: pending }] = await Promise.all([
+        db.getStats(),
+        db.getPendingAssignments()
+      ]);
+      if (mounted) {
+        if (data) setStats(data);
+        setPendingAssignments(pending || []);
         setLoading(false);
       }
     };
-    fetchStats();
+    fetchAll();
     return () => { mounted = false; };
   }, []);
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
         <div className="flex items-center justify-center min-h-[60vh]">
@@ -48,7 +53,15 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  const { totalEmployees, activeCourses, totalAssignments, totalCertificates, completionRate, recentEmployees, recentCourses, recentActivity } = stats;
+  const {
+    totalEmployees = 0,
+    activeCourses = 0,
+    totalCertificates = 0,
+    completionRate = 0,
+    recentEmployees = [],
+    recentCourses = [],
+    recentActivity = []
+  } = stats || {};
 
   return (
     <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
@@ -179,30 +192,27 @@ const AdminDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                <tr className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm text-white">María García</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Fundamentos de Gestión</td>
-                  <td className="px-4 py-3 text-sm text-slate-400">15 Mar 2026</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="warning">En Progreso</Badge>
-                  </td>
-                </tr>
-                <tr className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm text-white">Juan Pérez</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Comunicación Efectiva</td>
-                  <td className="px-4 py-3 text-sm text-slate-400">20 Mar 2026</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="default">Pendiente</Badge>
-                  </td>
-                </tr>
-                <tr className="hover:bg-slate-800/30 transition-colors">
-                  <td className="px-4 py-3 text-sm text-white">Ana Martínez</td>
-                  <td className="px-4 py-3 text-sm text-slate-300">Liderazgo y Motivación</td>
-                  <td className="px-4 py-3 text-sm text-slate-400">25 Mar 2026</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="success">Completado</Badge>
-                  </td>
-                </tr>
+                {pendingAssignments.map((a) => (
+                  <tr key={a.id} className="border-b border-slate-700/50 hover:bg-slate-800/30 transition-colors">
+                    <td className="px-4 py-3 text-sm text-white">{a.employeeName}</td>
+                    <td className="px-4 py-3 text-sm text-slate-300">{a.courseTitle}</td>
+                    <td className="px-4 py-3 text-sm text-slate-400">
+                      {a.dueDate ? new Date(a.dueDate).toLocaleDateString('es-ES') : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Badge variant={a.status === 'in_progress' ? 'warning' : 'default'}>
+                        {a.status === 'in_progress' ? 'En Progreso' : 'Pendiente'}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+                {pendingAssignments.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-8 text-center text-slate-500 text-sm">
+                      No hay asignaciones pendientes
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -212,7 +222,7 @@ const AdminDashboard: React.FC = () => {
         <Card className="p-6">
           <h3 className="text-lg font-semibold text-white mb-4">Actividad Reciente</h3>
           <div className="space-y-3">
-            {recentActivity && recentActivity.map((act: any) => (
+            {recentActivity && recentActivity.length > 0 ? recentActivity.map((act: any) => (
               <div key={act.id} className="flex items-center gap-3 p-3 glass rounded-xl">
                 <div className={`p-2 rounded-xl ${act.icon === 'CheckCircle' ? 'bg-emerald-500/20 text-emerald-400' : act.icon === 'Award' ? 'bg-[#D15F3D]/15 text-[#D15F3D]' : 'bg-amber-500/20 text-amber-400'}`}>
                   {act.icon === 'CheckCircle' && <CheckCircle className="w-4 h-4" />}
@@ -224,7 +234,9 @@ const AdminDashboard: React.FC = () => {
                   <p className="text-xs text-slate-400">{act.time}</p>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-slate-500 text-center py-4">Sin actividad reciente</p>
+            )}
           </div>
         </Card>
       </div>
