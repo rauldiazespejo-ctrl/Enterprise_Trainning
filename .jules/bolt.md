@@ -1,0 +1,3 @@
+## 2024-06-16 - [Frontend Optimization]
+**Learning:** React components dealing with large lists (e.g. users, employees) in this codebase were recalculating derived states (like `filteredEmployees` and `counts`) synchronously during every render. When combined with text inputs (e.g., search bars), this O(N) calculation blocks the main thread, leading to noticeable input latency (lag) for admins.
+**Action:** Always wrap derived list computations using `.filter()`, `.map()`, or aggregations inside `useMemo()` to prevent unnecessary recalculations across renders, especially when the inputs to the function (the list itself or the search string) haven't changed.
