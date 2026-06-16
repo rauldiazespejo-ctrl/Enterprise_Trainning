@@ -99,11 +99,12 @@ const Login: React.FC = () => {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
+              <label htmlFor="identifier" className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
                 <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
                 RUT
               </label>
               <input
+                id="identifier"
                 type="text"
                 value={identifier}
                 onChange={(e) => setIdentifier(e.target.value)}
@@ -121,11 +122,12 @@ const Login: React.FC = () => {
             </div>
 
             <div className="space-y-1 relative">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
+              <label htmlFor="password" className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
                 <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
                 Contraseña
               </label>
               <input
+                id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -136,6 +138,7 @@ const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
