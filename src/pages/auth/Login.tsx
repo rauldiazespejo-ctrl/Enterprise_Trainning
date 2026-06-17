@@ -230,14 +230,20 @@ const Login: React.FC = () => {
     setIsLoading(false);
   };
 
-  // Show welcome screen then redirect
+  // Step 1: resolve 'loading' → actual name
   React.useEffect(() => {
     if (welcomeName === 'loading' && user?.name) {
       setWelcomeName(user.name);
+    }
+  }, [welcomeName, user?.name]);
+
+  // Step 2: once name is resolved, redirect after animation
+  React.useEffect(() => {
+    if (welcomeName && welcomeName !== 'loading') {
       const timer = setTimeout(() => navigate('/'), 2500);
       return () => clearTimeout(timer);
     }
-  }, [welcomeName, user?.name, navigate]);
+  }, [welcomeName, navigate]);
 
   if (welcomeName && welcomeName !== 'loading') {
     return (
