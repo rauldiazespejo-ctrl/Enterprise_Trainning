@@ -671,7 +671,7 @@ const CourseViewer: React.FC = () => {
                             </p>
                             <p className="text-[11px] text-gray-500 mt-0.5">
                               {module.slides?.length || 0} slides
-                              {status?.quizScore !== undefined && ` · ${status.quizScore}%`}
+                              {status?.quizScore != null && ` · ${status.quizScore}%`}
                             </p>
                           </div>
                         </div>

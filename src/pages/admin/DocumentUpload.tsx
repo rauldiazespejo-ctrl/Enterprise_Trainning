@@ -265,41 +265,35 @@ const DocumentUpload: React.FC = () => {
     };
   };
 
-  const uploadDocToStorage = async (file: File): Promise<string | undefined> => {
-    try {
-      const safeName = file.name.replace(/[^a-z0-9._-]/gi, '_');
-      const path = `source-docs/${Date.now()}_${safeName}`;
-      const ext = file.name.split('.').pop()?.toLowerCase();
-      const contentType = ext === 'pdf'
-        ? 'application/pdf'
-        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(path, file, { contentType, upsert: false });
-      if (error || !data) return undefined;
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(data.path);
-      return urlData.publicUrl;
-    } catch {
-      return undefined;
-    }
+  const uploadDocToStorage = async (file: File): Promise<string> => {
+    const safeName = file.name.replace(/[^a-z0-9._-]/gi, '_');
+    const path = `source-docs/${Date.now()}_${safeName}`;
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const contentType = ext === 'pdf'
+      ? 'application/pdf'
+      : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(path, file, { contentType, upsert: false });
+    if (error) throw new Error(`Error subiendo documento: ${error.message}`);
+    if (!data) throw new Error('No se recibió respuesta del servidor al subir documento');
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(data.path);
+    return urlData.publicUrl;
   };
 
-  const uploadPptxToStorage = async (file: File): Promise<string | undefined> => {
-    try {
-      const safeName = file.name.replace(/[^a-z0-9._-]/gi, '_');
-      const path = `pptx/${Date.now()}_${safeName}`;
-      const { data, error } = await supabase.storage
-        .from('documents')
-        .upload(path, file, {
-          contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-          upsert: false,
-        });
-      if (error || !data) return undefined;
-      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(data.path);
-      return urlData.publicUrl;
-    } catch {
-      return undefined;
-    }
+  const uploadPptxToStorage = async (file: File): Promise<string> => {
+    const safeName = file.name.replace(/[^a-z0-9._-]/gi, '_');
+    const path = `pptx/${Date.now()}_${safeName}`;
+    const { data, error } = await supabase.storage
+      .from('documents')
+      .upload(path, file, {
+        contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        upsert: false,
+      });
+    if (error) throw new Error(`Error subiendo PPTX: ${error.message}`);
+    if (!data) throw new Error('No se recibió respuesta del servidor al subir PPTX');
+    const { data: urlData } = supabase.storage.from('documents').getPublicUrl(data.path);
+    return urlData.publicUrl;
   };
 
   const uploadBase64ToStorage = async (
@@ -322,7 +316,8 @@ const DocumentUpload: React.FC = () => {
       .from('documents')
       .upload(path, blob, { contentType: mime, upsert: false });
 
-    if (error || !data) return dataUrl;
+    if (error) throw new Error(`Error subiendo imagen de diapositiva: ${error.message}`);
+    if (!data) throw new Error('No se recibió respuesta al subir imagen');
     const { data: urlData } = supabase.storage.from('documents').getPublicUrl(data.path);
     return urlData.publicUrl;
   };
