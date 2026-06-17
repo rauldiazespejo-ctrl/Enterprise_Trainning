@@ -43,9 +43,17 @@ async function extractSlideImages(zip: JSZip, slidePath: string): Promise<string
 
   const relsXml = await relsFile.async('string');
   const imageTargets: string[] = [];
-  const re = /<Relationship[^>]+Type="[^"]*\/image"[^>]+Target="([^"]+)"/gi;
-  let m = re.exec(relsXml);
-  while (m) { imageTargets.push(m[1]); m = re.exec(relsXml); }
+
+  const relRe = /<Relationship\s[^>]*>/gi;
+  let rm = relRe.exec(relsXml);
+  while (rm) {
+    const tag = rm[0];
+    if (/Type="[^"]*\/image"/i.test(tag)) {
+      const targetMatch = tag.match(/Target="([^"]+)"/i);
+      if (targetMatch) imageTargets.push(targetMatch[1]);
+    }
+    rm = relRe.exec(relsXml);
+  }
 
   const images: string[] = [];
   for (const target of imageTargets.slice(0, 6)) {
