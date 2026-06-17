@@ -168,7 +168,11 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
           {title && (
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-white">{title}</h2>
-              <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+              <button
+                onClick={onClose}
+                className="text-slate-400 hover:text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 rounded-lg p-0.5"
+                aria-label="Cerrar"
+              >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
