@@ -1,13 +1,51 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+// Allowed origins for CORS validation
+const getAllowedOrigins = (): string[] => {
+  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
+  if (envOrigins) {
+    return envOrigins.split(',').map(o => o.trim());
+  }
+  // Default allowed origins for development
+  return [
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ];
+};
+
+const isOriginAllowed = (origin: string | null): boolean => {
+  if (!origin) return false;
+  const allowed = getAllowedOrigins();
+  return allowed.includes(origin);
+};
+
+const buildCorsHeaders = (origin: string | null): Record<string, string> => {
+  const allowedOrigin = isOriginAllowed(origin) ? origin : '';
+  return {
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
 };
 
 serve(async (req) => {
-  // Handle CORS
+  const origin = req.headers.get('origin');
+  const corsHeaders = buildCorsHeaders(origin);
+
+  // Reject if origin is not allowed
+  if (origin && !isOriginAllowed(origin)) {
+    console.log(`CORS rejected for origin: ${origin}`);
+    return new Response(
+      JSON.stringify({ success: false, error: 'Origin not allowed' }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 403,
+      }
+    );
+  }
+
+  // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }

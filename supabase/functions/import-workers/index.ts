@@ -5,6 +5,34 @@ const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
 };
 
+// ─── Rate Limiter: 10 req/min per IP ─────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10;
+const RATE_WINDOW_MS = 60_000;
+
+const checkRateLimit = (clientIp: string): { allowed: boolean; remaining: number; resetIn: number } => {
+  const now = Date.now();
+  const entry = rateLimitMap.get(clientIp);
+
+  if (!entry || now >= entry.resetAt) {
+    rateLimitMap.set(clientIp, { count: 1, resetAt: now + RATE_WINDOW_MS });
+    return { allowed: true, remaining: RATE_LIMIT - 1, resetIn: RATE_WINDOW_MS };
+  }
+
+  if (entry.count >= RATE_LIMIT) {
+    return { allowed: false, remaining: 0, resetIn: entry.resetAt - now };
+  }
+
+  entry.count++;
+  return { allowed: true, remaining: RATE_LIMIT - entry.count, resetIn: entry.resetAt - now };
+};
+
+const getClientIp = (request: Request): string => {
+  return request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+         request.headers.get('cf-connecting-ip') ||
+         'unknown';
+};
+
 const randomPassword = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(12));
   return `${Array.from(bytes, value => value.toString(36).slice(-1)).join('')}A7!`;
@@ -12,6 +40,22 @@ const randomPassword = (): string => {
 
 Deno.serve(async request => {
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  // Rate limiting
+  const clientIp = getClientIp(request);
+  const rateCheck = checkRateLimit(clientIp);
+  const rateLimitHeaders = {
+    ...corsHeaders,
+    'X-RateLimit-Limit': String(RATE_LIMIT),
+    'X-RateLimit-Remaining': String(rateCheck.remaining),
+    'X-RateLimit-Reset': String(Math.ceil(rateCheck.resetIn / 1000)),
+  };
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { error: 'Demasiadas solicitudes. Intenta de nuevo en unos minutos.' },
+      { status: 429, headers: rateLimitHeaders }
+    );
+  }
 
   try {
     const authorization = request.headers.get('Authorization');
@@ -67,11 +111,11 @@ Deno.serve(async request => {
       credentials.push({ rut: worker.rut, name: worker.name, email: worker.email, password });
     }
 
-    return Response.json({ imported: credentials.length, credentials }, { headers: corsHeaders });
+    return Response.json({ imported: credentials.length, credentials }, { headers: rateLimitHeaders });
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Error inesperado.' },
-      { status: 400, headers: corsHeaders }
+      { status: 400, headers: rateLimitHeaders }
     );
   }
 });
