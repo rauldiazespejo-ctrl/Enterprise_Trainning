@@ -6,6 +6,9 @@ verify_jwt = true
 [functions.import-workers]
 verify_jwt = true
 
+[functions.manage-user-role]
+verify_jwt = true
+
 [functions.scrape-url]
 enabled = true
 verify_jwt = false

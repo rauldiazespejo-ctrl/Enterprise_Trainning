@@ -31,6 +31,8 @@ export default defineConfig({
         manualChunks: {
           charts: ['recharts'],
           pdf: ['pdfjs-dist'],
+          excel: ['exceljs'],
+          supabase: ['@supabase/supabase-js'],
         },
       },
     },

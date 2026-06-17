@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bell, Search, Menu } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/supabase';
@@ -13,16 +13,28 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
   const { user, isSuperAdmin } = useAuth();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (user?.id) loadNotifications();
-  }, [user]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
     const { data } = await db.getNotifications(user.id);
     if (data) setNotifications(data);
-  };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) loadNotifications();
+  }, [user?.id, loadNotifications]);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+    const handleClick = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [showNotifications]);
 
   const handleMarkAsRead = async (id: string) => {
     await db.markNotificationAsRead(id);
@@ -76,7 +88,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
           </div>
 
           {/* Notifications */}
-          <div className="relative">
+          <div className="relative" ref={notifRef}>
             <button
               onClick={() => setShowNotifications(v => !v)}
               className="relative p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"

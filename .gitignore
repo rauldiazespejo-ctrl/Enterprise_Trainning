@@ -27,4 +27,7 @@ coverage/
 *.sw?
 .vercel
 Credenciales_KMC_CapacitaPro.xlsx
+.env
+.env.local
 .env.production
+.env.*.local

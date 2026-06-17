@@ -1,5 +1,5 @@
 // Contexto para gestión de cursos
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from 'react';
 import { Course, Module, CourseAssignment, Certificate, CourseProgress } from '@/types';
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { db, supabase } from '@/lib/supabase';
@@ -76,6 +76,9 @@ function mapSupabaseToCourse(row: Record<string, unknown>): Course {
     modules: realModules as Module[],
     finalEvaluation: finalEvalModule ? finalEvalModule.quiz : undefined,
     studyGuide: studyGuideModule ? studyGuideModule.studyGuide : undefined,
+    pptxUrl: (row.pptx_url as string) || undefined,
+    sourceDocUrl: (row.source_doc_url as string) || undefined,
+    sourceDocName: (row.source_doc_name as string) || undefined,
   };
 }
 
@@ -126,6 +129,9 @@ function mapCourseToSupabase(
     difficulty: course.difficulty || null,
     modules_data: modulesData,
     updated_at: new Date().toISOString(),
+    ...(course.pptxUrl !== undefined && { pptx_url: course.pptxUrl }),
+    ...(course.sourceDocUrl !== undefined && { source_doc_url: course.sourceDocUrl }),
+    ...(course.sourceDocName !== undefined && { source_doc_name: course.sourceDocName }),
   };
 }
 
@@ -259,6 +265,79 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   useEffect(() => { saveToStorage(STORAGE_KEYS.assignments, assignments); }, [assignments]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.certificates, certificates); }, [certificates]);
   useEffect(() => { saveToStorage(STORAGE_KEYS.progress, progress); }, [progress]);
+
+  // ---------------------------------------------------------------------------
+  // beforeunload — flush pending progress to Supabase
+  // ---------------------------------------------------------------------------
+  const progressRef = useRef(progress);
+  const assignmentsRef = useRef(assignments);
+  const userRef = useRef(user);
+  useEffect(() => { progressRef.current = progress; }, [progress]);
+  useEffect(() => { assignmentsRef.current = assignments; }, [assignments]);
+  useEffect(() => { userRef.current = user; }, [user]);
+
+  const flushProgressOnUnload = useCallback(() => {
+    const currentUser = userRef.current;
+    if (!currentUser) return;
+
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseKey) return;
+
+    const currentProgress = progressRef.current;
+    const rows: Record<string, unknown>[] = [];
+
+    for (const [key, modules] of Object.entries(currentProgress)) {
+      const [userId, courseId] = key.split('-', 2);
+      if (userId !== currentUser.id) continue;
+      for (const mod of modules) {
+        rows.push({
+          user_id: userId,
+          course_id: courseId,
+          module_id: mod.moduleId,
+          completed_slides: mod.completedSlides,
+          completed: mod.completed,
+          quiz_score: mod.quizScore,
+          quiz_attempts: mod.quizAttempts || 0,
+          updated_at: new Date().toISOString()
+        });
+      }
+    }
+
+    if (rows.length === 0) return;
+
+    const url = `${supabaseUrl}/rest/v1/course_progress`;
+    const body = JSON.stringify(rows);
+    const headers = {
+      'Content-Type': 'application/json',
+      'apikey': supabaseKey,
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Prefer': 'resolution=merge-duplicates'
+    };
+
+    const endpoint = `${url}?on_conflict=user_id,course_id,module_id`;
+
+    // sendBeacon cannot send custom headers, so we use sync XHR as the
+    // primary strategy (runs in the beforeunload handler, blocking is OK).
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', endpoint, false);
+      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      xhr.send(body);
+      return;
+    } catch {
+      // sync XHR failed — fall through to sendBeacon as last resort
+    }
+
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon(endpoint, new Blob([body], { type: 'application/json' }));
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('beforeunload', flushProgressOnUnload);
+    return () => window.removeEventListener('beforeunload', flushProgressOnUnload);
+  }, [flushProgressOnUnload]);
 
   // ---------------------------------------------------------------------------
   // Cursos

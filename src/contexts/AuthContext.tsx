@@ -5,21 +5,35 @@ import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+export interface PasswordValidation {
+  valid: boolean;
+  errors: string[];
+}
+
+export function validatePasswordComplexity(password: string): PasswordValidation {
+  const errors: string[] = [];
+  if (password.length < 8) errors.push('Mínimo 8 caracteres');
+  if (!/[A-Z]/.test(password)) errors.push('Al menos una mayúscula');
+  if (!/[a-z]/.test(password)) errors.push('Al menos una minúscula');
+  if (!/\d/.test(password)) errors.push('Al menos un número');
+  if (!/[^A-Za-z0-9]/.test(password)) errors.push('Al menos un carácter especial (!@#$...)');
+  return { valid: errors.length === 0, errors };
+}
+
 interface AuthContextType {
   user: User | null;
   users: User[];
   isAuthenticated: boolean;
   isLoading: boolean;
   isSuperAdmin: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
+  changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<User>) => Promise<void>;
-  // Gestión de usuarios (admin)
   addUser: (data: Omit<User, 'id' | 'createdAt'>) => Promise<{ success: boolean; error?: string }>;
   updateUser: (id: string, updates: Partial<User>) => Promise<void>;
   deleteUser: (id: string) => Promise<void>;
-  // Privilegios exclusivos super_admin
   promoteToAdmin: (userId: string) => Promise<{ success: boolean; error?: string }>;
   demoteToEmployee: (userId: string) => Promise<{ success: boolean; error?: string }>;
   resetUserPassword: (userId: string, newPassword: string) => Promise<{ success: boolean; error?: string }>;
@@ -45,7 +59,8 @@ const mapProfile = (p: Record<string, unknown>): User => ({
   department: (p.department as string) ?? undefined,
   position: (p.position as string) ?? undefined,
   createdAt: new Date(p.created_at as string),
-  status: p.status as 'active' | 'inactive'
+  status: p.status as 'active' | 'inactive',
+  mustChangePassword: (p.must_change_password as boolean) ?? true,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -98,7 +113,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }> => {
     setIsLoading(true);
 
     try {
@@ -114,9 +129,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsLoading(false);
           return { success: false, error: 'La cuenta no tiene un perfil habilitado.' };
         }
-        setUser(mapProfile(profile as Record<string, unknown>));
+        const mapped = mapProfile(profile as Record<string, unknown>);
+        setUser(mapped);
         setIsLoading(false);
-        return { success: true };
+        return { success: true, mustChangePassword: mapped.mustChangePassword };
       }
 
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -142,10 +158,41 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(sessionUser);
       saveToStorage(STORAGE_KEYS.session, sessionUser);
       setIsLoading(false);
-      return { success: true };
+      return { success: true, mustChangePassword: foundUser.mustChangePassword ?? true };
     } catch {
       setIsLoading(false);
       return { success: false, error: 'Error al iniciar sesión' };
+    }
+  };
+
+  const changePassword = async (newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    if (!user) return { success: false, error: 'No hay sesión activa.' };
+
+    const validation = validatePasswordComplexity(newPassword);
+    if (!validation.valid) {
+      return { success: false, error: validation.errors.join('. ') };
+    }
+
+    try {
+      if (isSupabaseConfigured) {
+        const { error: authError } = await supabase.auth.updateUser({ password: newPassword });
+        if (authError) return { success: false, error: authError.message };
+
+        const { error: profileError } = await supabase.from('profiles')
+          .update({ must_change_password: false })
+          .eq('id', user.id);
+        if (profileError) console.warn('Error clearing must_change_password flag:', profileError.message);
+      } else {
+        setUsers(prev => prev.map(u =>
+          u.id === user.id ? { ...u, password: newPassword, mustChangePassword: false } : u
+        ));
+      }
+
+      setUser(prev => prev ? { ...prev, mustChangePassword: false } : null);
+      saveToStorage(STORAGE_KEYS.session, { ...user, mustChangePassword: false });
+      return { success: true };
+    } catch {
+      return { success: false, error: 'Error al cambiar la contraseña.' };
     }
   };
 
@@ -219,7 +266,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       ...data,
       id: newId,
       createdAt: new Date(),
-      status: data.status || 'active'
+      status: data.status || 'active',
+      mustChangePassword: true,
     };
     setUsers(prev => [...prev, newUser]);
 
@@ -313,6 +361,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         isSuperAdmin,
         login,
+        changePassword,
         register,
         logout,
         updateProfile,

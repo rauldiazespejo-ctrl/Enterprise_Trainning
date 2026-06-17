@@ -7,26 +7,20 @@ import { CourseProvider } from '@/contexts/CourseContext';
 // Páginas de autenticación
 import Login from '@/pages/auth/Login';
 
-// Páginas del Administrador
-import AdminDashboard from '@/pages/admin/AdminDashboard';
-import CourseManagement from '@/pages/admin/CourseManagement';
-import CourseEditor from '@/pages/admin/CourseEditor';
-import DocumentUpload from '@/pages/admin/DocumentUpload';
-import EmployeeManagement from '@/pages/admin/EmployeeManagement';
-import CertificateManagement from '@/pages/admin/CertificateManagement';
-import Reports from '@/pages/admin/Reports';
-import SettingsPage from '@/pages/admin/Settings';
-
-// Páginas lazy-loaded
+// Páginas lazy-loaded para code-splitting
+const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
+const CourseManagement = lazy(() => import('@/pages/admin/CourseManagement'));
+const CourseEditor = lazy(() => import('@/pages/admin/CourseEditor'));
+const DocumentUpload = lazy(() => import('@/pages/admin/DocumentUpload'));
+const EmployeeManagement = lazy(() => import('@/pages/admin/EmployeeManagement'));
+const CertificateManagement = lazy(() => import('@/pages/admin/CertificateManagement'));
+const Reports = lazy(() => import('@/pages/admin/Reports'));
+const SettingsPage = lazy(() => import('@/pages/admin/Settings'));
 const TrainingMatrix = lazy(() => import('@/pages/admin/TrainingMatrix'));
-
-// Páginas del Empleado
-import EmployeeDashboard from '@/pages/employee/EmployeeDashboard';
-import CourseViewer from '@/pages/employee/CourseViewer';
-import EmployeeCertificates from '@/pages/employee/EmployeeCertificates';
-
-// Panel Super Admin
-import SuperAdminPanel from '@/pages/super-admin/SuperAdminPanel';
+const EmployeeDashboard = lazy(() => import('@/pages/employee/EmployeeDashboard'));
+const CourseViewer = lazy(() => import('@/pages/employee/CourseViewer'));
+const EmployeeCertificates = lazy(() => import('@/pages/employee/EmployeeCertificates'));
+const SuperAdminPanel = lazy(() => import('@/pages/super-admin/SuperAdminPanel'));
 
 // Componente de protección de rutas
 const ProtectedRoute: React.FC<{
@@ -72,9 +66,15 @@ const RoleRedirect: React.FC = () => {
   return <Navigate to={user.role === 'admin' ? '/admin' : '/employee'} replace />;
 };
 
-// Rutas de la aplicación
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-[#0D1321]">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#D15F3D]"></div>
+  </div>
+);
+
 const AppRoutes: React.FC = () => {
   return (
+    <Suspense fallback={<PageLoader />}>
     <Routes>
       {/* Ruta raíz */}
       <Route path="/" element={<RoleRedirect />} />
@@ -159,13 +159,7 @@ const AppRoutes: React.FC = () => {
         path="/admin/matrix"
         element={
           <ProtectedRoute requiredRole="admin">
-            <Suspense fallback={
-              <div className="min-h-screen flex items-center justify-center bg-[#0D1321]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500"></div>
-              </div>
-            }>
-              <TrainingMatrix />
-            </Suspense>
+            <TrainingMatrix />
           </ProtectedRoute>
         }
       />
@@ -225,6 +219,7 @@ const AppRoutes: React.FC = () => {
         }
       />
     </Routes>
+    </Suspense>
   );
 };
 

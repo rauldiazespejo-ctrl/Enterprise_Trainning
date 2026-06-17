@@ -14,6 +14,7 @@ export interface User {
   avatar?: string;
   password?: string;
   status?: 'active' | 'inactive';
+  mustChangePassword?: boolean;
 }
 
 export interface GlossaryTerm {
@@ -47,6 +48,9 @@ export interface Course {
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   finalEvaluation?: Quiz;
   studyGuide?: StudyGuide;
+  pptxUrl?: string;  // public Supabase Storage URL of the source PPTX
+  sourceDocUrl?: string; // public URL of reference PDF/DOCX
+  sourceDocName?: string;
 }
 
 export interface Module {
@@ -66,6 +70,7 @@ export interface Slide {
   title: string;
   content: string;
   imageUrl?: string;
+  imageData?: string[];   // Supabase Storage URLs (or base64 fallback) for slide images
   order: number;
   type: 'content' | 'image' | 'video' | 'summary' | 'concept' | 'example' | 'tip';
   keyPoints?: string[];

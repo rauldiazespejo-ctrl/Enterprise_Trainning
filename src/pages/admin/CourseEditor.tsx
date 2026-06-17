@@ -85,6 +85,23 @@ const SlideEditor: React.FC<SlideEditorProps> = ({ slide, onChange }) => {
         </div>
       </div>
 
+      {/* Embedded images preview */}
+      {slide.imageData && slide.imageData.length > 0 && (
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-300">Imágenes de la diapositiva</label>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {slide.imageData.map((img, idx) => (
+              <img
+                key={idx}
+                src={img}
+                alt={`Diapositiva ${slide.title} — imagen ${idx + 1}`}
+                className="h-32 rounded-lg border border-slate-600 object-contain bg-black/40 shrink-0"
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Content */}
       <div className="space-y-1">
         <label className="block text-sm font-medium text-slate-300">Contenido</label>
@@ -535,8 +552,7 @@ const CourseEditor: React.FC = () => {
                         const url = await storage.uploadFile('assets', path, file);
                         updateField('thumbnail', url);
                         showToast('Imagen subida correctamente');
-                      } catch (err) {
-                        console.error(err);
+                      } catch {
                         showToast('Error al subir la imagen', 'error');
                       }
                     }}

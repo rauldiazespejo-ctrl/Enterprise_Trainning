@@ -16,7 +16,9 @@ import {
   Edit,
   Trash2,
   CheckCircle,
-  Upload
+  Upload,
+  KeyRound,
+  Loader2
 } from 'lucide-react';
 
 interface EmployeeForm {
@@ -55,6 +57,9 @@ const EmployeeManagement: React.FC = () => {
   const [importRows, setImportRows] = useState<EmployeeImportRow[]>([]);
   const [importError, setImportError] = useState('');
   const [isImporting, setIsImporting] = useState(false);
+  const [showResetRutModal, setShowResetRutModal] = useState(false);
+  const [isResettingRut, setIsResettingRut] = useState(false);
+  const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const employees = users.filter(u => u.role === 'employee');
@@ -226,6 +231,22 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
+  const handleResetAllToRut = async () => {
+    setIsResettingRut(true);
+    setResetRutResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('manage-user-role', {
+        body: { action: 'reset_all_to_rut' }
+      });
+      if (error) throw error;
+      setResetRutResult(data);
+    } catch (err) {
+      setResetRutResult({ updated: 0, skipped: 0, results: [{ name: 'Error', rut: '', email: '', status: err instanceof Error ? err.message : 'Error inesperado' }] });
+    } finally {
+      setIsResettingRut(false);
+    }
+  };
+
   const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
   const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
 
@@ -304,6 +325,10 @@ const EmployeeManagement: React.FC = () => {
                 event.target.value = '';
               }}
             />
+            <Button variant="outline" onClick={() => setShowResetRutModal(true)}>
+              <KeyRound className="w-4 h-4" />
+              Resetear a RUT
+            </Button>
             <Button variant="outline" onClick={() => importInputRef.current?.click()}>
               <Upload className="w-4 h-4" />
               Importar Excel
@@ -624,6 +649,75 @@ const EmployeeManagement: React.FC = () => {
               {isImporting ? 'Importando...' : `Importar ${importRows.length} trabajadores`}
             </Button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Reset All to RUT Modal */}
+      <Modal isOpen={showResetRutModal} onClose={() => { setShowResetRutModal(false); setResetRutResult(null); }} title="Resetear Credenciales a Modelo RUT">
+        <div className="space-y-4">
+          {!resetRutResult ? (
+            <>
+              <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                <p className="text-sm text-amber-300 font-medium mb-2">Esta acción cambiará las credenciales de TODOS los empleados:</p>
+                <ul className="text-sm text-amber-200/80 space-y-1 ml-4 list-disc">
+                  <li><strong>Usuario:</strong> RUT completo como email — <code className="font-mono bg-black/20 px-1 rounded">154228225@acceso.soldesp.cl</code></li>
+                  <li><strong>Contraseña:</strong> RUT sin dígito verificador — <code className="font-mono bg-black/20 px-1 rounded">15422822</code></li>
+                  <li>Se activará el cambio de contraseña obligatorio en el primer login</li>
+                  <li>Los usuarios sin RUT registrado serán omitidos</li>
+                </ul>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => setShowResetRutModal(false)}>Cancelar</Button>
+                <Button onClick={handleResetAllToRut} disabled={isResettingRut}>
+                  {isResettingRut ? (
+                    <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Procesando...</span>
+                  ) : (
+                    <span className="flex items-center gap-2"><KeyRound className="w-4 h-4" />Confirmar Reset</span>
+                  )}
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className={`p-4 rounded-xl border ${resetRutResult.updated > 0 ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                <p className="text-sm font-semibold text-white mb-1">
+                  {resetRutResult.updated} usuario{resetRutResult.updated !== 1 ? 's' : ''} actualizado{resetRutResult.updated !== 1 ? 's' : ''}
+                  {resetRutResult.skipped > 0 && `, ${resetRutResult.skipped} omitido${resetRutResult.skipped !== 1 ? 's' : ''}`}
+                </p>
+              </div>
+              {resetRutResult.results.length > 0 && (
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-slate-700">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-800 sticky top-0">
+                      <tr>
+                        <th className="p-2 text-left text-slate-400">Nombre</th>
+                        <th className="p-2 text-left text-slate-400">RUT</th>
+                        <th className="p-2 text-left text-slate-400">Email</th>
+                        <th className="p-2 text-left text-slate-400">Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {resetRutResult.results.map((r: any, i: number) => (
+                        <tr key={i} className="border-t border-slate-700">
+                          <td className="p-2 text-white">{r.name}</td>
+                          <td className="p-2 font-mono text-slate-300">{r.rut}</td>
+                          <td className="p-2 font-mono text-slate-300 text-xs">{r.email}</td>
+                          <td className="p-2">
+                            <Badge variant={r.status === 'updated' ? 'success' : 'warning'}>
+                              {r.status === 'updated' ? 'OK' : r.status}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button onClick={() => { setShowResetRutModal(false); setResetRutResult(null); }}>Cerrar</Button>
+              </div>
+            </>
+          )}
         </div>
       </Modal>
     </MainLayout>

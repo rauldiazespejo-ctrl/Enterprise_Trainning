@@ -1,5 +1,5 @@
 // Visor de Cursos — Dark Immersive Theme con slides visuales por tipo
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,7 +22,29 @@ import {
   Menu,
   X,
   Image as ImageIcon,
+  Lock,
+  Download,
 } from 'lucide-react';
+
+// Deterministic shuffle using a seed string (Mulberry32 PRNG)
+function seededShuffle<T>(arr: T[], seed: string): T[] {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) {
+    h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  }
+  const rand = () => {
+    h |= 0; h = h + 0x6D2B79F5 | 0;
+    let t = Math.imul(h ^ h >>> 15, 1 | h);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+  const copy = [...arr];
+  for (let i = copy.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
+}
 
 // ─── Slide Components por tipo ────────────────────────────────────────────────
 
@@ -174,6 +196,73 @@ const ContentSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
   </div>
 );
 
+const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
+  const [activeImg, setActiveImg] = useState(0);
+  const images = slide.imageData || [];
+  const hasText = slide.keyPoints && slide.keyPoints.length > 0;
+
+  return (
+    <div className="h-full flex flex-col bg-gradient-to-br from-[#0D1321] via-[#080E18] to-[#050A0F] rounded-2xl border border-[#D15F3D]/20 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 pt-5 pb-3 shrink-0">
+        <div className="p-2 bg-[#D15F3D]/20 border border-[#D15F3D]/30 rounded-lg">
+          <FileText className="w-4 h-4 text-[#D15F3D]" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h2 className="text-lg md:text-xl font-bold text-white leading-tight truncate">{slide.title}</h2>
+        </div>
+        {images.length > 1 && (
+          <span className="text-xs text-slate-500 shrink-0">{activeImg + 1}/{images.length}</span>
+        )}
+      </div>
+
+      {/* Main image — fills available space */}
+      {images.length > 0 && (
+        <div className="flex-1 mx-4 mb-3 bg-black/50 rounded-xl border border-white/8 overflow-hidden flex items-center justify-center min-h-0">
+          <img
+            key={activeImg}
+            src={images[activeImg]}
+            alt={`${slide.title} — imagen ${activeImg + 1}`}
+            className="max-w-full max-h-full object-contain select-none"
+            draggable={false}
+          />
+        </div>
+      )}
+
+      {/* Thumbnails row — only when multiple images */}
+      {images.length > 1 && (
+        <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto shrink-0">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setActiveImg(idx)}
+              className={`shrink-0 w-16 h-11 rounded-lg border-2 overflow-hidden transition-all ${
+                idx === activeImg
+                  ? 'border-[#D15F3D] opacity-100'
+                  : 'border-white/15 opacity-50 hover:opacity-80 hover:border-white/40'
+              }`}
+            >
+              <img src={img} alt="" className="w-full h-full object-cover" />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Key points below if present */}
+      {hasText && (
+        <div className="px-4 pb-4 space-y-1.5 shrink-0 max-h-28 overflow-y-auto">
+          {slide.keyPoints!.map((point, i) => (
+            <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
+              <span className="w-1 h-1 rounded-full bg-[#D15F3D] mt-1.5 shrink-0" />
+              {point}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 const ImageSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
   <div className="h-full flex flex-col bg-gradient-to-br from-[#1E293B] via-[#0F172A] to-[#020617] rounded-2xl border border-sky-500/20 p-8 overflow-y-auto">
@@ -206,6 +295,8 @@ const ImageSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
 // Dispatcher por tipo
 const SlideCard: React.FC<{ slide: Slide; animKey: string }> = ({ slide, animKey }) => {
   const inner = (() => {
+    // Slides with embedded PPTX images take priority regardless of type
+    if (slide.imageData && slide.imageData.length > 0) return <VisualSlide slide={slide} />;
     switch (slide.type) {
       case 'concept': return <ConceptSlide slide={slide} />;
       case 'example': return <ExampleSlide slide={slide} />;
@@ -246,12 +337,13 @@ const CourseViewer: React.FC = () => {
 
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-  const [viewMode, setViewMode] = useState<'slides' | 'infographic'>('slides');
+  const [viewMode, setViewMode] = useState<'slides' | 'infographic' | 'pptx'>('slides');
   const [isQuizOpen, setIsQuizOpen] = useState(false);
   const [isFinalEvalOpen, setIsFinalEvalOpen] = useState(false);
   const [showModuleList, setShowModuleList] = useState(true);
   const [certificateToShow, setCertificateToShow] = useState<Certificate | null>(null);
   const [finalEvalFailed, setFinalEvalFailed] = useState<number | null>(null);
+  const [finalEvalAttempts, setFinalEvalAttempts] = useState(0);
 
   const course = getCourse(courseId || '');
   const assignment = user && courseId ? getAssignmentForCourse(user.id, courseId) : undefined;
@@ -315,20 +407,23 @@ const CourseViewer: React.FC = () => {
   const totalSlides = currentModule?.slides?.length || 0;
   const currentModuleCompleted = moduleStatus[currentModuleIndex]?.completed;
 
-  const buildFinalEvaluation = (): Quiz => {
+  const buildFinalEvaluation = useCallback((): Quiz => {
     if (course.finalEvaluation) {
       return course.finalEvaluation;
     }
     const allQuestions: Question[] = course.modules.flatMap(m => m.quiz?.questions || []);
-    const selected = [...allQuestions].sort(() => Math.random() - 0.5).slice(0, 20);
+    const seed = `${course.id}-${user?.id || 'anon'}`;
+    const shuffled = seededShuffle(allQuestions, seed);
+    const selected = shuffled.slice(0, Math.min(20, shuffled.length));
     return {
       id: `final-${course.id}`,
       moduleId: '',
       title: `Evaluación Final: ${course.title}`,
       passingScore: course.passingScore || 70,
+      maxAttempts: 3,
       questions: selected
     };
-  };
+  }, [course, user?.id]);
 
   const goToSlide = (index: number) => {
     if (currentModule && index >= 0 && index < totalSlides) setCurrentSlideIndex(index);
@@ -371,6 +466,7 @@ const CourseViewer: React.FC = () => {
 
   const handleFinalEvalComplete = async (scorePct: number) => {
     setIsFinalEvalOpen(false);
+    setFinalEvalAttempts(prev => prev + 1);
     if (!user) return;
     const passing = course.passingScore || 70;
     if (scorePct >= passing) {
@@ -466,8 +562,18 @@ const CourseViewer: React.FC = () => {
                     viewMode === 'slides' ? 'bg-[#D15F3D] text-white shadow-md' : 'text-gray-400 hover:text-white'
                   }`}
                 >
-                  Presentación
+                  Por diapositiva
                 </button>
+                {course.pptxUrl && (
+                  <button
+                    onClick={() => setViewMode('pptx')}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
+                      viewMode === 'pptx' ? 'bg-[#D15F3D] text-white shadow-md' : 'text-gray-400 hover:text-white'
+                    }`}
+                  >
+                    Presentación
+                  </button>
+                )}
                 <button
                   onClick={() => setViewMode('infographic')}
                   className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
@@ -494,9 +600,22 @@ const CourseViewer: React.FC = () => {
           <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2.5">
             <div className="max-w-7xl mx-auto flex items-center justify-between">
               <p className="text-sm text-red-400">
-                Obtuviste {finalEvalFailed}% — necesitas {course.passingScore || 70}% para aprobar. Repasa los módulos e intenta de nuevo.
+                Obtuviste {finalEvalFailed}% — necesitas {course.passingScore || 70}% para aprobar.
+                {(() => {
+                  const maxAtt = buildFinalEvaluation().maxAttempts;
+                  const remaining = maxAtt !== undefined ? maxAtt - finalEvalAttempts : undefined;
+                  if (remaining !== undefined && remaining <= 0) return ' Sin intentos restantes.';
+                  if (remaining !== undefined) return ` ${remaining} intento${remaining !== 1 ? 's' : ''} restante${remaining !== 1 ? 's' : ''}.`;
+                  return ' Repasa los módulos e intenta de nuevo.';
+                })()}
               </p>
-              <button onClick={() => setIsFinalEvalOpen(true)} className="text-xs text-red-400 underline hover:text-red-300 ml-4 shrink-0">Reintentar</button>
+              {(() => {
+                const maxAtt = buildFinalEvaluation().maxAttempts;
+                const canRetry = maxAtt === undefined || finalEvalAttempts < maxAtt;
+                return canRetry
+                  ? <button onClick={() => setIsFinalEvalOpen(true)} className="text-xs text-red-400 underline hover:text-red-300 ml-4 shrink-0">Reintentar</button>
+                  : <span className="text-xs text-gray-500 ml-4 shrink-0 flex items-center gap-1"><Lock className="w-3 h-3" />Bloqueado</span>;
+              })()}
             </div>
           </div>
         )}
@@ -505,6 +624,15 @@ const CourseViewer: React.FC = () => {
         {viewMode === 'infographic' ? (
           <div className="flex-1 overflow-y-auto">
             <CourseInfographic course={course} />
+          </div>
+        ) : viewMode === 'pptx' && course.pptxUrl ? (
+          <div className="flex-1 flex flex-col bg-[#050A0F]">
+            <iframe
+              src={`https://view.officeapps.live.com/op/embed.aspx?src=${encodeURIComponent(course.pptxUrl)}`}
+              className="flex-1 w-full border-0"
+              title={`${course.title} — Presentación`}
+              allow="fullscreen"
+            />
           </div>
         ) : (
         <div className="flex-1 flex overflow-hidden">
@@ -582,6 +710,53 @@ const CourseViewer: React.FC = () => {
                     </div>
                   </div>
                 </div>
+
+                {/* Material de Apoyo — download links */}
+                {(course.pptxUrl || course.sourceDocUrl) && (
+                  <div className="mt-4 pt-4 border-t border-white/10">
+                    <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-3 px-1">Material de Apoyo</p>
+                    <div className="space-y-1.5">
+                      {course.pptxUrl && (
+                        <a
+                          href={course.pptxUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-white/5 hover:border-white/10 transition-all group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-orange-500/20 border border-orange-500/40 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4 text-orange-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-300 group-hover:text-white truncate">Presentación PPTX</p>
+                            <p className="text-[11px] text-gray-500">Descargar diapositivas</p>
+                          </div>
+                          <Download className="w-4 h-4 text-gray-500 group-hover:text-[#D15F3D] shrink-0" />
+                        </a>
+                      )}
+                      {course.sourceDocUrl && (
+                        <a
+                          href={course.sourceDocUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full flex items-center gap-3 p-3 rounded-xl border border-transparent hover:bg-white/5 hover:border-white/10 transition-all group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-blue-500/20 border border-blue-500/40 flex items-center justify-center shrink-0">
+                            <BookOpen className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-300 group-hover:text-white truncate">
+                              {course.sourceDocName || 'Documento de referencia'}
+                            </p>
+                            <p className="text-[11px] text-gray-500">Descargar documento</p>
+                          </div>
+                          <Download className="w-4 h-4 text-gray-500 group-hover:text-[#D15F3D] shrink-0" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </aside>
           )}
@@ -712,6 +887,7 @@ const CourseViewer: React.FC = () => {
             quiz={currentModule.quiz}
             onClose={() => setIsQuizOpen(false)}
             onComplete={handleQuizComplete}
+            previousAttempts={user ? (getModuleProgress(user.id, course.id, currentModule.id)?.quizAttempts ?? 0) : 0}
           />
         )}
 
@@ -722,6 +898,7 @@ const CourseViewer: React.FC = () => {
             onClose={() => setIsFinalEvalOpen(false)}
             onComplete={handleFinalEvalComplete}
             isFinal
+            previousAttempts={finalEvalAttempts}
           />
         )}
 
@@ -748,9 +925,10 @@ interface QuizModalProps {
   onClose: () => void;
   onComplete: (scorePct: number) => void;
   isFinal?: boolean;
+  previousAttempts?: number;
 }
 
-const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFinal = false }) => {
+const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFinal = false, previousAttempts = 0 }) => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showExplanation, setShowExplanation] = useState(false);
@@ -758,12 +936,40 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFina
   const [correctCount, setCorrectCount] = useState(0);
   const [showResults, setShowResults] = useState(false);
 
+  const maxAttempts = quiz.maxAttempts;
+  const currentAttempt = previousAttempts + 1;
+  const attemptsExhausted = maxAttempts !== undefined && currentAttempt > maxAttempts;
+
   const question = quiz.questions[currentQuestion];
   const totalQuestions = quiz.questions.length;
   const totalPoints = quiz.questions.reduce((sum, q) => sum + q.points, 0);
   const scorePct = totalPoints > 0 ? Math.round((earnedPoints / totalPoints) * 100) : 0;
   const passed = scorePct >= (quiz.passingScore ?? 70);
   const progressPct = ((currentQuestion + 1) / totalQuestions) * 100;
+
+  if (attemptsExhausted) {
+    return (
+      <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div className="bg-[#111827] border border-white/10 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl"
+          style={{ animation: 'slideEnter 0.3s ease-out' }}>
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full mb-5 border-4 border-red-500 bg-red-500/10">
+            <Lock className="w-10 h-10 text-red-400" />
+          </div>
+          <h2 className="text-2xl font-bold text-red-400 mb-2">Intentos agotados</h2>
+          <p className="text-gray-400 text-sm mb-1">
+            Has usado {maxAttempts} de {maxAttempts} intentos permitidos.
+          </p>
+          <p className="text-gray-500 text-xs mb-7">
+            Contacta a tu administrador si necesitas más intentos.
+          </p>
+          <button onClick={onClose}
+            className="w-full py-3 rounded-xl font-semibold text-sm bg-white/10 hover:bg-white/15 text-white border border-white/20 transition-all">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const handleAnswerSelect = (index: number) => {
     if (showExplanation) return;
@@ -805,13 +1011,26 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFina
           <p className="text-gray-400 text-sm mb-1">
             {correctCount} de {totalQuestions} respuestas correctas
           </p>
-          <p className="text-gray-500 text-xs mb-7">
+          <p className="text-gray-500 text-xs mb-2">
             Puntaje mínimo requerido: {quiz.passingScore ?? 70}%
           </p>
+          {maxAttempts !== undefined && (
+            <p className="text-gray-500 text-xs mb-5">
+              Intento {currentAttempt} de {maxAttempts}
+              {!passed && currentAttempt >= maxAttempts && ' — sin intentos restantes'}
+              {!passed && currentAttempt < maxAttempts && ` — ${maxAttempts - currentAttempt} restante${maxAttempts - currentAttempt !== 1 ? 's' : ''}`}
+            </p>
+          )}
+          {!maxAttempts && <div className="mb-5" />}
 
-          {isFinal && !passed && (
+          {isFinal && !passed && currentAttempt < (maxAttempts ?? Infinity) && (
             <p className="text-amber-400 text-sm bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 mb-5">
               Repasa los módulos para reforzar los conceptos y vuelve a intentarlo.
+            </p>
+          )}
+          {isFinal && !passed && maxAttempts !== undefined && currentAttempt >= maxAttempts && (
+            <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl p-3 mb-5">
+              No quedan intentos. Contacta a tu administrador para solicitar una nueva oportunidad.
             </p>
           )}
 
@@ -846,7 +1065,10 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFina
                 {isFinal && <Award className="w-4 h-4 text-amber-400" />}
                 <h2 className="text-base font-bold text-white">{quiz.title}</h2>
               </div>
-              <p className="text-xs text-gray-500">Pregunta {currentQuestion + 1} de {totalQuestions}</p>
+              <p className="text-xs text-gray-500">
+                Pregunta {currentQuestion + 1} de {totalQuestions}
+                {maxAttempts !== undefined && <span className="ml-2">· Intento {currentAttempt}/{maxAttempts}</span>}
+              </p>
             </div>
             <button
               onClick={onClose}

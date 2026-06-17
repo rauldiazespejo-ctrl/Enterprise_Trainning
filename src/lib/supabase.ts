@@ -4,14 +4,14 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Credenciales Supabase — proyecto Enterprise_Trainning (Soldesp S.A.)
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Faltan credenciales de Supabase en las variables de entorno. La aplicación puede no funcionar correctamente.');
+  console.warn('Faltan credenciales de Supabase en las variables de entorno.');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder');
 
 // Helper para verificar conexión
 export const checkConnection = async (): Promise<boolean> => {

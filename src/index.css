@@ -449,6 +449,15 @@ h1, h2, h3, h4, h5, h6 {
   animation: slideDown 0.6s ease-out forwards;
 }
 
+.animate-slideIn {
+  animation: slideInLeft 0.25s ease-out forwards;
+}
+
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 .animate-scaleIn {
   animation: scaleIn 0.4s ease-out forwards;
 }
