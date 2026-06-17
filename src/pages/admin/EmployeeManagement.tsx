@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -57,23 +57,35 @@ const EmployeeManagement: React.FC = () => {
   const [isImporting, setIsImporting] = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // ⚡ Bolt: Performance Optimization
+  // 💡 What: Memoize derived `employees` array.
+  // 🎯 Why: Prevent O(N) filtering of all users on every render.
+  // 📊 Impact: Significantly reduces main thread work on state updates.
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // ⚡ Bolt: Performance Optimization
+  // 💡 What: Wrap helper function in `useCallback`.
+  // 🎯 Why: Prevent function recreation which causes cascading dependency updates in child components and hooks.
+  // 📊 Impact: Stabilizes reference for use in downstream effects/memoized values.
+  const employeeStats = useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
       certificates: certificates.filter(c => c.userId === employeeId).length
     };
-  };
+  }, [getUserAssignments, certificates]);
 
-  const filteredEmployees = employees.filter(emp =>
+  // ⚡ Bolt: Performance Optimization
+  // 💡 What: Memoize `filteredEmployees` with `useMemo`.
+  // 🎯 Why: Avoid recalculating search matches and string operations (O(N) operations) on un-related renders.
+  // 📊 Impact: Input fields (e.g., search bar) feel snappier as they no longer trigger slow derived state calculations.
+  const filteredEmployees = useMemo(() => employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [employees, searchTerm]);
 
   const openAddModal = () => {
     setEditingId(null);
@@ -226,8 +238,12 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // ⚡ Bolt: Performance Optimization
+  // 💡 What: Memoize aggregation metrics with `useMemo`.
+  // 🎯 Why: Prevent running O(N) reduce/filter operations across all employees on every render.
+  // 📊 Impact: Eliminates redundant metric recalculations.
+  const totalCompleted = useMemo(() => employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0), [employees, employeeStats]);
+  const totalInTraining = useMemo(() => employees.filter(e => employeeStats(e.id).inProgress > 0).length, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
