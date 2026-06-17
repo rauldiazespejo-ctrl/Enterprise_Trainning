@@ -12,9 +12,9 @@ export async function parsePdf(file: File): Promise<string> {
     const page = await pdf.getPage(i);
     const content = await page.getTextContent();
     const text = content.items
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       .filter((item: any) => 'str' in item && Boolean(item.str?.trim()))
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       .map((item: any) => item.str as string)
       .join(' ')
       .replace(/\s+/g, ' ')

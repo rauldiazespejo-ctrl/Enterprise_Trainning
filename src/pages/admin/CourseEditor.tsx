@@ -399,6 +399,7 @@ const CourseEditor: React.FC = () => {
     // Deep-clone so local edits don't mutate context directly
     setDraft(found ? JSON.parse(JSON.stringify(found)) : null);
     setIsLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId]); // intentionally not including getCourse to avoid infinite loop
 
   const showToast = (message: string, type: ToastState['type'] = 'success') => {

@@ -1,0 +1,120 @@
+version: 1
+plan:
+  name: Enterprise Training Security and Feature Fixes
+  max_concurrency: 5
+  max_consecutive_failures: 2
+  max_cycles: 8
+  auto_reject_retries: 1
+  verifier_config:
+    default_verifiers: [verifier]
+    audit_sample_rate: 0.3
+tasks:
+  - id: security-fix
+    title: Fix seguridad seed users y rate limiting
+    prompt: |
+      Eres un agente de seguridad. Trabaja en /tmp/Enterprise_Trainning.
+
+      IMPLEMENTACIONES:
+
+      1. Eliminar seed users hardcodeados de src/lib/storage.ts
+      2. Agregar rate limiting en supabase/functions/import-workers/index.ts (10 req/min)
+      3. Agregar rate limiting en supabase/functions/generate-course/index.ts
+      4. Validar CORS en supabase/functions/scrape-url/index.ts
+
+      COMMIT: "fix(security): remove hardcoded seeds, add rate limiting"
+
+      REPORT: Lista de archivos modificados.
+    assigned_to: coder
+    verified_by: verifier
+    verify_prompt: |
+      Verificar en /tmp/Enterprise_Trainning:
+      1. storage.ts sin seedUsers hardcodeados
+      2. Edge Functions con rate limiting
+      3. pnpm typecheck pasa sin errores
+    max_retries: 2
+  - id: password-recovery
+    title: Implementar password recovery
+    prompt: |
+      Eres desarrollador frontend. Trabaja en /tmp/Enterprise_Trainning.
+
+      IMPLEMENTACIONES:
+      1. Crear /forgot-password route en App.tsx
+      2. Crear /reset-password route con token
+      3. Integrar supabase.auth.resetPasswordForEmail y updateUser
+      4. Agregar link en Login.tsx
+
+      COMMIT: "feat(auth): add password recovery flow"
+      REPORT: Archivos modificados
+    assigned_to: developer
+    verified_by: verifier
+    verify_prompt: |
+      Verificar:
+      1. Login.tsx tiene link a forgot-password
+      2. Rutas en App.tsx existen
+      3. pnpm typecheck pasa
+    max_retries: 2
+  - id: pagination
+    title: Paginacion en listas
+    prompt: |
+      Eres desarrollador frontend. Trabaja en /tmp/Enterprise_Trainning.
+
+      IMPLEMENTACIONES:
+      1. Crear src/components/ui/Pagination.tsx
+      2. Agregar paginacion a EmployeeManagement.tsx (20 por pagina)
+      3. Agregar paginacion a CourseManagement.tsx (12 por pagina)
+
+      COMMIT: "feat(ui): add pagination"
+      REPORT: Archivos modificados
+    assigned_to: general
+    verify_skip_reason: UI change observable en local
+    max_retries: 1
+  - id: audit-log
+    title: Audit log para ISO 45001
+    prompt: |
+      Eres desarrollador backend. Trabaja en /tmp/Enterprise_Trainning.
+
+      IMPLEMENTACIONES:
+      1. Crear supabase/migrations/20260618000000_create_audit_log.sql
+      2. Crear supabase/functions/audit-log/index.ts
+      3. Integrar en AuthContext.tsx (login/logout)
+      4. Integrar en CourseContext.tsx (create/update/delete cursos)
+
+      COMMIT: "feat(audit): add audit log"
+      REPORT: Archivos modificados
+    assigned_to: coder
+    verified_by: verifier
+    verify_prompt: |
+      Verificar:
+      1. Migration de audit_log existe
+      2. AuthContext integra audit log
+      3. pnpm typecheck pasa
+    max_retries: 2
+  - id: optimistic-updates
+    title: Optimistic updates
+    prompt: |
+      Eres desarrollador frontend. Trabaja en /tmp/Enterprise_Trainning.
+
+      IMPLEMENTACIONES:
+      1. CourseContext: update UI inmediatamente en completar modulo/quiz
+      2. AuthContext: optimistic updateProfile, addUser, deleteUser
+      3. Manejo de rollback en errores
+
+      COMMIT: "perf(ui): add optimistic updates"
+      REPORT: Archivos modificados
+    assigned_to: developer
+    verify_skip_reason: UX improvement diff de codigo suficiente
+    max_retries: 1
+  - id: final-verification
+    title: Verificacion final
+    role: verify-as-task
+    prompt: |
+      Verificar integracion en /tmp/Enterprise_Trainning:
+      1. pnpm typecheck pasa
+      2. pnpm lint pasa
+      3. git log tiene los 5 commits
+      4. Checklist: security, password-recovery, pagination, audit-log, optimistic-updates
+
+      REPORT: PASS o FAIL + issues
+    assigned_to: verifier
+    depends_on: [security-fix, password-recovery, pagination, audit-log, optimistic-updates]
+    max_retries: 1

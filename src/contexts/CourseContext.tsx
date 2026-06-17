@@ -510,10 +510,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const updateAssignmentProgress = async (assignmentId: string, progressValue: number, completed?: boolean): Promise<void> => {
-    let previousAssignment: CourseAssignment | undefined;
-
-    // Capture previous state for rollback
-    previousAssignment = assignments.find(a => a.id === assignmentId);
+    const previousAssignment: CourseAssignment | undefined = assignments.find(a => a.id === assignmentId);
 
     // Optimistic UI update
     setAssignments(prev =>
@@ -597,10 +594,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let updatedSlides = completedSlides;
     let isCompleted = false;
     let quizScore = undefined;
-    let previousProgress: CourseProgress[] | undefined;
-
-    // Capture previous state for rollback
-    previousProgress = progress[key];
+    const previousProgress: CourseProgress[] | undefined = progress[key];
 
     // Optimistic UI update
     setProgress(prev => {
@@ -656,10 +650,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     let updatedSlides: string[] = [];
     let attempts = 1;
-    let previousProgress: CourseProgress[] | undefined;
-
-    // Capture previous state for rollback
-    previousProgress = progress[key];
+    const previousProgress: CourseProgress[] | undefined = progress[key];
 
     // Optimistic update
     setProgress(prev => {

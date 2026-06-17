@@ -274,10 +274,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const updateProfile = async (updates: Partial<User>): Promise<void> => {
     if (!user) return;
 
-    let previousUser: User | undefined;
-
-    // Capture previous state for rollback
-    previousUser = { ...user };
+    const previousUser: User | undefined = { ...user };
 
     // Optimistic UI update
     const updatedUser = { ...user, ...updates };
@@ -396,12 +393,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const deleteUser = async (id: string): Promise<void> => {
-    let deletedUser: User | undefined;
-    let previousUsers: User[] = [];
-
-    // Capture previous state for rollback
-    previousUsers = [...users];
-    deletedUser = users.find(u => u.id === id);
+    const deletedUser: User | undefined = users.find(u => u.id === id);
+    const previousUsers: User[] = [...users];
 
     // Optimistic UI update - remove user immediately
     setUsers(prev => prev.filter(u => u.id !== id));

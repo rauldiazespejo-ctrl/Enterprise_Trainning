@@ -381,28 +381,7 @@ const CourseViewer: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseProgress, assignment?.id]);
 
-  if (!course) return (
-    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
-      <div className="text-center">
-        <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-4">Curso no encontrado</h2>
-        <button onClick={() => navigate('/employee')} className="px-6 py-2.5 bg-[#D15F3D] text-white rounded-xl font-medium hover:bg-[#B34E2D] transition-colors">Volver al inicio</button>
-      </div>
-    </div>
-  );
-
-  if (!assignment && user?.role !== 'admin' && user?.role !== 'super_admin') return (
-    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
-      <div className="text-center">
-        <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
-        <h2 className="text-xl font-semibold text-white mb-2">Curso no asignado</h2>
-        <p className="text-gray-400 mb-6">No tienes autorización para acceder a este curso.</p>
-        <button onClick={() => navigate('/employee')} className="px-6 py-2.5 bg-[#D15F3D] text-white rounded-xl font-medium hover:bg-[#B34E2D] transition-colors">Volver</button>
-      </div>
-    </div>
-  );
-
-  const currentModule = course.modules?.[currentModuleIndex];
+  const currentModule = course?.modules?.[currentModuleIndex];
   const currentSlide = currentModule?.slides?.[currentSlideIndex];
   const totalSlides = currentModule?.slides?.length || 0;
   const currentModuleCompleted = moduleStatus[currentModuleIndex]?.completed;
@@ -501,6 +480,28 @@ const CourseViewer: React.FC = () => {
       default:        return 'Contenido';
     }
   };
+
+  // Early returns AFTER all hooks
+  if (!course) return (
+    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
+      <div className="text-center">
+        <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-4">Curso no encontrado</h2>
+        <button onClick={() => navigate('/employee')} className="px-6 py-2.5 bg-[#D15F3D] text-white rounded-xl font-medium hover:bg-[#B34E2D] transition-colors">Volver al inicio</button>
+      </div>
+    </div>
+  );
+
+  if (!assignment && user?.role !== 'admin' && user?.role !== 'super_admin') return (
+    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center">
+      <div className="text-center">
+        <BookOpen className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-white mb-2">Curso no asignado</h2>
+        <p className="text-gray-400 mb-6">No tienes autorización para acceder a este curso.</p>
+        <button onClick={() => navigate('/employee')} className="px-6 py-2.5 bg-[#D15F3D] text-white rounded-xl font-medium hover:bg-[#B34E2D] transition-colors">Volver</button>
+      </div>
+    </div>
+  );
 
   return (
     <>
