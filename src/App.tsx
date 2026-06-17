@@ -6,6 +6,8 @@ import { CourseProvider } from '@/contexts/CourseContext';
 
 // Páginas de autenticación
 import Login from '@/pages/auth/Login';
+import ForgotPassword from '@/pages/auth/ForgotPassword';
+import ResetPassword from '@/pages/auth/ResetPassword';
 
 // Páginas lazy-loaded para code-splitting
 const AdminDashboard = lazy(() => import('@/pages/admin/AdminDashboard'));
@@ -81,6 +83,10 @@ const AppRoutes: React.FC = () => {
 
       {/* Login */}
       <Route path="/login" element={<Login />} />
+
+      {/* Password Recovery */}
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Rutas del Administrador */}
       <Route

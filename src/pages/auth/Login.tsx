@@ -1,6 +1,6 @@
 // Página de Login - Premium Dark Theme con logo original SoldesP
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth, validatePasswordComplexity } from '@/contexts/AuthContext';
 import { Card, Button } from '@/components/ui/Card';
 import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon } from 'lucide-react';
@@ -394,6 +394,15 @@ const Login: React.FC = () => {
               )}
             </Button>
           </form>
+
+          <div className="mt-4 text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
 
           {import.meta.env.DEV && (
             <div className="mt-5 p-4 bg-[rgba(0,27,75,0.2)] rounded-xl border border-[rgba(0,27,75,0.4)]">
