@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Input, Select, Modal } from '@/components/ui/Card';
+import Pagination from '@/components/ui/Pagination';
 import { useCourses } from '@/contexts/CourseContext';
 import {
   Plus,
@@ -21,6 +22,8 @@ const CourseManagement: React.FC = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 12;
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
 
@@ -29,6 +32,17 @@ const CourseManagement: React.FC = () => {
     const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Reset page when search or filter changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  const totalPages = Math.ceil(filteredCourses.length / PAGE_SIZE);
+  const paginatedCourses = filteredCourses.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
+  );
 
   const handleDelete = (courseId: string) => {
     setCourseToDelete(courseId);
@@ -93,7 +107,7 @@ const CourseManagement: React.FC = () => {
 
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredCourses.map((course) => (
+          {paginatedCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden">
               {/* Course Thumbnail */}
               <div className="h-40 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] flex items-center justify-center">
@@ -148,6 +162,19 @@ const CourseManagement: React.FC = () => {
             </Card>
           ))}
         </div>
+
+        {/* Pagination */}
+        {filteredCourses.length > PAGE_SIZE && (
+          <div className="px-6 py-4 border-t border-slate-200">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              pageSize={PAGE_SIZE}
+              totalItems={filteredCourses.length}
+            />
+          </div>
+        )}
 
         {/* Empty State */}
         {filteredCourses.length === 0 && (

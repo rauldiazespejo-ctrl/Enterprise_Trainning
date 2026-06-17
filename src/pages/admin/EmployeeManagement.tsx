@@ -2,6 +2,7 @@
 import React, { useRef, useState } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
+import Pagination from '@/components/ui/Pagination';
 import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { User } from '@/types';
@@ -45,6 +46,8 @@ const EmployeeManagement: React.FC = () => {
   const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const PAGE_SIZE = 20;
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [showFormModal, setShowFormModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -78,6 +81,17 @@ const EmployeeManagement: React.FC = () => {
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
+  const paginatedEmployees = filteredEmployees.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE
   );
 
   const openAddModal = () => {
@@ -368,7 +382,7 @@ const EmployeeManagement: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredEmployees.map((employee) => {
+                  {paginatedEmployees.map((employee) => {
                     const stats = employeeStats(employee.id);
                     return (
                       <tr key={employee.id} className="border-b border-slate-100 hover:bg-slate-50">
@@ -441,6 +455,19 @@ const EmployeeManagement: React.FC = () => {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination */}
+          {filteredEmployees.length > PAGE_SIZE && (
+            <div className="px-6 py-4 border-t border-slate-200">
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                pageSize={PAGE_SIZE}
+                totalItems={filteredEmployees.length}
+              />
             </div>
           )}
         </Card>
