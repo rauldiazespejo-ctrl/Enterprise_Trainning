@@ -271,22 +271,22 @@ const EmployeeManagement: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-blue-100 rounded-lg text-blue-600">
+              <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
                 <Users className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{employees.length}</p>
+                <p className="text-2xl font-bold text-white">{employees.length}</p>
                 <p className="text-sm text-slate-500">Total Empleados</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-green-100 rounded-lg text-green-600">
+              <div className="p-3 bg-emerald-500/10 rounded-lg text-emerald-400">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{totalInTraining}</p>
+                <p className="text-2xl font-bold text-white">{totalInTraining}</p>
                 <p className="text-sm text-slate-500">En Capacitación</p>
               </div>
             </div>
@@ -297,18 +297,18 @@ const EmployeeManagement: React.FC = () => {
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{totalCompleted}</p>
+                <p className="text-2xl font-bold text-white">{totalCompleted}</p>
                 <p className="text-sm text-slate-500">Cursos Completados</p>
               </div>
             </div>
           </Card>
           <Card className="p-4">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-yellow-100 rounded-lg text-yellow-600">
+              <div className="p-3 bg-amber-500/10 rounded-lg text-amber-400">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-slate-900">{certificates.length}</p>
+                <p className="text-2xl font-bold text-white">{certificates.length}</p>
                 <p className="text-sm text-slate-500">Certificados</p>
               </div>
             </div>
@@ -324,7 +324,7 @@ const EmployeeManagement: React.FC = () => {
               placeholder="Buscar empleados por nombre, correo o departamento..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
+              className="w-full pl-10 pr-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
             />
           </div>
           <div className="flex gap-2">
@@ -359,7 +359,7 @@ const EmployeeManagement: React.FC = () => {
           {filteredEmployees.length === 0 ? (
             <div className="p-12 text-center">
               <Users className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-slate-900 mb-2">
+              <h3 className="text-lg font-semibold text-white mb-2">
                 {employees.length === 0 ? 'No hay empleados registrados' : 'Sin resultados'}
               </h3>
               <p className="text-slate-500">
@@ -372,27 +372,27 @@ const EmployeeManagement: React.FC = () => {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Empleado</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Departamento</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Cursos</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Certificados</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Estado</th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Acciones</th>
+                  <tr className="bg-slate-800/50 border-b border-slate-700">
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Empleado</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Departamento</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Cursos</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Certificados</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Estado</th>
+                    <th className="px-6 py-4 text-left text-sm font-semibold text-slate-400">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
                     const stats = employeeStats(employee.id);
                     return (
-                      <tr key={employee.id} className="border-b border-slate-100 hover:bg-slate-50">
+                      <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] rounded-full flex items-center justify-center text-white font-semibold">
                               {employee.name.charAt(0)}
                             </div>
                             <div>
-                              <p className="font-medium text-slate-900">{employee.name}</p>
+                              <p className="font-medium text-white">{employee.name}</p>
                               <p className="text-sm text-slate-500">{employee.email}</p>
                               {employee.rut && <p className="text-xs text-slate-400">RUT: {employee.rut}</p>}
                             </div>
@@ -400,16 +400,16 @@ const EmployeeManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4">
                           <div>
-                            <p className="font-medium text-slate-900">{employee.department || '—'}</p>
+                            <p className="font-medium text-white">{employee.department || '—'}</p>
                             <p className="text-sm text-slate-500">{employee.position || ''}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs">
+                            <span className="px-2 py-1 bg-emerald-500/15 text-emerald-400 rounded text-xs">
                               {stats.completed} completados
                             </span>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs">
+                            <span className="px-2 py-1 bg-blue-500/15 text-blue-400 rounded text-xs">
                               {stats.inProgress} en progreso
                             </span>
                           </div>
@@ -481,18 +481,18 @@ const EmployeeManagement: React.FC = () => {
       >
         <div className="space-y-4">
           {selectedEmployee && (
-            <div className="p-4 bg-slate-50 rounded-lg">
-              <p className="font-medium text-slate-900">{selectedEmployee.name}</p>
+            <div className="p-4 bg-slate-800/50 rounded-lg">
+              <p className="font-medium text-white">{selectedEmployee.name}</p>
               <p className="text-sm text-slate-500">{selectedEmployee.email}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Seleccionar Curso</label>
+            <label className="block text-sm font-medium text-slate-400 mb-2">Seleccionar Curso</label>
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
+              className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
             >
               <option value="">-- Seleccionar curso --</option>
               {courses.filter(c => c.status === 'published').map(course => {
@@ -527,17 +527,17 @@ const EmployeeManagement: React.FC = () => {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Nombre completo *</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Nombre completo *</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
+              className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
               placeholder="Ej. María García"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">RUT *</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1">RUT *</label>
             <input
               type="text"
               value={form.rut}
@@ -552,7 +552,7 @@ const EmployeeManagement: React.FC = () => {
                   password: valid ? rutBodyNoDv(clean) : form.password
                 });
               }}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none font-mono"
+              className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none font-mono"
               placeholder="Ej. 15422822-5 o 154228225"
             />
             {form.rut && isValidRut(normalizeRut(form.rut)) && (
@@ -564,32 +564,32 @@ const EmployeeManagement: React.FC = () => {
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Departamento</label>
+              <label className="block text-sm font-medium text-slate-400 mb-1">Departamento</label>
               <input
                 type="text"
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
+                className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
                 placeholder="Ventas"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Puesto</label>
+              <label className="block text-sm font-medium text-slate-400 mb-1">Puesto</label>
               <input
                 type="text"
                 value={form.position}
                 onChange={(e) => setForm({ ...form, position: e.target.value })}
-                className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
+                className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
                 placeholder="Ejecutivo"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Estado</label>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Estado</label>
             <select
               value={form.status}
               onChange={(e) => setForm({ ...form, status: e.target.value as 'active' | 'inactive' })}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
+              className="w-full px-4 py-2 bg-slate-800 text-white text-base border border-slate-600 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 outline-none"
             >
               <option value="active">Activo</option>
               <option value="inactive">Inactivo</option>
@@ -597,7 +597,7 @@ const EmployeeManagement: React.FC = () => {
           </div>
 
           {formError && (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{formError}</p>
+            <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg">{formError}</p>
           )}
 
           <div className="flex justify-end gap-3 pt-4">
@@ -641,7 +641,7 @@ const EmployeeManagement: React.FC = () => {
       >
         <div className="space-y-4">
           {importError ? (
-            <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">{importError}</p>
+            <p className="text-sm text-red-400 bg-red-500/10 p-3 rounded-lg">{importError}</p>
           ) : (
             <>
               <p className="text-sm text-slate-300">

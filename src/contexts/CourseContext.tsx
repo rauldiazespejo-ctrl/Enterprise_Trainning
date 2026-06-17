@@ -6,7 +6,6 @@ import { db, supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
-// ── Helper para audit log ISO 45001 ──────────────────────────────────────────
 const logAuditEvent = async (
   action: string,
   resourceType: string,
@@ -21,9 +20,6 @@ const logAuditEvent = async (
     console.warn('[Audit] Failed to log event:', err);
   }
 };
-
-const FALLBACK_ORG_ID = '00000000-0000-0000-0000-000000000001';
-const FALLBACK_USER_ID = '00000000-0000-0000-0000-000000000001';
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const isValidUUID = (id: string) => UUID_REGEX.test(id);
@@ -49,6 +45,7 @@ interface CourseContextType {
 
   // Asignaciones
   assignCourse: (courseId: string, userId: string, assignedBy: string, dueDate?: Date) => Promise<CourseAssignment>;
+  assignCourseToAll: (courseId: string, assignedBy: string, employeeIds: string[], dueDate?: Date) => Promise<number>;
   getUserAssignments: (userId: string) => CourseAssignment[];
   getAssignmentForCourse: (userId: string, courseId: string) => CourseAssignment | undefined;
   updateAssignmentProgress: (assignmentId: string, progress: number, completed?: boolean) => Promise<void>;
@@ -134,8 +131,8 @@ function mapCourseToSupabase(
 
   return {
     ...(course.id && { id: course.id }),
-    organization_id: organizationId || FALLBACK_ORG_ID,
-    created_by: createdBy || course.createdBy || FALLBACK_USER_ID,
+    organization_id: organizationId || (() => { throw new Error('organization_id es requerido para guardar un curso en Supabase'); })(),
+    created_by: createdBy || course.createdBy || (() => { throw new Error('created_by es requerido para guardar un curso en Supabase'); })(),
     title: course.title || 'Nuevo Curso',
     description: course.description || '',
     status: course.status || 'draft',
@@ -368,7 +365,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       title: courseData.title || 'Nuevo Curso',
       description: courseData.description || '',
       thumbnail: courseData.thumbnail || '',
-      createdBy: courseData.createdBy || user?.id || FALLBACK_USER_ID,
+      createdBy: courseData.createdBy || user?.id || (() => { throw new Error('Debes iniciar sesión para crear un curso'); })(),
       createdAt: new Date(),
       updatedAt: new Date(),
       status: courseData.status || 'draft',
@@ -499,6 +496,18 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     }
 
     return newAssignment;
+  };
+
+  const assignCourseToAll = async (courseId: string, assignedBy: string, employeeIds: string[], dueDate?: Date): Promise<number> => {
+    let count = 0;
+    for (const empId of employeeIds) {
+      const alreadyAssigned = assignments.some(a => a.userId === empId && a.courseId === courseId);
+      if (!alreadyAssigned) {
+        await assignCourse(courseId, empId, assignedBy, dueDate);
+        count++;
+      }
+    }
+    return count;
   };
 
   const getUserAssignments = (userId: string): CourseAssignment[] => {
@@ -719,6 +728,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         addModule,
         setCurrentModule,
         assignCourse,
+        assignCourseToAll,
         getUserAssignments,
         getAssignmentForCourse,
         updateAssignmentProgress,

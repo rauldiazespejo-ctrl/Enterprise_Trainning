@@ -108,22 +108,28 @@ const CourseManagement: React.FC = () => {
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {paginatedCourses.map((course) => (
-            <Card key={course.id} className="overflow-hidden">
+            <Card key={course.id} className="overflow-hidden !p-0">
               {/* Course Thumbnail */}
-              <div className="h-40 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] flex items-center justify-center">
-                <BookOpen className="w-16 h-16 text-white/50" />
+              <div className="h-40 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] flex items-center justify-center overflow-hidden">
+                {course.thumbnail ? (
+                  <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
+                ) : (
+                  <BookOpen className="w-16 h-16 text-white/50" />
+                )}
               </div>
 
               {/* Course Info */}
               <div className="p-4">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-slate-900 line-clamp-1">{course.title}</h3>
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <h3 className="font-semibold text-white line-clamp-2 text-base leading-snug">{course.title}</h3>
                   {getStatusBadge(course.status)}
                 </div>
-                <p className="text-sm text-slate-500 mb-3 line-clamp-2">{course.description}</p>
+                {course.description && (
+                  <p className="text-sm text-slate-400 mb-3 line-clamp-2">{course.description}</p>
+                )}
 
                 {/* Stats */}
-                <div className="flex items-center gap-4 text-sm text-slate-500 mb-4">
+                <div className="flex items-center gap-4 text-sm text-slate-400 mb-4">
                   <span className="flex items-center gap-1">
                     <BookOpen className="w-4 h-4" />
                     {course.modules?.length || 0} módulos
@@ -139,7 +145,7 @@ const CourseManagement: React.FC = () => {
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
+                <div className="flex items-center gap-2 pt-3 border-t border-slate-700">
                   <Link to={`/admin/courses/${course.id}/edit`} className="flex-1">
                     <Button variant="outline" size="sm" className="w-full">
                       <Eye className="w-4 h-4" />
@@ -180,7 +186,7 @@ const CourseManagement: React.FC = () => {
         {filteredCourses.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">No se encontraron cursos</h3>
+            <h3 className="text-lg font-semibold text-white mb-2">No se encontraron cursos</h3>
             <p className="text-slate-500 mb-4">
               {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza creando tu primer curso'}
             </p>
