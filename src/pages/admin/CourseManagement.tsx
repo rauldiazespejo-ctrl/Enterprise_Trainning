@@ -1,5 +1,5 @@
 // Gestión de Cursos - Página del Administrador
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Input, Select, Modal } from '@/components/ui/Card';
@@ -24,11 +24,15 @@ const CourseManagement: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
 
-  const filteredCourses = courses.filter(course => {
+  // ⚡ Bolt: Performance Optimization
+  // 💡 What: Memoize derived `filteredCourses` array with `useMemo`.
+  // 🎯 Why: Prevent O(N) array filtering and string operations during every keypress in the search bar.
+  // 📊 Impact: Eliminates redundant computation on un-related state changes and reduces re-render main thread blocking.
+  const filteredCourses = useMemo(() => courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }), [courses, searchTerm, statusFilter]);
 
   const handleDelete = (courseId: string) => {
     setCourseToDelete(courseId);
