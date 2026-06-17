@@ -6,6 +6,22 @@ import { db, supabase } from '@/lib/supabase';
 import { useAuth } from '@/contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
+// ── Helper para audit log ISO 45001 ──────────────────────────────────────────
+const logAuditEvent = async (
+  action: string,
+  resourceType: string,
+  resourceId?: string,
+  details?: Record<string, unknown>
+): Promise<void> => {
+  try {
+    await supabase.functions.invoke('audit-log', {
+      body: { action, resource_type: resourceType, resource_id: resourceId, details }
+    });
+  } catch (err) {
+    console.warn('[Audit] Failed to log event:', err);
+  }
+};
+
 const FALLBACK_ORG_ID = '00000000-0000-0000-0000-000000000001';
 const FALLBACK_USER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -371,6 +387,8 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       if (data) {
         const saved = mapSupabaseToCourse(data as Record<string, unknown>);
         setCourses(prev => [saved, ...prev]);
+        // Audit log: curso creado
+        void logAuditEvent('create_course', 'course', saved.id, { title: saved.title });
         return saved;
       }
     } catch (err) {
@@ -402,12 +420,15 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       const row = mapCourseToSupabase({ ...merged, id }, user?.organizationId, user?.id);
       const { error } = await db.upsertCourse(row);
       if (error) throw error;
+      // Audit log: curso actualizado
+      void logAuditEvent('update_course', 'course', id, { updates: Object.keys(updates) });
     } catch (err) {
       console.warn('[CourseContext] Error al actualizar curso en Supabase.', err);
     }
   };
 
   const deleteCourse = async (id: string): Promise<void> => {
+    const deletedCourse = courses.find(c => c.id === id);
     setCourses(prev => prev.filter(course => course.id !== id));
     if (currentCourse?.id === id) setCurrentCourse(null);
 
@@ -416,6 +437,8 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const { error } = await db.deleteCourse(id);
       if (error) throw error;
+      // Audit log: curso eliminado
+      void logAuditEvent('delete_course', 'course', id, { title: deletedCourse?.title });
     } catch (err) {
       console.warn('[CourseContext] Error al eliminar curso en Supabase.', err);
     }
@@ -487,6 +510,11 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   };
 
   const updateAssignmentProgress = async (assignmentId: string, progressValue: number, completed?: boolean): Promise<void> => {
+    let previousAssignment: CourseAssignment | undefined;
+
+    // Capture previous state for rollback
+    previousAssignment = assignments.find(a => a.id === assignmentId);
+
     // Optimistic UI update
     setAssignments(prev =>
       prev.map(a =>
@@ -503,7 +531,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     );
 
     // Get the updated assignment to send to db
-    const assignment = assignments.find(a => a.id === assignmentId);
+    const assignment = previousAssignment;
     if (!assignment) return;
     
     try {
@@ -515,7 +543,11 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       });
       if (error) throw error;
     } catch (err) {
-      console.warn('[CourseContext] Error actualizando progreso de asignación en Supabase', err);
+      console.warn('[CourseContext] Error actualizando progreso de asignación en Supabase - rollback', err);
+      // Rollback to previous state
+      if (previousAssignment) {
+        setAssignments(prev => prev.map(a => a.id === assignmentId ? previousAssignment! : a));
+      }
     }
   };
 
@@ -565,6 +597,10 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     let updatedSlides = completedSlides;
     let isCompleted = false;
     let quizScore = undefined;
+    let previousProgress: CourseProgress[] | undefined;
+
+    // Capture previous state for rollback
+    previousProgress = progress[key];
 
     // Optimistic UI update
     setProgress(prev => {
@@ -588,7 +624,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       };
     });
 
-    // Supabase persist
+    // Supabase persist with rollback on error
     try {
       const { error } = await db.saveProgress({
         user_id: userId,
@@ -601,7 +637,12 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       });
       if (error) throw error;
     } catch (err) {
-      console.warn('[CourseContext] Error guardando progreso de modulo en Supabase', err);
+      console.warn('[CourseContext] Error guardando progreso de modulo en Supabase - rollback', err);
+      // Rollback to previous state
+      setProgress(prev => ({
+        ...prev,
+        [key]: previousProgress || prev[key]?.filter(p => p.moduleId !== moduleId) || []
+      }));
     }
   };
 
@@ -615,6 +656,10 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     let updatedSlides: string[] = [];
     let attempts = 1;
+    let previousProgress: CourseProgress[] | undefined;
+
+    // Capture previous state for rollback
+    previousProgress = progress[key];
 
     // Optimistic update
     setProgress(prev => {
@@ -643,7 +688,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       };
     });
 
-    // Supabase persist
+    // Supabase persist with rollback on error
     try {
       const { error } = await db.saveProgress({
         user_id: userId,
@@ -657,7 +702,12 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       });
       if (error) throw error;
     } catch (err) {
-      console.warn('[CourseContext] Error guardando resultado de quiz en Supabase', err);
+      console.warn('[CourseContext] Error guardando resultado de quiz en Supabase - rollback', err);
+      // Rollback to previous state
+      setProgress(prev => ({
+        ...prev,
+        [key]: previousProgress || prev[key]?.filter(p => p.moduleId !== moduleId) || []
+      }));
     }
   };
 

@@ -5,6 +5,22 @@ import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+// ── Helper para audit log ISO 45001 ──────────────────────────────────────────
+const logAuditEvent = async (
+  action: string,
+  resourceType: string,
+  resourceId?: string,
+  details?: Record<string, unknown>
+): Promise<void> => {
+  try {
+    await supabase.functions.invoke('audit-log', {
+      body: { action, resource_type: resourceType, resource_id: resourceId, details }
+    });
+  } catch (err) {
+    console.warn('[Audit] Failed to log event:', err);
+  }
+};
+
 export interface PasswordValidation {
   valid: boolean;
   errors: string[];
@@ -123,6 +139,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error || !data.user) {
           setIsLoading(false);
+          // Audit log: login fallido
+          void logAuditEvent('login_failed', 'auth', undefined, { email, reason: 'invalid_credentials' });
           return { success: false, error: 'Credenciales incorrectas' };
         }
         const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
@@ -134,6 +152,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const mapped = mapProfile(profile as Record<string, unknown>);
         setUser(mapped);
         setIsLoading(false);
+        // Audit log: login exitoso
+        void logAuditEvent('login', 'auth', data.user.id, { email });
         return { success: true, mustChangePassword: mapped.mustChangePassword };
       }
 
@@ -241,17 +261,52 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const logout = async (): Promise<void> => {
+    const currentUserId = user?.id;
     if (isSupabaseConfigured) await supabase.auth.signOut();
     setUser(null);
     localStorage.removeItem(STORAGE_KEYS.session);
+    // Audit log: logout
+    if (currentUserId) {
+      void logAuditEvent('logout', 'auth', currentUserId);
+    }
   };
 
   const updateProfile = async (updates: Partial<User>): Promise<void> => {
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      saveToStorage(STORAGE_KEYS.session, updatedUser);
-      setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, ...updates } : u)));
+    if (!user) return;
+
+    let previousUser: User | undefined;
+
+    // Capture previous state for rollback
+    previousUser = { ...user };
+
+    // Optimistic UI update
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    saveToStorage(STORAGE_KEYS.session, updatedUser);
+    setUsers(prev => prev.map(u => (u.id === user.id ? { ...u, ...updates } : u)));
+
+    // Supabase persist with rollback on error
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            name: updates.name,
+            department: updates.department ?? null,
+            position: updates.position ?? null,
+            rut: updates.rut ?? null
+          })
+          .eq('id', user.id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('[AuthContext] Error actualizando perfil en Supabase - rollback', err);
+        // Rollback to previous state
+        if (previousUser) {
+          setUser(previousUser);
+          saveToStorage(STORAGE_KEYS.session, previousUser);
+          setUsers(prev => prev.map(u => (u.id === user.id ? previousUser! : u)));
+        }
+      }
     }
   };
 
@@ -263,7 +318,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: false, error: 'Ya existe un usuario con ese correo' };
     }
 
+    let optimisticUser: User | undefined;
+    let previousUsers: User[] = [];
+
+    // Capture previous state for rollback
+    previousUsers = [...users];
+
     if (isSupabaseConfigured) {
+      // Create optimistic user immediately
+      const newId = uuidv4();
+      optimisticUser = {
+        ...data,
+        id: newId,
+        createdAt: new Date(),
+        status: data.status || 'active',
+        mustChangePassword: true,
+      };
+      setUsers(prev => [...prev, optimisticUser!]);
+
       const worker = {
         rut: data.rut || '',
         name: data.name,
@@ -272,16 +344,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         department: data.department || '',
         password: data.password || undefined
       };
-      const { data: fnData, error } = await supabase.functions.invoke('import-workers', {
-        body: { workers: [worker] }
-      });
-      if (error) {
-        return { success: false, error: 'No se pudo crear la cuenta en el sistema de acceso: ' + error.message };
-      }
-      // Recargar perfiles desde Supabase para obtener el usuario real con su UUID de auth
-      const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-      if (profiles && profiles.length > 0) {
-        setUsers(profiles.map(p => mapProfile(p as Record<string, unknown>)));
+
+      try {
+        const { data: fnData, error } = await supabase.functions.invoke('import-workers', {
+          body: { workers: [worker] }
+        });
+        if (error) throw error;
+
+        // Recargar perfiles desde Supabase para obtener el usuario real con su UUID de auth
+        const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+        if (profiles && profiles.length > 0) {
+          setUsers(profiles.map(p => mapProfile(p as Record<string, unknown>)));
+        }
+      } catch (err) {
+        console.warn('[AuthContext] Error agregando usuario en Supabase - rollback', err);
+        // Rollback to previous state
+        setUsers(previousUsers);
+        return { success: false, error: 'No se pudo crear la cuenta en el sistema de acceso' };
       }
     } else {
       const newId = uuidv4();
@@ -317,12 +396,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const deleteUser = async (id: string): Promise<void> => {
+    let deletedUser: User | undefined;
+    let previousUsers: User[] = [];
+
+    // Capture previous state for rollback
+    previousUsers = [...users];
+    deletedUser = users.find(u => u.id === id);
+
+    // Optimistic UI update - remove user immediately
     setUsers(prev => prev.filter(u => u.id !== id));
 
     if (isSupabaseConfigured) {
-      const { error } = await supabase.from('profiles').delete().eq('id', id);
-      if (error) {
-        console.warn('Supabase profile delete error:', error.message);
+      try {
+        const { error } = await supabase.from('profiles').delete().eq('id', id);
+        if (error) throw error;
+      } catch (err) {
+        console.warn('[AuthContext] Error eliminando usuario en Supabase - rollback', err);
+        // Rollback to previous state
+        setUsers(previousUsers);
       }
     }
   };
