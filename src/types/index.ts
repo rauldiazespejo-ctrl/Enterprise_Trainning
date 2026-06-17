@@ -15,6 +15,7 @@ export interface User {
   password?: string;
   status?: 'active' | 'inactive';
   mustChangePassword?: boolean;
+  organizationId?: string;
 }
 
 export interface GlossaryTerm {

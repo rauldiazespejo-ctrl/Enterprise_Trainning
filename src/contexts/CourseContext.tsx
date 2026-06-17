@@ -214,9 +214,11 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         const { data, error } = await db.getCoursesWithModules();
         if (error) throw error;
         const mapped = (data as Record<string, unknown>[] || []).map(mapSupabaseToCourse);
-        setCourses(mapped);
+        if (mapped.length > 0) {
+          setCourses(mapped);
+        }
       } catch (err) {
-        console.warn('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
+        console.error('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
       }
     })();
   }, []);
@@ -350,7 +352,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       title: courseData.title || 'Nuevo Curso',
       description: courseData.description || '',
       thumbnail: courseData.thumbnail || '',
-      createdBy: courseData.createdBy || FALLBACK_USER_ID,
+      createdBy: courseData.createdBy || user?.id || FALLBACK_USER_ID,
       createdAt: new Date(),
       updatedAt: new Date(),
       status: courseData.status || 'draft',
@@ -363,17 +365,16 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Intentar persistir en Supabase primero
     try {
-      const row = mapCourseToSupabase(newCourse);
+      const row = mapCourseToSupabase(newCourse, user?.organizationId, user?.id);
       const { data, error } = await db.upsertCourse(row);
       if (error) throw error;
       if (data) {
-        // Usar el registro retornado por Supabase (puede tener timestamps del servidor)
         const saved = mapSupabaseToCourse(data as Record<string, unknown>);
         setCourses(prev => [saved, ...prev]);
         return saved;
       }
     } catch (err) {
-      console.warn('[CourseContext] Error al crear curso en Supabase, guardando solo en localStorage.', err);
+      console.error('[CourseContext] Error al crear curso en Supabase, guardando solo en localStorage.', err);
     }
 
     // Fallback: guardar solo en estado local (localStorage via useEffect)
@@ -398,7 +399,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     try {
       const existing = courses.find(c => c.id === id);
       const merged = existing ? { ...existing, ...updates } : updates;
-      const row = mapCourseToSupabase({ ...merged, id });
+      const row = mapCourseToSupabase({ ...merged, id }, user?.organizationId, user?.id);
       const { error } = await db.upsertCourse(row);
       if (error) throw error;
     } catch (err) {

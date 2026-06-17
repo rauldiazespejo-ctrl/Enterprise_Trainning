@@ -31,7 +31,7 @@ Deno.serve(async request => {
       .select('organization_id, role')
       .eq('id', user.id)
       .single();
-    if (!caller || caller.role !== 'admin') throw new Error('Solo un administrador puede importar trabajadores.');
+    if (!caller || !['admin', 'super_admin'].includes(caller.role)) throw new Error('Solo un administrador puede importar trabajadores.');
 
     const { workers } = await request.json();
     if (!Array.isArray(workers) || workers.length === 0 || workers.length > 500) {

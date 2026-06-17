@@ -61,6 +61,7 @@ const mapProfile = (p: Record<string, unknown>): User => ({
   createdAt: new Date(p.created_at as string),
   status: p.status as 'active' | 'inactive',
   mustChangePassword: (p.must_change_password as boolean) ?? true,
+  organizationId: (p.organization_id as string) ?? undefined,
 });
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
@@ -80,7 +81,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const loadProfiles = async () => {
       const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       if (data && data.length > 0) {
-        setUsers(data.map(p => mapProfile(p as Record<string, unknown>)));
+        const mapped = data.map(p => mapProfile(p as Record<string, unknown>));
+        setUsers(prev => mapped.length > 0 ? mapped : prev);
       }
     };
     void loadProfiles();
@@ -261,16 +263,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return { success: false, error: 'Ya existe un usuario con ese correo' };
     }
 
-    const newId = uuidv4();
-    const newUser: User = {
-      ...data,
-      id: newId,
-      createdAt: new Date(),
-      status: data.status || 'active',
-      mustChangePassword: true,
-    };
-    setUsers(prev => [...prev, newUser]);
-
     if (isSupabaseConfigured) {
       const worker = {
         rut: data.rut || '',
@@ -280,13 +272,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         department: data.department || '',
         password: data.password || undefined
       };
-      const { error } = await supabase.functions.invoke('import-workers', {
+      const { data: fnData, error } = await supabase.functions.invoke('import-workers', {
         body: { workers: [worker] }
       });
       if (error) {
-        console.warn('Error creating Supabase auth user:', error.message);
-        return { success: false, error: 'No se pudo crear la cuenta en el sistema de acceso.' };
+        return { success: false, error: 'No se pudo crear la cuenta en el sistema de acceso: ' + error.message };
       }
+      // Recargar perfiles desde Supabase para obtener el usuario real con su UUID de auth
+      const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
+      if (profiles && profiles.length > 0) {
+        setUsers(profiles.map(p => mapProfile(p as Record<string, unknown>)));
+      }
+    } else {
+      const newId = uuidv4();
+      const newUser: User = {
+        ...data,
+        id: newId,
+        createdAt: new Date(),
+        status: data.status || 'active',
+        mustChangePassword: true,
+      };
+      setUsers(prev => [...prev, newUser]);
     }
 
     return { success: true };
