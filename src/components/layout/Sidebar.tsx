@@ -45,7 +45,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   return (
     <aside className="sidebar-root w-64 flex flex-col min-h-screen select-none">
       {/* ── Logo ─────────────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/[0.05]">
+      <div className="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/[0.05] animate-fadeIn">
         <div className="shrink-0">
           <SoldesPLogoSmall size={44} />
         </div>
@@ -87,14 +87,14 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
         {/* Main Links */}
         <div>
           <p className="sidebar-section-label">Navegación</p>
-          <ul className="space-y-0.5">
+          <ul className="space-y-0.5 stagger-children">
             {links.map(({ path, icon: Icon, label }) => {
               const active = location.pathname === path;
               return (
                 <li key={path}>
                   <Link
                     to={path}
-                    className={`sidebar-item ${active ? 'sidebar-item-active' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'}`}
+                    className={`sidebar-item ${active ? 'sidebar-item-active sidebar-glow-active' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'}`}
                   >
                     <span className={`sidebar-icon ${active ? 'bg-white/20' : 'bg-white/[0.04] group-hover:bg-[#D15F3D]/10'}`}>
                       <Icon className="w-4 h-4" />
@@ -112,7 +112,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       {/* ── User ─────────────────────────────────────────────────── */}
       <div className="px-3 pb-4 border-t border-white/[0.05] pt-4 space-y-2">
         {/* User card */}
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-200">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
           </div>

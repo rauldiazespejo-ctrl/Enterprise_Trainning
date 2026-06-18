@@ -65,9 +65,12 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <MainLayout title="Dashboard" subtitle="Resumen de la plataforma" isAdmin>
-      <div className="space-y-6">
+      <div className="space-y-6 relative overflow-hidden">
+        {/* Ambient light */}
+        <div className="absolute top-0 right-0 ambient-blob ambient-blob-orange" style={{ top: '-100px', right: '-50px' }} />
+        <div className="absolute bottom-0 left-0 ambient-blob ambient-blob-navy" style={{ bottom: '-100px', left: '-50px' }} />
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
           <StatCard
             label="Total Empleados"
             value={totalEmployees}
@@ -100,26 +103,26 @@ const AdminDashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="flex flex-wrap gap-4">
           <Link to="/admin/documents">
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2 min-h-[44px]">
               <Upload className="w-4 h-4" />
               Subir Documento
             </Button>
           </Link>
           <Link to="/admin/courses">
-            <Button variant="secondary" className="flex items-center gap-2">
+            <Button variant="secondary" className="flex items-center gap-2 min-h-[44px]">
               <Plus className="w-4 h-4" />
               Crear Curso
             </Button>
           </Link>
           <Link to="/admin/assignments">
-            <Button variant="ghost" className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 min-h-[44px]">
               <FileText className="w-4 h-4" />
               Nueva Asignación
             </Button>
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 stagger-children">
           {/* Recent Employees */}
           <Card className="p-6">
             <div className="flex items-center justify-between mb-4">

@@ -120,7 +120,7 @@ const AssignmentManagement: React.FC = () => {
     <MainLayout title="Asignaciones" subtitle="Gestiona las asignaciones de cursos" isAdmin>
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 stagger-children">
           <Card className="p-3 sm:p-4">
             <div className="flex items-center gap-3">
               <div className="p-2 sm:p-3 bg-blue-500/10 rounded-xl text-blue-400">

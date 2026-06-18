@@ -83,7 +83,7 @@ const CourseManagement: React.FC = () => {
                 placeholder="Buscar cursos..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-modern pl-10 pr-4 py-2 w-64"
+                className="input-modern pl-10 pr-4 py-2 w-64 text-base"
               />
             </div>
             <Select
@@ -106,7 +106,7 @@ const CourseManagement: React.FC = () => {
         </div>
 
         {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 stagger-children">
           {paginatedCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden !p-0">
               {/* Course Thumbnail */}
@@ -159,7 +159,7 @@ const CourseManagement: React.FC = () => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleDelete(course.id)}
-                    className="text-red-600 hover:bg-red-50"
+                    className="text-red-400 hover:bg-red-500/10"
                   >
                     <Trash2 className="w-4 h-4" />
                   </Button>
@@ -171,7 +171,7 @@ const CourseManagement: React.FC = () => {
 
         {/* Pagination */}
         {filteredCourses.length > PAGE_SIZE && (
-          <div className="px-6 py-4 border-t border-slate-200">
+          <div className="px-6 py-4 border-t border-slate-700/50">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -185,7 +185,7 @@ const CourseManagement: React.FC = () => {
         {/* Empty State */}
         {filteredCourses.length === 0 && (
           <div className="text-center py-12">
-            <BookOpen className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <BookOpen className="w-16 h-16 text-slate-600 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-white mb-2">No se encontraron cursos</h3>
             <p className="text-slate-500 mb-4">
               {searchTerm ? 'Intenta con otro término de búsqueda' : 'Comienza creando tu primer curso'}
@@ -206,8 +206,8 @@ const CourseManagement: React.FC = () => {
         onClose={() => setShowDeleteModal(false)}
         title="Confirmar Eliminación"
       >
-        <div className="space-y-4">
-          <p className="text-slate-600">
+        <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+          <p className="text-slate-400">
             ¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.
           </p>
           <div className="flex justify-end gap-3">

@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
     : 'bg-emerald-400';
 
   return (
-    <header className="bg-[#111827]/95 backdrop-blur-md border-b border-white/[0.06] px-6 py-3.5 sticky top-0 z-40">
+    <header className="header-frosted px-6 py-3.5 sticky top-0 z-40">
       <div className="flex items-center justify-between gap-4">
         {/* Left: menu + title */}
         <div className="flex items-center gap-3 min-w-0">
@@ -67,7 +67,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 animate-fadeIn">
             <h1 className="text-xl font-bold text-white leading-tight truncate">{title}</h1>
             {subtitle && (
               <p className="text-xs text-slate-500 mt-0.5 truncate">{subtitle}</p>
@@ -78,7 +78,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
         {/* Right: search + bell + user */}
         <div className="flex items-center gap-2 shrink-0">
           {/* Search */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/[0.04] rounded-lg border border-white/[0.08] focus-within:border-[#D15F3D]/50 focus-within:bg-white/[0.06] transition-all">
+          <div className="hidden md:flex items-center gap-2 px-3 py-2 bg-white/[0.03] rounded-xl border border-white/[0.06] focus-within:border-[#D15F3D]/40 focus-within:bg-white/[0.06] focus-within:shadow-[0_0_20px_rgba(209,95,61,0.08)] transition-all">
             <Search className="w-4 h-4 text-slate-500 shrink-0" />
             <input
               type="text"
@@ -101,7 +101,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
             </button>
 
             {showNotifications && (
-              <div className="absolute right-0 mt-2 w-80 bg-[#1a2233] border border-white/[0.08] rounded-xl shadow-2xl overflow-hidden z-50">
+              <div className="absolute right-0 mt-2 w-80 bg-[#1a2233]/95 backdrop-blur-xl border border-white/[0.08] rounded-2xl shadow-2xl overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-white/[0.06]">
                   <h3 className="text-sm font-semibold text-white">Notificaciones</h3>
                 </div>
@@ -128,7 +128,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
           </div>
 
           {/* User pill */}
-          <div className="flex items-center gap-2.5 px-3 py-2 bg-white/[0.04] border border-white/[0.08] rounded-xl">
+          <div className="flex items-center gap-2.5 px-3 py-2 bg-white/[0.04] border border-white/[0.06] rounded-xl hover:border-white/[0.12] transition-all duration-200">
             <div className="relative">
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white text-xs font-bold">
                 {user?.name?.charAt(0).toUpperCase()}

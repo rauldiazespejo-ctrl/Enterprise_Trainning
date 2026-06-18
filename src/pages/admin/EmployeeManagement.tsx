@@ -268,7 +268,7 @@ const EmployeeManagement: React.FC = () => {
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
       <div className="space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 stagger-children">
           <Card className="p-4">
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-500/10 rounded-lg text-blue-400">
@@ -276,7 +276,7 @@ const EmployeeManagement: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{employees.length}</p>
-                <p className="text-sm text-slate-500">Total Empleados</p>
+                <p className="text-sm text-slate-400">Total Empleados</p>
               </div>
             </div>
           </Card>
@@ -287,7 +287,7 @@ const EmployeeManagement: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{totalInTraining}</p>
-                <p className="text-sm text-slate-500">En Capacitación</p>
+                <p className="text-sm text-slate-400">En Capacitación</p>
               </div>
             </div>
           </Card>
@@ -298,7 +298,7 @@ const EmployeeManagement: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{totalCompleted}</p>
-                <p className="text-sm text-slate-500">Cursos Completados</p>
+                <p className="text-sm text-slate-400">Cursos Completados</p>
               </div>
             </div>
           </Card>
@@ -309,7 +309,7 @@ const EmployeeManagement: React.FC = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold text-white">{certificates.length}</p>
-                <p className="text-sm text-slate-500">Certificados</p>
+                <p className="text-sm text-slate-400">Certificados</p>
               </div>
             </div>
           </Card>
@@ -393,7 +393,7 @@ const EmployeeManagement: React.FC = () => {
                             </div>
                             <div>
                               <p className="font-medium text-white">{employee.name}</p>
-                              <p className="text-sm text-slate-500">{employee.email}</p>
+                              <p className="text-sm text-slate-400">{employee.email}</p>
                               {employee.rut && <p className="text-xs text-slate-400">RUT: {employee.rut}</p>}
                             </div>
                           </div>
@@ -401,7 +401,7 @@ const EmployeeManagement: React.FC = () => {
                         <td className="px-6 py-4">
                           <div>
                             <p className="font-medium text-white">{employee.department || '—'}</p>
-                            <p className="text-sm text-slate-500">{employee.position || ''}</p>
+                            <p className="text-sm text-slate-400">{employee.position || ''}</p>
                           </div>
                         </td>
                         <td className="px-6 py-4">
@@ -460,7 +460,7 @@ const EmployeeManagement: React.FC = () => {
 
           {/* Pagination */}
           {filteredEmployees.length > PAGE_SIZE && (
-            <div className="px-6 py-4 border-t border-slate-200">
+            <div className="px-6 py-4 border-t border-slate-700/50">
               <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}

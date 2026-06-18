@@ -10,7 +10,7 @@ interface CardProps {
 
 export const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => (
   <div
-    className={`card-modern ${onClick ? 'cursor-pointer' : ''} ${className}`}
+    className={`card-modern animate-fadeInUp ${onClick ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
     onClick={onClick}
   >
     {children}
@@ -31,14 +31,14 @@ export const Button: React.FC<ButtonProps> = ({
   className = '',
   ...props
 }) => {
-  const baseStyles = 'font-medium rounded-lg transition-all inline-flex items-center justify-center gap-2';
+  const baseStyles = 'font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 active:scale-[0.97]';
 
   const variants = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
-    outline: 'btn-ghost',
-    danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
-    ghost: 'btn-ghost',
+    outline: 'border border-slate-600 text-slate-300 hover:border-[#D15F3D]/50 hover:text-white hover:bg-white/[0.04] backdrop-blur-sm',
+    danger: 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/50',
+    ghost: 'text-slate-400 hover:text-white hover:bg-white/[0.06]',
     accent: 'btn-accent'
   };
 
@@ -65,13 +65,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => (
-  <div className="space-y-1">
-    {label && <label className="block text-sm font-medium text-slate-300">{label}</label>}
+  <div className="space-y-1.5">
+    {label && <label className="block text-sm font-medium text-slate-300 tracking-wide">{label}</label>}
     <input
-      className={`input-modern ${error ? 'border-red-500' : ''} ${className}`}
+      className={`input-modern transition-all duration-200 ${error ? 'border-red-500 focus:border-red-400 focus:ring-red-500/20' : ''} ${className}`}
       {...props}
     />
-    {error && <p className="text-sm text-red-400">{error}</p>}
+    {error && <p className="text-sm text-red-400 flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 inline-block" />{error}</p>}
   </div>
 );
 
@@ -103,16 +103,16 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) => {
   const variants = {
-    default: 'bg-slate-700 text-slate-300',
-    success: 'badge-success',
-    warning: 'badge-warning',
-    danger: 'badge-error',
-    info: 'badge-info',
-    primary: 'badge-primary'
+    default: 'bg-slate-700/60 text-slate-300 border border-slate-600/50',
+    success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
+    warning: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
+    danger: 'bg-red-500/15 text-red-400 border border-red-500/30',
+    info: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
+    primary: 'bg-[#D15F3D]/15 text-[#D15F3D] border border-[#D15F3D]/30'
   };
 
   return (
-    <span className={`badge ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${variants[variant]}`}>
       {children}
     </span>
   );
@@ -132,19 +132,21 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 100, show
 
   const sizes = {
     sm: 'h-1.5',
-    md: 'h-2',
-    lg: 'h-3'
+    md: 'h-2.5',
+    lg: 'h-3.5'
   };
 
   return (
     <div className={`w-full ${className}`}>
-      <div className={`progress-modern ${sizes[size]}`}>
+      <div className={`w-full ${sizes[size]} bg-slate-800 rounded-full overflow-hidden`}>
         <div
-          className="progress-modern-bar"
+          className="h-full rounded-full bg-gradient-to-r from-[#D15F3D] to-[#E87A58] transition-all duration-500 ease-out relative"
           style={{ width: `${percentage}%` }}
-        />
+        >
+          {percentage > 0 && <div className="absolute inset-0 rounded-full bg-white/20 animate-shimmer" />}
+        </div>
       </div>
-      {showLabel && <p className="text-xs text-slate-400 mt-1">{Math.round(percentage)}%</p>}
+      {showLabel && <p className="text-xs text-slate-400 mt-1.5 font-medium tabular-nums">{Math.round(percentage)}%</p>}
     </div>
   );
 };
@@ -161,15 +163,15 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto animate-fadeIn">
       <div className="flex min-h-screen items-center justify-center p-4">
-        <div className="fixed inset-0 bg-black/60" onClick={onClose} />
-        <div className="relative card-modern max-w-lg w-full p-6 z-10 animate-scaleIn">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
+        <div className="relative card-modern max-w-lg w-full p-6 z-10 animate-scaleIn border-white/[0.08]">
           {title && (
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-white">{title}</h2>
-              <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-200">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -193,26 +195,27 @@ interface StatCardProps {
 
 export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, variant = 'default' }) => {
   const iconColors = {
-    default: 'bg-[#D15F3D]/15 text-[#D15F3D]',
-    primary: 'bg-[#D15F3D]/15 text-[#D15F3D]',
-    success: 'bg-emerald-500/15 text-emerald-400',
-    warning: 'bg-amber-500/15 text-amber-400'
+    default: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
+    primary: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
+    success: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20',
+    warning: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20'
   };
 
   return (
-    <Card className="p-5">
+    <Card className="p-5 group">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-slate-400">{label}</p>
-          <p className="text-2xl font-bold text-white mt-1">{value}</p>
+          <p className="text-sm text-slate-400 font-medium">{label}</p>
+          <p className="text-2xl font-bold text-white mt-1 tracking-tight">{value}</p>
           {trend && (
-            <p className={`text-sm mt-1 ${trend.positive ? 'text-emerald-400' : 'text-red-400'}`}>
-              {trend.positive ? '↑' : '↓'} {Math.abs(trend.value)}%
+            <p className={`text-sm mt-1.5 font-medium flex items-center gap-1 ${trend.positive ? 'text-emerald-400' : 'text-red-400'}`}>
+              <span className={`inline-block transition-transform ${trend.positive ? 'rotate-0' : 'rotate-180'}`}>↑</span>
+              {Math.abs(trend.value)}%
             </p>
           )}
         </div>
         {icon && (
-          <div className={`p-3 rounded-xl ${iconColors[variant]}`}>
+          <div className={`p-3 rounded-xl transition-transform duration-300 group-hover:scale-110 ${iconColors[variant]}`}>
             {icon}
           </div>
         )}
@@ -259,11 +262,11 @@ export const Avatar: React.FC<AvatarProps> = ({ name, size = 'md', src }) => {
   };
 
   if (src) {
-    return <img src={src} alt={name} className={`${sizes[size]} rounded-xl object-cover`} />;
+    return <img src={src} alt={name} className={`${sizes[size]} rounded-xl object-cover ring-1 ring-white/10`} />;
   }
 
   return (
-    <div className={`${sizes[size]} avatar rounded-xl flex items-center justify-center text-white font-semibold`}>
+    <div className={`${sizes[size]} rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] ring-1 ring-white/10`}>
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -278,14 +281,14 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, action }) => (
-  <div className="text-center py-12">
+  <div className="text-center py-16 animate-fadeIn">
     {icon && (
-      <div className="inline-flex p-4 rounded-2xl bg-slate-800 text-slate-400 mb-4">
+      <div className="inline-flex p-5 rounded-2xl bg-slate-800/50 text-slate-400 mb-5 ring-1 ring-white/[0.06]">
         {icon}
       </div>
     )}
     <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-    {description && <p className="text-sm text-slate-400 mb-4">{description}</p>}
+    {description && <p className="text-sm text-slate-400 mb-6 max-w-sm mx-auto">{description}</p>}
     {action && <div>{action}</div>}
   </div>
 );
@@ -296,14 +299,9 @@ interface SpinnerProps {
 }
 
 export const Spinner: React.FC<SpinnerProps> = ({ size = 'md' }) => {
-  const sizes = {
-    sm: 'w-4 h-4',
-    md: 'w-6 h-6',
-    lg: 'w-8 h-8'
-  };
-
+  const sizes = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-8 h-8' };
   return (
-    <div className="animate-spin rounded-full border-2 border-slate-700 border-t-indigo-500" style={{ width: sizes[size], height: sizes[size] }} />
+    <div className={`${sizes[size]} animate-spin rounded-full border-2 border-slate-700 border-t-[#D15F3D]`} />
   );
 };
 
@@ -313,5 +311,5 @@ interface SkeletonProps {
 }
 
 export const Skeleton: React.FC<SkeletonProps> = ({ className = '' }) => (
-  <div className={`skeleton ${className}`} />
+  <div className={`skeleton-premium ${className}`} />
 );
