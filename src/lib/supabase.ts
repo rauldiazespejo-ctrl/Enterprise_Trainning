@@ -16,7 +16,7 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
 // Helper para verificar conexión
 export const checkConnection = async (): Promise<boolean> => {
   try {
-    const { data, error } = await supabase.from('users').select('count');
+    const { data, error } = await supabase.from('profiles').select('count');
     return !error;
   } catch {
     return false;
@@ -59,17 +59,17 @@ export const auth = {
 export const db = {
   // Usuarios
   async getUsers() {
-    const { data, error } = await supabase.from('users').select('*');
+    const { data, error } = await supabase.from('profiles').select('*');
     return { data, error };
   },
 
   async getUserById(id: string) {
-    const { data, error } = await supabase.from('users').select('*').eq('id', id).single();
+    const { data, error } = await supabase.from('profiles').select('*').eq('id', id).single();
     return { data, error };
   },
 
   async updateUser(id: string, updates: Record<string, unknown>) {
-    const { data, error } = await supabase.from('users').update(updates).eq('id', id);
+    const { data, error } = await supabase.from('profiles').update(updates).eq('id', id);
     return { data, error };
   },
 
@@ -250,12 +250,12 @@ export const db = {
         { data: recentUsers },
         { data: recentCoursesData }
       ] = await Promise.all([
-        supabase.from('users').select('*', { count: 'exact', head: true }),
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('courses').select('*', { count: 'exact', head: true }),
         supabase.from('course_assignments').select('*', { count: 'exact', head: true }),
         supabase.from('course_assignments').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
         supabase.from('certificates').select('*', { count: 'exact', head: true }),
-        supabase.from('users').select('*').order('created_at', { ascending: false }).limit(4),
+        supabase.from('profiles').select('*').order('created_at', { ascending: false }).limit(4),
         supabase.from('courses').select('*').order('created_at', { ascending: false }).limit(3)
       ]);
 
@@ -330,7 +330,7 @@ export const db = {
       const courseIds = [...new Set(assignmentsRaw.map((a: any) => a.course_id))];
 
       const [{ data: usersData }, { data: coursesData }] = await Promise.all([
-        supabase.from('users').select('id, name').in('id', userIds),
+        supabase.from('profiles').select('id, name').in('id', userIds),
         supabase.from('courses').select('id, title').in('id', courseIds)
       ]);
 
