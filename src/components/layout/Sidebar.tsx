@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  Home, BookOpen, Users, Award, Settings, LogOut, FileText,
+  Home, BookOpen, Users, Award, Settings, LogOut, FileText, FolderOpen,
   BarChart3, UserCheck, GraduationCap, Crown, Shield, LayoutGrid,
 } from 'lucide-react';
 import { SoldesPLogoSmall } from '@/components/SoldesPLogo';
@@ -19,6 +19,7 @@ const adminLinks = [
   { path: '/admin/certificates', icon: Award,      label: 'Certificados'  },
   { path: '/admin/reports',      icon: BarChart3,  label: 'Reportes'      },
   { path: '/admin/matrix',       icon: LayoutGrid, label: 'Matriz'        },
+  { path: '/admin/repository',   icon: FolderOpen, label: 'Repositorio'   },
   { path: '/admin/documents',    icon: FileText,   label: 'Documentos'    },
   { path: '/admin/settings',     icon: Settings,   label: 'Configuración' },
 ];

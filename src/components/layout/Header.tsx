@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Bell, Search, Menu } from 'lucide-react';
+import { Bell, Search, Menu, QrCode } from 'lucide-react';
+import AppAccessQR from '@/components/ui/AppAccessQR';
 import { useAuth } from '@/contexts/AuthContext';
 import { db } from '@/lib/supabase';
 
@@ -14,6 +15,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
   const [notifications, setNotifications] = useState<any[]>([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [showQrAccess, setShowQrAccess] = useState(false);
 
   const loadNotifications = useCallback(async () => {
     if (!user?.id) return;
@@ -87,6 +89,16 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
             />
           </div>
 
+          {/* QR Access */}
+          <button
+            onClick={() => setShowQrAccess(true)}
+            className="p-2 text-slate-400 hover:text-white hover:bg-white/[0.06] rounded-lg transition-colors"
+            aria-label="QR de acceso"
+            title="QR de acceso"
+          >
+            <QrCode className="w-5 h-5" />
+          </button>
+
           {/* Notifications */}
           <div className="relative" ref={notifRef}>
             <button
@@ -142,6 +154,7 @@ const Header: React.FC<HeaderProps> = ({ title, subtitle, onMenuClick }) => {
           </div>
         </div>
       </div>
+      <AppAccessQR isOpen={showQrAccess} onClose={() => setShowQrAccess(false)} />
     </header>
   );
 };

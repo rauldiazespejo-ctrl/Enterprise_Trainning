@@ -20,6 +20,7 @@ const Reports = lazy(() => import('@/pages/admin/Reports'));
 const SettingsPage = lazy(() => import('@/pages/admin/Settings'));
 const TrainingMatrix = lazy(() => import('@/pages/admin/TrainingMatrix'));
 const AssignmentManagement = lazy(() => import('@/pages/admin/AssignmentManagement'));
+const DocumentRepository = lazy(() => import('@/pages/admin/DocumentRepository'));
 const EmployeeDashboard = lazy(() => import('@/pages/employee/EmployeeDashboard'));
 const CourseViewer = lazy(() => import('@/pages/employee/CourseViewer'));
 const EmployeeCertificates = lazy(() => import('@/pages/employee/EmployeeCertificates'));
@@ -103,6 +104,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRole="admin">
             <CourseManagement />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/repository"
+        element={
+          <ProtectedRoute requiredRole="admin">
+            <DocumentRepository />
           </ProtectedRoute>
         }
       />
