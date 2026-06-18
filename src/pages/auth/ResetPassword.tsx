@@ -236,6 +236,7 @@ const ResetPassword: React.FC = () => {
                   type="button"
                   onClick={() => setShowNew(!showNew)}
                   className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                  aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -281,6 +282,7 @@ const ResetPassword: React.FC = () => {
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                  aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 >
                   {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
