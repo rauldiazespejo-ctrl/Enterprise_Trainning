@@ -244,7 +244,36 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
       try {
         // Cargar asignaciones
         const { data: assignData } = await db.getAssignmentsByUser(user.id);
-        setAssignments((assignData || []).map(mapSupabaseToAssignment));
+        const mappedAssignments = (assignData || []).map(mapSupabaseToAssignment);
+        setAssignments(mappedAssignments);
+
+        // Garantizar que los cursos asignados estén en la lista (aunque no sean de la organización
+        // del usuario o hayan caído solo en localStorage del admin que los creó)
+        const assignedCourseIds = mappedAssignments.map(a => a.courseId).filter(Boolean);
+        if (assignedCourseIds.length > 0) {
+          setCourses(prev => {
+            const existingIds = new Set(prev.map(c => c.id));
+            const missing = assignedCourseIds.filter(id => !existingIds.has(id));
+            if (missing.length === 0) return prev; // todo ya cargado
+
+            // Fetch asíncrono de los cursos faltantes
+            supabase
+              .from('courses')
+              .select('*')
+              .in('id', missing)
+              .then(({ data: extra }) => {
+                if (extra && extra.length > 0) {
+                  const mapped = extra.map(r => mapSupabaseToCourse(r as Record<string, unknown>));
+                  setCourses(cur => {
+                    const curIds = new Set(cur.map(c => c.id));
+                    const novel = mapped.filter(c => !curIds.has(c.id));
+                    return novel.length > 0 ? [...cur, ...novel] : cur;
+                  });
+                }
+              });
+            return prev;
+          });
+        }
 
         // Cargar certificados
         const { data: certData } = await db.getCertificateByUser(user.id);
@@ -378,7 +407,17 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     // Intentar persistir en Supabase primero
     try {
-      const row = mapCourseToSupabase(newCourse, user?.organizationId, user?.id);
+      // Resolver organizationId: usar el del contexto o hacer query fresca al perfil
+      let orgId = user?.organizationId;
+      if (!orgId && user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', user.id)
+          .single();
+        orgId = (profile as any)?.organization_id ?? undefined;
+      }
+      const row = mapCourseToSupabase(newCourse, orgId, user?.id);
       const { data, error } = await db.upsertCourse(row);
       if (error) throw error;
       if (data) {
@@ -412,9 +451,18 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     if (!isValidUUID(id)) return; // Curso demo/local — no existe en Supabase
 
     try {
+      let orgId = user?.organizationId;
+      if (!orgId && user?.id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('organization_id')
+          .eq('id', user.id)
+          .single();
+        orgId = (profile as any)?.organization_id ?? undefined;
+      }
       const existing = courses.find(c => c.id === id);
       const merged = existing ? { ...existing, ...updates } : updates;
-      const row = mapCourseToSupabase({ ...merged, id }, user?.organizationId, user?.id);
+      const row = mapCourseToSupabase({ ...merged, id }, orgId, user?.id);
       const { error } = await db.upsertCourse(row);
       if (error) throw error;
       // Audit log: curso actualizado
