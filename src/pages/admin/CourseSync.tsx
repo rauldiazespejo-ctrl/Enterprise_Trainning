@@ -10,7 +10,7 @@ import {
   Database, HardDrive, Users, ArrowRight, Upload
 } from 'lucide-react';
 
-type Tab = 'diagnostico' | 'migrar' | 'usuarios';
+type Tab = 'diagnostico' | 'migrar' | 'usuarios' | 'reparar';
 
 interface SbCourse  { id: string; title: string; status: string; organization_id: string; created_at: string; }
 interface SbAssign  { id: string; course_id: string; user_id: string; status: string; }
@@ -44,6 +44,8 @@ const CourseSync: React.FC = () => {
   const [migrating, setMigrating] = useState(false);
   const [userChecks, setUserChecks] = useState<UserCheck[]>([]);
   const [checking, setChecking]     = useState(false);
+  const [repairLog, setRepairLog]   = useState<string[]>([]);
+  const [repairing, setRepairing]   = useState(false);
 
   // ── Tab 1: Diagnóstico ──────────────────────────────────────────────────────
 
@@ -194,12 +196,107 @@ const CourseSync: React.FC = () => {
     setChecking(false);
   }, [diag]);
 
+  // ── Tab 4: Reparar datos (fix org_id, perfiles sin org) ────────────────────
+
+  const runRepair = useCallback(async () => {
+    setRepairing(true);
+    const log: string[] = [];
+
+    try {
+      // Obtener org_id del admin actual
+      const { data: myProfile } = await supabase
+        .from('profiles')
+        .select('organization_id')
+        .eq('id', user?.id)
+        .single();
+      const orgId = (myProfile as any)?.organization_id;
+      if (!orgId) {
+        log.push('❌ No se encontró organization_id del admin. No se puede reparar.');
+        setRepairLog([...log]);
+        setRepairing(false);
+        return;
+      }
+      log.push(`✅ Organización de referencia: ${orgId}`);
+      setRepairLog([...log]);
+
+      // 1. Perfiles sin organization_id → asignar la organización del admin
+      const { data: orphanProfiles } = await supabase
+        .from('profiles')
+        .select('id, name')
+        .is('organization_id', null);
+      if (orphanProfiles && orphanProfiles.length > 0) {
+        const { error } = await supabase
+          .from('profiles')
+          .update({ organization_id: orgId })
+          .is('organization_id', null);
+        if (error) {
+          log.push(`❌ Error reparando perfiles: ${error.message}`);
+        } else {
+          log.push(`✅ Perfiles sin org reparados: ${orphanProfiles.length} (${orphanProfiles.map((p:any) => p.name).join(', ')})`);
+        }
+      } else {
+        log.push('ℹ️  Todos los perfiles tienen organization_id.');
+      }
+      setRepairLog([...log]);
+
+      // 2. Cursos con organization_id inválido (FK rota) → reasignar al org del admin
+      const { data: allCourses } = await supabase
+        .from('courses')
+        .select('id, title, organization_id');
+      const { data: allOrgs } = await supabase
+        .from('organizations')
+        .select('id');
+      const validOrgIds = new Set((allOrgs || []).map((o: any) => o.id));
+      const brokenCourses = (allCourses || []).filter((c: any) => !validOrgIds.has(c.organization_id));
+
+      if (brokenCourses.length > 0) {
+        for (const course of brokenCourses) {
+          const { error } = await supabase
+            .from('courses')
+            .update({ organization_id: orgId })
+            .eq('id', course.id);
+          if (error) {
+            log.push(`❌ Curso "${course.title}": ${error.message}`);
+          } else {
+            log.push(`✅ Curso reparado: "${course.title}"`);
+          }
+        }
+      } else {
+        log.push('ℹ️  Todos los cursos tienen organization_id válido.');
+      }
+      setRepairLog([...log]);
+
+      // 3. Cursos en Supabase pero con org_id distinto al admin → unificar si mismo tenant
+      const { data: mismatchedCourses } = await supabase
+        .from('courses')
+        .select('id, title, organization_id')
+        .neq('organization_id', orgId);
+      if (mismatchedCourses && mismatchedCourses.length > 0) {
+        log.push(`⚠️  ${mismatchedCourses.length} curso(s) pertenecen a otra organización.`);
+        log.push('   (No se modifican — pueden ser de otro tenant)');
+      } else {
+        log.push('✅ Todos los cursos pertenecen a la misma organización.');
+      }
+      setRepairLog([...log]);
+
+      log.push('─── Reparación completada. Vuelve a ejecutar el diagnóstico. ───');
+      setRepairLog([...log]);
+      await runDiagnostic();
+    } catch (err: unknown) {
+      log.push(`❌ Error inesperado: ${err instanceof Error ? err.message : String(err)}`);
+      setRepairLog([...log]);
+    } finally {
+      setRepairing(false);
+    }
+  }, [user, runDiagnostic]);
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'diagnostico', label: 'Diagnóstico' },
     { id: 'migrar',      label: 'Migrar datos' },
     { id: 'usuarios',    label: 'Ver por usuario' },
+    { id: 'reparar',     label: 'Reparar datos' },
   ];
 
   return (
@@ -493,6 +590,51 @@ const CourseSync: React.FC = () => {
                   </Card>
                 ))}
               </>
+            )}
+          </div>
+        )}
+
+        {/* ── TAB 4: Reparar datos ── */}
+        {tab === 'reparar' && (
+          <div className="space-y-4">
+            <Card className="p-4 border-amber-500/20 bg-amber-500/5">
+              <h3 className="text-sm font-semibold text-amber-400 mb-2 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                Reparación automática de datos
+              </h3>
+              <p className="text-slate-300 text-sm mb-4">
+                Corrige perfiles sin <code className="bg-black/30 px-1 rounded">organization_id</code> y
+                cursos con FK de organización rota. Esto soluciona el problema de usuarios (como Luis Ojeda)
+                que no ven cursos aunque tengan asignaciones.
+              </p>
+              <ul className="text-sm text-slate-400 space-y-1.5 mb-4 list-disc list-inside">
+                <li>Asigna <code className="bg-black/30 px-1 rounded">organization_id</code> a perfiles sin org</li>
+                <li>Repara cursos con FK de organización inválida</li>
+                <li>Reporta cursos de otra organización (no se tocan)</li>
+              </ul>
+              <Button onClick={runRepair} disabled={repairing}>
+                <RefreshCw className={`w-4 h-4 ${repairing ? 'animate-spin' : ''}`} />
+                {repairing ? 'Reparando…' : 'Ejecutar reparación'}
+              </Button>
+            </Card>
+
+            {repairLog.length > 0 && (
+              <Card className="p-4">
+                <h3 className="text-sm font-semibold text-white mb-3">Log de reparación</h3>
+                <div className="bg-black/30 rounded-lg p-3 font-mono text-xs space-y-1 max-h-80 overflow-y-auto">
+                  {repairLog.map((line, i) => (
+                    <p key={i} className={
+                      line.startsWith('✅') ? 'text-emerald-400' :
+                      line.startsWith('❌') ? 'text-red-400' :
+                      line.startsWith('⚠️') ? 'text-amber-400' :
+                      line.startsWith('ℹ️') ? 'text-blue-400' :
+                      'text-slate-400'
+                    }>
+                      {line}
+                    </p>
+                  ))}
+                </div>
+              </Card>
             )}
           </div>
         )}

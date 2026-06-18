@@ -220,7 +220,8 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
   const [currentModule, setCurrentModule] = useState<Module | null>(null);
   const [progress, setProgress] = useState<Record<string, CourseProgress[]>>(() => loadFromStorage(STORAGE_KEYS.progress, {}));
 
-  // Carga inicial desde Supabase al montar el componente
+  // Carga cursos desde Supabase — se re-ejecuta cuando cambia el usuario
+  // para garantizar que RLS use la sesión autenticada (evita race condition).
   useEffect(() => {
     (async () => {
       try {
@@ -234,7 +235,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         console.error('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
       }
     })();
-  }, []);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Carga de datos específicos del usuario (asignaciones, progreso, certificados)
   useEffect(() => {
