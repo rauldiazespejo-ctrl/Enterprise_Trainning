@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   Home, BookOpen, Users, Award, Settings, LogOut, FileText, FolderOpen,
-  BarChart3, UserCheck, GraduationCap, Crown, Shield, LayoutGrid,
+  BarChart3, UserCheck, GraduationCap, Crown, Shield, LayoutGrid, RefreshCw,
 } from 'lucide-react';
 import { SoldesPLogoSmall } from '@/components/SoldesPLogo';
 
@@ -22,6 +22,7 @@ const adminLinks = [
   { path: '/admin/repository',   icon: FolderOpen, label: 'Repositorio'   },
   { path: '/admin/documents',    icon: FileText,   label: 'Documentos'    },
   { path: '/admin/settings',     icon: Settings,   label: 'Configuración' },
+  { path: '/admin/sync',         icon: RefreshCw,  label: 'Sincronización'},
 ];
 
 const employeeLinks = [
