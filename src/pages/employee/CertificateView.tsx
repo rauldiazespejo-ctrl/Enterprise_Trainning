@@ -1,8 +1,5 @@
-// Componente de Certificado Premium - Logo Original SoldesP
-import React, { useRef } from 'react';
-import { Award, Download, CheckCircle, Calendar, Sparkles } from 'lucide-react';
+import React, { useRef, useEffect } from 'react';
 import html2canvas from 'html2canvas';
-import { SoldesPCertificateLogo } from '@/components/SoldesPLogo';
 
 interface CertificateViewProps {
   userName: string;
@@ -13,152 +10,234 @@ interface CertificateViewProps {
   onClose?: () => void;
 }
 
+const G  = '#C9A84C';   // gold
+const GL = '#E8C96B';   // gold light
+const GD = '#8B6914';   // gold dark
+const BG = '#FDFAF0';   // cream parchment
+const INK = '#2C1A00';  // dark brown ink
+
 const CertificateView: React.FC<CertificateViewProps> = ({
-  userName,
-  courseName,
-  completionDate,
-  certificateId,
-  score,
-  onClose
+  userName, courseName, completionDate, certificateId, score, onClose
 }) => {
-  const certificateRef = useRef<HTMLDivElement>(null);
+  const certRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href =
+      'https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Playfair+Display:wght@700&family=IM+Fell+English:ital@1&display=swap';
+    document.head.appendChild(link);
+    return () => { document.head.removeChild(link); };
+  }, []);
 
   const handleDownload = async () => {
-    if (certificateRef.current) {
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 2,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-
-      const link = document.createElement('a');
-      link.download = `certificado-${certificateId}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-    }
+    if (!certRef.current) return;
+    await document.fonts.ready;
+    const canvas = await html2canvas(certRef.current, {
+      scale: 2,
+      backgroundColor: BG,
+      logging: false,
+      useCORS: true,
+    });
+    const a = document.createElement('a');
+    a.download = `certificado-${certificateId}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      {/* Certificate Preview */}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 50,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      padding: '1.5rem', background: 'rgba(0,0,0,0.88)',
+      backdropFilter: 'blur(6px)',
+    }}>
+
+      {/* ── Certificate ───────────────────────────────────────── */}
       <div
-        ref={certificateRef}
-        className="relative w-full max-w-4xl aspect-[1.414] bg-white shadow-2xl"
-        style={{ aspectRatio: '1.414' }}
+        ref={certRef}
+        style={{
+          background: BG,
+          width: '100%',
+          maxWidth: '760px',
+          fontFamily: 'Cinzel, Georgia, serif',
+          border: `1px solid ${G}`,
+          borderRadius: '4px',
+          padding: '6px',
+          boxShadow: '0 12px 60px rgba(0,0,0,0.5)',
+        }}
       >
-        {/* Certificate Background Pattern */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white via-slate-50 to-blue-50">
-          {/* Decorative Border */}
-          <div className="absolute inset-4 border-4 border-[#001B4B]/10 rounded-3xl" />
-          <div className="absolute inset-6 border-2 border-[#D15F3D]/20 rounded-2xl" />
+        {/* Middle border */}
+        <div style={{ border: `2px solid ${G}`, padding: '4px', borderRadius: '2px' }}>
 
-          {/* Corner Decorations */}
-          <div className="absolute top-8 left-8 w-24 h-24 border-t-4 border-l-4 border-[#001B4B]/20 rounded-tl-3xl" />
-          <div className="absolute top-8 right-8 w-24 h-24 border-t-4 border-r-4 border-[#001B4B]/20 rounded-tr-3xl" />
-          <div className="absolute bottom-8 left-8 w-24 h-24 border-b-4 border-l-4 border-[#001B4B]/20 rounded-bl-3xl" />
-          <div className="absolute bottom-8 right-8 w-24 h-24 border-b-4 border-r-4 border-[#001B4B]/20 rounded-br-3xl" />
+          {/* Inner border + content */}
+          <div style={{ border: `1px solid ${GL}`, borderRadius: '1px', padding: '26px 36px 20px', position: 'relative', overflow: 'hidden' }}>
 
-          {/* Main Content */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-12">
-            {/* Header Badge */}
-            <div className="flex items-center gap-3 mb-6">
-              <div className="px-4 py-1.5 bg-[#001B4B] rounded-full">
-                <span className="text-white text-xs font-bold tracking-widest">CERTIFICADO DE FINALIZACIÓN</span>
+            {/* ── Corner ornaments ── */}
+            {(['tl','tr','bl','br'] as const).map(pos => {
+              const top  = pos.startsWith('t') ? '5px' : undefined;
+              const bot  = pos.startsWith('b') ? '5px' : undefined;
+              const left = pos.endsWith('l')   ? '5px' : undefined;
+              const right= pos.endsWith('r')   ? '5px' : undefined;
+              const bt = pos.startsWith('t') ? 'border-top' : 'border-bottom';
+              const bl = pos.endsWith('l')   ? 'border-left' : 'border-right';
+              const path = pos === 'tl' ? 'M4 36 L4 4 L36 4'
+                : pos === 'tr' ? 'M36 36 L36 4 L4 4'
+                : pos === 'bl' ? 'M4 4 L4 36 L36 36'
+                : 'M36 4 L36 36 L4 36';
+              const path2 = pos === 'tl' ? 'M8 36 L8 8 L36 8'
+                : pos === 'tr' ? 'M32 36 L32 8 L4 8'
+                : pos === 'bl' ? 'M8 4 L8 32 L36 32'
+                : 'M32 4 L32 32 L4 32';
+              const cx = pos.endsWith('l') ? 4 : 36;
+              const cy = pos.startsWith('t') ? 4 : 36;
+              void bt; void bl;
+              return (
+                <svg key={pos} style={{ position:'absolute', top, bottom:bot, left, right, width:'44px', height:'44px' }} viewBox="0 0 40 40">
+                  <path d={path}  stroke={G}  strokeWidth="1.8" fill="none"/>
+                  <path d={path2} stroke={GL} strokeWidth="0.7" fill="none"/>
+                  <circle cx={cx} cy={cy} r="2.5" fill={G}/>
+                </svg>
+              );
+            })}
+
+            {/* ── Top decorative bar ── */}
+            <div style={{ textAlign:'center', marginBottom:'8px' }}>
+              <svg width="340" height="14" viewBox="0 0 340 14">
+                <line x1="0"   y1="7" x2="150" y2="7" stroke={G} strokeWidth="0.8"/>
+                <polygon points="155,7 163,3 171,7 163,11" fill={G}/>
+                <line x1="175" y1="7" x2="340" y2="7" stroke={G} strokeWidth="0.8"/>
+              </svg>
+            </div>
+
+            {/* ── Superscript ── */}
+            <p style={{ textAlign:'center', fontFamily:'Cinzel,serif', fontSize:'8.5px', letterSpacing:'.38em', color:GD, textTransform:'uppercase', margin:'0 0 10px' }}>
+              CapacitaPro &nbsp;·&nbsp; SoldesP S.A.
+            </p>
+
+            {/* ── Title ── */}
+            <h1 style={{ textAlign:'center', fontFamily:'Cinzel,serif', fontSize:'32px', fontWeight:600, color:INK, letterSpacing:'.1em', lineHeight:1, margin:'0 0 4px' }}>
+              CERTIFICADO
+            </h1>
+            <p style={{ textAlign:'center', fontFamily:'Cinzel,serif', fontSize:'9.5px', letterSpacing:'.38em', color:G, textTransform:'uppercase', margin:'0 0 14px' }}>
+              De Finalización &nbsp;·&nbsp; Certificate of Completion
+            </p>
+
+            {/* ── Gold separator ── */}
+            <div style={{ textAlign:'center', marginBottom:'14px' }}>
+              <svg width="280" height="10" viewBox="0 0 280 10">
+                <line x1="0"   y1="5" x2="120" y2="5" stroke={G} strokeWidth="0.8"/>
+                <circle cx="140" cy="5" r="4" fill="none" stroke={G} strokeWidth="1.2"/>
+                <circle cx="140" cy="5" r="1.8" fill={G}/>
+                <line x1="160" y1="5" x2="280" y2="5" stroke={G} strokeWidth="0.8"/>
+              </svg>
+            </div>
+
+            {/* ── Recipient ── */}
+            <p style={{ textAlign:'center', fontFamily:'Cinzel,serif', fontSize:'8.5px', letterSpacing:'.3em', color:GD, textTransform:'uppercase', margin:'0 0 7px' }}>
+              OTORGADO A
+            </p>
+            <h2 style={{ textAlign:'center', fontFamily:'"Playfair Display",Georgia,serif', fontSize:'26px', fontWeight:700, color:INK, margin:'0 0 2px', letterSpacing:'.01em' }}>
+              {userName}
+            </h2>
+            <div style={{ width:'180px', height:'1.5px', background:G, margin:'8px auto 14px' }}/>
+
+            {/* ── Course ── */}
+            <p style={{ textAlign:'center', fontFamily:'"IM Fell English",Georgia,serif', fontStyle:'italic', fontSize:'13.5px', color:'#5C4A1A', margin:'0 0 5px' }}>
+              Por completar exitosamente el programa
+            </p>
+            <p style={{ textAlign:'center', fontFamily:'Cinzel,serif', fontSize:'13px', fontWeight:600, color:INK, letterSpacing:'.04em', margin:'0 0 14px' }}>
+              {courseName}
+            </p>
+
+            {/* ── Score badge ── */}
+            {score !== undefined && score > 0 && (
+              <div style={{ textAlign:'center', marginBottom:'16px' }}>
+                <span style={{
+                  display:'inline-flex', alignItems:'center', gap:'6px',
+                  background:'#FEF3C7', border:`1px solid ${G}`,
+                  borderRadius:'20px', padding:'4px 18px',
+                  fontSize:'10.5px', fontWeight:600, color:'#78350F',
+                  fontFamily:'Cinzel,serif', letterSpacing:'.06em',
+                }}>
+                  ★ PUNTUACIÓN: {score}%
+                </span>
+              </div>
+            )}
+
+            {/* ── Footer: date | seal | id ── */}
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-end', marginTop:'6px' }}>
+
+              {/* Date */}
+              <div style={{ textAlign:'center' }}>
+                <div style={{ width:'110px', height:'0.5px', background:G, marginBottom:'5px' }}/>
+                <p style={{ fontFamily:'Cinzel,serif', fontSize:'7.5px', letterSpacing:'.18em', color:GD, margin:0, textTransform:'uppercase' }}>
+                  {completionDate}
+                </p>
+              </div>
+
+              {/* Circular seal */}
+              <svg width="64" height="64" viewBox="0 0 64 64">
+                <circle cx="32" cy="32" r="30" fill="none" stroke={G} strokeWidth="1.5" strokeDasharray="5 2.5"/>
+                <circle cx="32" cy="32" r="24" fill={BG} stroke={G} strokeWidth="1"/>
+                <circle cx="32" cy="32" r="20" fill="none" stroke={GL} strokeWidth="0.5"/>
+                <text x="32" y="27" textAnchor="middle" fontFamily="Cinzel,serif" fontSize="8" fill={GD} fontWeight="600">CAPACITA</text>
+                <text x="32" y="36" textAnchor="middle" fontFamily="Cinzel,serif" fontSize="7" fill={G}>✦ PRO ✦</text>
+                <text x="32" y="44" textAnchor="middle" fontFamily="Cinzel,serif" fontSize="6" fill={GD}>2026</text>
+              </svg>
+
+              {/* Verification */}
+              <div style={{ textAlign:'center' }}>
+                <div style={{ width:'110px', height:'0.5px', background:G, marginBottom:'5px' }}/>
+                <p style={{ fontFamily:'Cinzel,serif', fontSize:'7.5px', letterSpacing:'.1em', color:GD, margin:0, textTransform:'uppercase' }}>
+                  {certificateId}
+                </p>
               </div>
             </div>
 
-            {/* Logo Original SoldesP */}
-            <div className="mb-6">
-              <SoldesPCertificateLogo size={180} />
+            {/* ── Bottom decorative bar ── */}
+            <div style={{ textAlign:'center', marginTop:'10px' }}>
+              <svg width="340" height="14" viewBox="0 0 340 14">
+                <line x1="0"   y1="7" x2="150" y2="7" stroke={G} strokeWidth="0.8"/>
+                <polygon points="155,7 163,3 171,7 163,11" fill={G}/>
+                <line x1="175" y1="7" x2="340" y2="7" stroke={G} strokeWidth="0.8"/>
+              </svg>
             </div>
 
-            {/* Title */}
-            <div className="text-center mb-8">
-              <h1 className="text-5xl font-black text-[#001B4B] mb-2 tracking-tight">
-                CERTIFICADO
-              </h1>
-              <p className="text-xl text-[#D15F3D] font-semibold tracking-widest uppercase">
-                Certificate of Completion
-              </p>
-            </div>
-
-            {/* Decorative Line */}
-            <div className="flex items-center gap-4 mb-8">
-              <div className="w-24 h-0.5 bg-gradient-to-r from-transparent to-[#D15F3D]" />
-              <div className="w-3 h-3 bg-[#D15F3D] rounded-full" />
-              <div className="w-24 h-0.5 bg-gradient-to-l from-transparent to-[#D15F3D]" />
-            </div>
-
-            {/* Recipient */}
-            <div className="text-center mb-6">
-              <p className="text-sm text-slate-500 font-medium tracking-widest uppercase mb-2">
-                Otorgado a
-              </p>
-              <h2 className="text-4xl font-bold text-[#001B4B] mb-2">
-                {userName}
-              </h2>
-              <div className="w-48 h-0.5 bg-[#D15F3D] mx-auto mb-4" />
-            </div>
-
-            {/* Achievement */}
-            <div className="text-center mb-8">
-              <p className="text-sm text-slate-500 font-medium tracking-widest uppercase mb-2">
-                Por completar exitosamente
-              </p>
-              <h3 className="text-2xl font-bold text-[#1E3A6E] mb-2">
-                {courseName}
-              </h3>
-              {score && (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 rounded-full">
-                  <CheckCircle className="w-4 h-4 text-emerald-600" />
-                  <span className="text-emerald-700 font-semibold">Puntuación: {score}%</span>
-                </div>
-              )}
-            </div>
-
-            {/* Date and ID */}
-            <div className="flex items-center justify-center gap-12 mb-8">
-              <div className="text-center">
-                <p className="text-xs text-slate-400 font-medium tracking-widest uppercase mb-1">Fecha de Emisión</p>
-                <p className="text-lg font-bold text-[#001B4B]">{completionDate}</p>
-              </div>
-              <div className="text-center">
-                <p className="text-xs text-slate-400 font-medium tracking-widest uppercase mb-1">Código de Verificación</p>
-                <p className="text-lg font-mono text-[#D15F3D] font-bold">{certificateId}</p>
-              </div>
-            </div>
-
-            {/* Footer */}
-            <div className="flex items-center justify-between w-full mt-auto pt-8 border-t border-slate-200">
-              <div className="flex items-center gap-2">
-                <Award className="w-5 h-5 text-[#D15F3D]" />
-                <span className="text-sm font-semibold text-slate-600">CapacitaPro</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#D15F3D]" />
-                <span className="text-xs text-slate-500">Powered by SoldesP</span>
-              </div>
-              <div className="text-xs text-slate-400">
-                Capacitación Corporativa
-              </div>
-            </div>
           </div>
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-4">
+      {/* ── Action buttons ─────────────────────────────────────── */}
+      <div style={{
+        position:'absolute', bottom:'2rem', left:'50%', transform:'translateX(-50%)',
+        display:'flex', gap:'12px', alignItems:'center',
+      }}>
         <button
           onClick={handleDownload}
-          className="flex items-center gap-2 px-6 py-3 bg-[#D15F3D] text-white font-semibold rounded-xl hover:bg-[#B34E2D] transition-all shadow-lg shadow-[rgba(209,95,61,0.3)]"
+          style={{
+            display:'flex', alignItems:'center', gap:'8px',
+            padding:'11px 26px',
+            background: G, color: INK,
+            fontFamily:'Cinzel,serif', fontWeight:600, fontSize:'12px',
+            letterSpacing:'.1em', textTransform:'uppercase',
+            border:'none', borderRadius:'6px', cursor:'pointer',
+            boxShadow:`0 4px 20px rgba(201,168,76,0.35)`,
+          }}
         >
-          <Download className="w-5 h-5" />
-          Descargar Certificado
+          ↓ Descargar Certificado
         </button>
         {onClose && (
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-white text-slate-700 font-semibold rounded-xl hover:bg-slate-100 transition-all border border-slate-200"
+            style={{
+              padding:'11px 20px',
+              background:'rgba(255,255,255,0.08)',
+              color:'rgba(255,255,255,0.8)',
+              fontFamily:'Cinzel,serif', fontSize:'11px', letterSpacing:'.1em',
+              border:'1px solid rgba(255,255,255,0.15)',
+              borderRadius:'6px', cursor:'pointer',
+            }}
           >
             Cerrar
           </button>
