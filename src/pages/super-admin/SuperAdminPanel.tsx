@@ -1,5 +1,5 @@
 // Panel exclusivo para Super Administrador
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
@@ -81,20 +81,20 @@ const SuperAdminPanel: React.FC = () => {
     setActionLoading(null);
   };
 
-  const filtered = allUsers.filter(u => {
+  const filtered = useMemo(() => allUsers.filter(u => {
     const matchRole = filter === 'all' || u.role === filter;
     const matchSearch = !search || u.name.toLowerCase().includes(search.toLowerCase())
       || u.email.toLowerCase().includes(search.toLowerCase())
       || (u.rut || '').includes(search);
     return matchRole && matchSearch;
-  });
+  }), [allUsers, filter, search]);
 
-  const counts = {
+  const counts = useMemo(() => ({
     all: allUsers.length,
     super_admin: allUsers.filter(u => u.role === 'super_admin').length,
     admin: allUsers.filter(u => u.role === 'admin').length,
     employee: allUsers.filter(u => u.role === 'employee').length,
-  };
+  }), [allUsers]);
 
   const roleBadge = (role: string) => {
     if (role === 'super_admin') return <span className="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 border border-yellow-500/30 rounded-full text-xs font-bold">⭐ Super Admin</span>;
