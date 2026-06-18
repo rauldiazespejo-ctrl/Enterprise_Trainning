@@ -1,0 +1,3 @@
+## 2025-02-28 - Missing Memoization on Search Filter Lists
+**Learning:** Derived list computations (e.g., `employees.filter()`, `employees.reduce()`) that run synchronously on every render can cause significant performance bottlenecks, blocking the main thread during user input events (like typing in a search bar). This O(N) recalculation becomes a bigger issue as list sizes grow in admin interfaces.
+**Action:** Always wrap expensive list computations and filtering logic in `useMemo`, and wrap helper functions passed into them or used in renders in `useCallback`. Ensure dependencies are properly specified so recalculations only happen when underlying data (like `users` or `searchTerm`) actually changes.
