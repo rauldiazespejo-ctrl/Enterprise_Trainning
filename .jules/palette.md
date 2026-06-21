@@ -1,0 +1,3 @@
+## 2024-06-21 - [Reusable Form Components Accessibility]
+**Learning:** Reusable form components (`Input`, `Select`) in this app lacked robust `<label>` to form control bindings because they didn't automatically generate unique `id`s when none were provided, leading to missing `htmlFor` associations. Additionally, some icon-only buttons (like the Modal close button) lacked `aria-label`s.
+**Action:** Always use `React.useId()` inside custom form components to provide a fallback `id` and ensure `htmlFor` is correctly bound to the input/select `id`. Also, ensure all icon-only buttons have descriptive `aria-label` attributes.
