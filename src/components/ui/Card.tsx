@@ -1,5 +1,5 @@
 // Componentes UI modernos - Dark Theme
-import React from 'react';
+import React, { useId } from 'react';
 
 // Card Component
 interface CardProps {
@@ -64,16 +64,21 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => (
-  <div className="space-y-1.5">
-    {label && <label className="block text-sm font-medium text-slate-300 tracking-wide">{label}</label>}
-    <input
-      className={`input-modern transition-all duration-200 ${error ? 'border-red-500 focus:border-red-400 focus:ring-red-500/20' : ''} ${className}`}
-      {...props}
-    />
-    {error && <p className="text-sm text-red-400 flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 inline-block" />{error}</p>}
-  </div>
-);
+export const Input: React.FC<InputProps> = ({ label, error, className = '', id, ...props }) => {
+  const generatedId = useId();
+  const inputId = id || generatedId;
+  return (
+    <div className="space-y-1.5">
+      {label && <label htmlFor={inputId} className="block text-sm font-medium text-slate-300 tracking-wide">{label}</label>}
+      <input
+        id={inputId}
+        className={`input-modern transition-all duration-200 ${error ? 'border-red-500 focus:border-red-400 focus:ring-red-500/20' : ''} ${className}`}
+        {...props}
+      />
+      {error && <p className="text-sm text-red-400 flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 inline-block" />{error}</p>}
+    </div>
+  );
+};
 
 // Select Component
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -81,19 +86,24 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[];
 }
 
-export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => (
-  <div className="space-y-1">
-    {label && <label className="block text-sm font-medium text-slate-300">{label}</label>}
-    <select
-      className={`input-modern ${className}`}
-      {...props}
-    >
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  </div>
-);
+export const Select: React.FC<SelectProps> = ({ label, options, className = '', id, ...props }) => {
+  const generatedId = useId();
+  const selectId = id || generatedId;
+  return (
+    <div className="space-y-1">
+      {label && <label htmlFor={selectId} className="block text-sm font-medium text-slate-300">{label}</label>}
+      <select
+        id={selectId}
+        className={`input-modern ${className}`}
+        {...props}
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 // Badge Component
 interface BadgeProps {
@@ -170,7 +180,7 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
           {title && (
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-xl font-bold text-white">{title}</h2>
-              <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-200">
+              <button onClick={onClose} aria-label="Cerrar modal" className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-200">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
