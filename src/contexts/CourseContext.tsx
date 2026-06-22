@@ -235,7 +235,7 @@ export const CourseProvider: React.FC<{ children: ReactNode }> = ({ children }) 
         console.error('[CourseContext] No se pudo cargar cursos desde Supabase, usando localStorage como fallback.', err);
       }
     })();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   // Carga de datos específicos del usuario (asignaciones, progreso, certificados)
   useEffect(() => {
