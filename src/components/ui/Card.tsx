@@ -1,21 +1,36 @@
 // Componentes UI modernos - Dark Theme
 import React from 'react';
+import { AnimatedNumber as AnimatedNumberComponent } from './AnimatedNumber';
 
 // Card Component
 interface CardProps {
   children: React.ReactNode;
   className?: string;
   onClick?: () => void;
+  variant?: 'default' | 'glass' | 'elevated';
 }
 
-export const Card: React.FC<CardProps> = ({ children, className = '', onClick }) => (
-  <div
-    className={`card-modern animate-fadeInUp ${onClick ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
-    onClick={onClick}
-  >
-    {children}
-  </div>
-);
+export const Card: React.FC<CardProps> = ({
+  children,
+  className = '',
+  onClick,
+  variant = 'default'
+}) => {
+  const variantClasses = {
+    default: 'card-modern animate-fadeInUp',
+    glass: 'glass-card animate-fadeInUp',
+    elevated: 'card-elevated animate-fadeInUp'
+  };
+
+  return (
+    <div
+      className={`${variantClasses[variant]} ${onClick ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
+      onClick={onClick}
+    >
+      {children}
+    </div>
+  );
+};
 
 // Button Component
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -99,9 +114,10 @@ export const Select: React.FC<SelectProps> = ({ label, options, className = '', 
 interface BadgeProps {
   children: React.ReactNode;
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'primary';
+  className?: string;
 }
 
-export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) => {
+export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', className = '' }) => {
   const variants = {
     default: 'bg-slate-700/60 text-slate-300 border border-slate-600/50',
     success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
@@ -112,7 +128,7 @@ export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default' }) =
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold tracking-wide ${variants[variant]} ${className}`}>
       {children}
     </span>
   );
@@ -187,13 +203,19 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
 // Stat Card Component
 interface StatCardProps {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   icon?: React.ReactNode;
   trend?: { value: number; positive: boolean };
   variant?: 'default' | 'primary' | 'success' | 'warning';
 }
 
-export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, variant = 'default' }) => {
+export const StatCard: React.FC<StatCardProps> = ({
+  label,
+  value,
+  icon,
+  trend,
+  variant = 'default'
+}) => {
   const iconColors = {
     default: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
     primary: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
@@ -206,7 +228,9 @@ export const StatCard: React.FC<StatCardProps> = ({ label, value, icon, trend, v
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-slate-400 font-medium">{label}</p>
-          <p className="text-2xl font-bold text-white mt-1 tracking-tight">{value}</p>
+          <p className="text-2xl font-bold text-white mt-1 tracking-tight">
+            {value}
+          </p>
           {trend && (
             <p className={`text-sm mt-1.5 font-medium flex items-center gap-1 ${trend.positive ? 'text-emerald-400' : 'text-red-400'}`}>
               <span className={`inline-block transition-transform ${trend.positive ? 'rotate-0' : 'rotate-180'}`}>↑</span>
@@ -313,3 +337,5 @@ interface SkeletonProps {
 export const Skeleton: React.FC<SkeletonProps> = ({ className = '' }) => (
   <div className={`skeleton-premium ${className}`} />
 );
+
+export * from './AnimatedNumber';

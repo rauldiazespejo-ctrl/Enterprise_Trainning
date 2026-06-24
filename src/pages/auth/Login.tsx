@@ -82,7 +82,7 @@ const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
           </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
+            <div role="alert" className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full" />
               {error}
             </div>
@@ -102,12 +102,14 @@ const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
                 placeholder="Ingresa tu nueva contraseña"
                 required
                 autoComplete="new-password"
-                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                aria-invalid={!!error}
+                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)] focus-ring tap-target-min"
               />
               <button
                 type="button"
                 onClick={() => setShowNew(!showNew)}
-                className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
+                aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -147,12 +149,14 @@ const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
                 placeholder="Repite tu nueva contraseña"
                 required
                 autoComplete="new-password"
-                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                aria-invalid={!!error || (confirmPassword.length > 0 && !passwordsMatch)}
+                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)] focus-ring tap-target-min"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
+                aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -172,7 +176,7 @@ const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
 
             <Button
               type="submit"
-              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)]"
+              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)] tap-target-min focus-ring"
               size="lg"
               disabled={!canSubmit}
             >
@@ -254,13 +258,8 @@ const Login: React.FC = () => {
         <div className="orb-orange" style={{ top: '20%', right: '15%' }} />
         <div className="orb-navy" style={{ bottom: '20%', left: '15%' }} />
 
-        <div className="relative z-10 text-center" style={{ animation: 'slideEnter 0.5s ease-out' }}>
-          <style>{`
-            @keyframes slideEnter { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes pulse-glow { 0%, 100% { box-shadow: 0 0 20px rgba(209,95,61,0.3); } 50% { box-shadow: 0 0 40px rgba(209,95,61,0.6); } }
-          `}</style>
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-[#D15F3D]/20 border-2 border-[#D15F3D]/50 mb-6"
-            style={{ animation: 'pulse-glow 2s ease-in-out infinite' }}>
+        <div className="relative z-10 text-center animate-slideUp">
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-[#D15F3D]/20 border-2 border-[#D15F3D]/50 mb-6 animate-pulse-glow">
             <Sparkles className="w-10 h-10 text-[#D15F3D]" />
           </div>
           <h1 className="text-4xl font-bold text-white mb-3">
@@ -271,10 +270,8 @@ const Login: React.FC = () => {
           </p>
           <p className="text-slate-400 text-sm mt-4">Ingresando a la plataforma...</p>
           <div className="mt-6 w-48 mx-auto h-1 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#D15F3D] to-[#E87A58] rounded-full"
-              style={{ animation: 'fillBar 2.5s ease-out forwards' }} />
+            <div className="h-full bg-gradient-to-r from-[#D15F3D] to-[#E87A58] rounded-full animate-fillBar" />
           </div>
-          <style>{`@keyframes fillBar { from { width: 0%; } to { width: 100%; } }`}</style>
         </div>
       </div>
     );
@@ -323,7 +320,7 @@ const Login: React.FC = () => {
           </div>
 
           {error && (
-            <div className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
+            <div id="login-error" role="alert" className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
               <div className="w-2 h-2 bg-red-500 rounded-full" />
               {error}
             </div>
@@ -342,7 +339,9 @@ const Login: React.FC = () => {
                 placeholder="15422822-5 o 154228225"
                 required
                 autoComplete="username"
-                className="input-modern font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'login-error' : undefined}
+                className="input-modern font-mono focus-ring tap-target-min"
               />
               {isRutMode && (
                 <p className="text-xs text-emerald-400 flex items-center gap-1 mt-1">
@@ -363,12 +362,16 @@ const Login: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={isRutMode ? 'RUT sin dígito verificador (ej. 15422822)' : 'Tu contraseña'}
                 required
-                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                autoComplete="current-password"
+                aria-invalid={!!error}
+                aria-describedby={error ? 'login-error' : undefined}
+                className="input-modern pr-12 font-mono focus-ring tap-target-min"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
               >
                 {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
               </button>
@@ -376,7 +379,7 @@ const Login: React.FC = () => {
 
             <Button
               type="submit"
-              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)]"
+              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)] tap-target-min focus-ring"
               size="lg"
               disabled={isLoading}
             >
@@ -399,7 +402,7 @@ const Login: React.FC = () => {
           <div className="mt-4 text-center">
             <Link
               to="/forgot-password"
-              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors"
+              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
             >
               ¿Olvidaste tu contraseña?
             </Link>
@@ -415,8 +418,8 @@ const Login: React.FC = () => {
           )}
         </Card>
 
-        <div className="text-center mt-8 animate-fadeIn" style={{ animationDelay: '0.3s' }}>
-          <p className="text-[#64748B] text-sm flex items-center justify-center gap-2">
+        <div className="text-center mt-8 animate-fadeIn">
+          <p className="text-slate-400 text-sm flex items-center justify-center gap-2">
             <span className="w-2 h-2 bg-[#001B4B] rounded-full border border-[#D15F3D]" />
             © 2026 SoldesP - CapacitaPro. Todos los derechos reservados.
           </p>

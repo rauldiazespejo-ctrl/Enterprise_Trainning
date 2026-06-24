@@ -2,7 +2,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
-import { Card, Badge, ProgressBar, Button } from '@/components/ui/Card';
+import { Card, Badge, ProgressBar, Button, Skeleton, EmptyState } from '@/components/ui/Card';
+import { AnimatedNumber } from '@/components/ui/AnimatedNumber';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCourses } from '@/contexts/CourseContext';
 import {
@@ -11,7 +12,6 @@ import {
   Clock,
   CheckCircle,
   Play,
-  TrendingUp,
   Calendar,
   Sparkles,
   ArrowRight
@@ -20,6 +20,13 @@ import {
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
   const { courses, assignments, getUserCertificates } = useCourses();
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Simular carga inicial mientras los contextos hidratan datos
+    const timer = setTimeout(() => setLoading(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Obtener asignaciones del usuario
   const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
@@ -41,6 +48,52 @@ const EmployeeDashboard: React.FC = () => {
 
   // Cursos en progreso
   const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
+
+  // Cursos pendientes
+  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+
+  const renderSkeleton = () => (
+    <div className="space-y-6 animate-fadeIn">
+      {/* Welcome skeleton */}
+      <Skeleton className="h-32 w-full rounded-2xl" />
+      {/* Stats skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="p-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-12 w-12 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+      {/* Courses skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Card key={i} className="overflow-hidden">
+            <Skeleton className="h-32 w-full" />
+            <div className="p-4 space-y-3">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-2 w-full" />
+              <Skeleton className="h-10 w-full rounded-xl" />
+            </div>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+
+  if (loading) {
+    return (
+      <MainLayout title="Mi Aprendizaje" subtitle={`Bienvenido, ${user?.name}`} isAdmin={false}>
+        {renderSkeleton()}
+      </MainLayout>
+    );
+  }
 
   return (
     <MainLayout title="Mi Aprendizaje" subtitle={`Bienvenido, ${user?.name}`} isAdmin={false}>
@@ -68,47 +121,55 @@ const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="p-4 group">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D] transition-transform duration-300 group-hover:scale-110">
                 <BookOpen className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{totalCourses}</p>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={totalCourses} />
+                </p>
                 <p className="text-sm text-slate-400">Cursos Asignados</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 group">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400">
+              <div className="p-3 bg-emerald-500/20 rounded-xl text-emerald-400 transition-transform duration-300 group-hover:scale-110">
                 <CheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{completedCourses}</p>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={completedCourses} />
+                </p>
                 <p className="text-sm text-slate-400">Completados</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 group">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D]">
+              <div className="p-3 bg-[#D15F3D]/15 rounded-xl text-[#D15F3D] transition-transform duration-300 group-hover:scale-110">
                 <Clock className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{inProgressCourses}</p>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={inProgressCourses} />
+                </p>
                 <p className="text-sm text-slate-400">En Progreso</p>
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-4 group">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400">
+              <div className="p-3 bg-amber-500/20 rounded-xl text-amber-400 transition-transform duration-300 group-hover:scale-110">
                 <Award className="w-6 h-6" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-white">{certificates.length}</p>
+                <p className="text-2xl font-bold text-white">
+                  <AnimatedNumber value={certificates.length} />
+                </p>
                 <p className="text-sm text-slate-400">Certificados</p>
               </div>
             </div>
@@ -124,10 +185,13 @@ const EmployeeDashboard: React.FC = () => {
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {inProgressList.map((course) => (
-                <Card key={course?.id} className="overflow-hidden group">
+                <Card key={course?.id} className="overflow-hidden group transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-[#D15F3D]/10">
                   <div className="h-32 bg-gradient-modern flex items-center justify-center relative">
                     <BookOpen className="w-12 h-12 text-white/30" />
                     <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-colors" />
+                    <div className="absolute top-3 right-3">
+                      <Badge variant="warning">En Progreso</Badge>
+                    </div>
                   </div>
                   <div className="p-4">
                     <h4 className="font-semibold text-white mb-1">{course?.title}</h4>
@@ -159,14 +223,14 @@ const EmployeeDashboard: React.FC = () => {
           <h3 className="text-lg font-semibold text-white mb-4">Cursos Pendientes</h3>
           <Card className="overflow-hidden">
             <div className="divide-y divide-slate-700">
-              {assignedCourses.filter(c => c?.assignment.status === 'pending').map((course) => (
-                <div key={course?.id} className="p-4 flex items-center gap-4 hover:bg-slate-800/30 transition-colors">
-                  <div className="w-12 h-12 bg-gradient-modern rounded-xl flex items-center justify-center">
+              {pendingCourses.map((course) => (
+                <div key={course?.id} className="p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 hover:bg-slate-800/30 transition-colors">
+                  <div className="w-12 h-12 bg-gradient-modern rounded-xl flex items-center justify-center shrink-0">
                     <BookOpen className="w-6 h-6 text-white" />
                   </div>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-white">{course?.title}</h4>
-                    <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400">
                       <span className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
                         {course?.estimatedDuration} min
@@ -179,19 +243,23 @@ const EmployeeDashboard: React.FC = () => {
                       )}
                     </div>
                   </div>
-                  <Badge variant="warning">Pendiente</Badge>
-                  <Link to={`/employee/course/${course?.id}`}>
-                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
-                      Comenzar <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
+                  <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <Badge variant="warning">Pendiente</Badge>
+                    <Link to={`/employee/course/${course?.id}`} className="flex-1 sm:flex-initial">
+                      <Button variant="ghost" size="sm" className="flex items-center gap-1 w-full sm:w-auto">
+                        Comenzar <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
               ))}
 
-              {assignedCourses.filter(c => c?.assignment.status === 'pending').length === 0 && (
-                <div className="p-8 text-center text-slate-500">
-                  No tienes cursos pendientes
-                </div>
+              {pendingCourses.length === 0 && (
+                <EmptyState
+                  icon={<BookOpen className="w-8 h-8" />}
+                  title="Sin cursos pendientes"
+                  description="No tienes cursos pendientes por iniciar."
+                />
               )}
             </div>
           </Card>
@@ -211,9 +279,9 @@ const EmployeeDashboard: React.FC = () => {
                     <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg">
                       <Award className="w-8 h-8 text-white" />
                     </div>
-                    <div className="flex-1">
+                    <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-white">Certificado de Finalización</h4>
-                      <p className="text-sm text-slate-400">
+                      <p className="text-sm text-slate-400 truncate">
                         {courses.find(c => c.id === cert.courseId)?.title || 'Curso'}
                       </p>
                       <p className="text-xs text-slate-500 mt-1">
