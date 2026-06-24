@@ -1,6 +1,5 @@
 // Matriz de Capacitaciones — Admin
 import React, { useMemo, useState } from 'react';
-import * as XLSX from 'xlsx';
 import { Download, Search, X } from 'lucide-react';
 import MainLayout from '@/components/layout/MainLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -288,15 +287,20 @@ const TrainingMatrix: React.FC = () => {
   }, [rows]);
 
   // Export to Excel
-  const handleExport = () => {
+  const handleExport = async () => {
+    const { default: ExcelJS } = await import('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Matriz');
+
     const headers = [
       'Trabajador',
       'Departamento',
       ...publishedCourses.map((c) => truncate(c.title, 30)),
       'Estado General',
     ];
+    worksheet.addRow(headers);
 
-    const dataRows = rows.map((row) => {
+    rows.forEach((row) => {
       const courseCols = publishedCourses.map((c) => {
         const cell = row.cells[c.id];
         if (!cell) return '—';
@@ -313,16 +317,20 @@ const TrainingMatrix: React.FC = () => {
           ? 'En atraso'
           : 'Sin asignar';
 
-      return [row.user.name, row.user.department ?? '', ...courseCols, status];
+      worksheet.addRow([row.user.name, row.user.department ?? '', ...courseCols, status]);
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([headers, ...dataRows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Matriz');
-    XLSX.writeFile(
-      wb,
-      `matriz_capacitaciones_${new Date().toISOString().split('T')[0]}.xlsx`
-    );
+    worksheet.getRow(1).font = { bold: true };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `matriz_capacitaciones_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(link.href);
   };
 
   // Handle assignment

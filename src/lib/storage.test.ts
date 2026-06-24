@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { loadFromStorage, saveToStorage } from './storage';
 
 describe('storage', () => {
@@ -18,5 +18,26 @@ describe('storage', () => {
 
     expect(stored.createdAt).toBeInstanceOf(Date);
     expect(stored.createdAt.toISOString()).toBe(createdAt.toISOString());
+  });
+
+  it('returns fallback when stored JSON is corrupt', () => {
+    localStorage.setItem('corrupt', '{ not json');
+    expect(loadFromStorage('corrupt', { fallback: true })).toEqual({ fallback: true });
+  });
+
+  it('does not revive non-ISO date strings', () => {
+    saveToStorage('labels', { createdAt: '13/06/2026' });
+    const stored = loadFromStorage<{ createdAt: string }>('labels', { createdAt: '' });
+    expect(stored.createdAt).toBe('13/06/2026');
+  });
+
+  it('silently ignores write errors such as quota exceeded', () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+
+    expect(() => saveToStorage('key', { value: 1 })).not.toThrow();
+
+    setItemSpy.mockRestore();
   });
 });

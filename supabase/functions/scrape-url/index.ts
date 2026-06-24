@@ -2,16 +2,11 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Allowed origins for CORS validation
+const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
+
 const getAllowedOrigins = (): string[] => {
   const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
-  if (envOrigins) {
-    return envOrigins.split(',').map(o => o.trim());
-  }
-  // Default allowed origins for development
-  return [
-    'http://localhost:5173',
-    'http://localhost:3000',
-  ];
+  return envOrigins ? envOrigins.split(',').map(o => o.trim()) : DEFAULT_ALLOWED_ORIGINS.split(',');
 };
 
 const isOriginAllowed = (origin: string | null): boolean => {

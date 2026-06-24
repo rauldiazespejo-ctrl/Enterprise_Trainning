@@ -2,6 +2,10 @@
 -- MIGRACIÓN: Rol super_admin + cuenta Raul Diaz
 -- Ejecutar en Supabase SQL Editor
 -- ============================================================
+-- REQUISITO: configurar previamente la contraseña en Supabase con:
+--   ALTER DATABASE postgres SET "app.settings.super_admin_password" = 'TU_CONTRASEÑA_SEGURA';
+-- La migración fallará si no está configurada.
+-- ============================================================
 
 -- 0. Habilitar extensiones necesarias
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
@@ -57,9 +61,18 @@ with check (public.is_super_admin());
 -- 9. Crear la cuenta de Raul Diaz Espejo (super_admin)
 DO $$
 DECLARE
-  v_org_id  uuid;
-  v_user_id uuid;
+  v_org_id     uuid;
+  v_user_id    uuid;
+  v_super_pass text;
 BEGIN
+  -- La contraseña del super admin se lee de la configuración de Supabase.
+  -- Debe configurarse antes de ejecutar esta migración:
+  -- ALTER DATABASE postgres SET "app.settings.super_admin_password" = 'tu_clave_segura';
+  SELECT current_setting('app.settings.super_admin_password', true) INTO v_super_pass;
+  IF v_super_pass IS NULL OR length(trim(v_super_pass)) < 8 THEN
+    RAISE EXCEPTION 'La configuracion app.settings.super_admin_password no esta definida o es demasiado corta (minimo 8 caracteres). Configurala en Supabase antes de ejecutar esta migracion.';
+  END IF;
+
   -- Obtener o crear organización (Soldesp S.A.)
   SELECT id INTO v_org_id FROM public.organizations LIMIT 1;
   IF v_org_id IS NULL THEN
@@ -86,7 +99,7 @@ BEGIN
     VALUES (
       gen_random_uuid(),
       'raul.diaz@soldesp.cl',
-      extensions.crypt('CAMBIAME_POR_FAVOR', extensions.gen_salt('bf')),
+      extensions.crypt(v_super_pass, extensions.gen_salt('bf')),
       now(),
       '{"provider":"email","providers":["email"]}',
       '{"name":"Raul Diaz Espejo","role":"super_admin"}',

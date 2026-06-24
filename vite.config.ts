@@ -29,7 +29,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          charts: ['recharts'],
           pdf: ['pdfjs-dist'],
           excel: ['exceljs'],
           supabase: ['@supabase/supabase-js'],

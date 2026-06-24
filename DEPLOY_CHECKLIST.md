@@ -25,6 +25,12 @@
 2. Copia y pega el contenido de: `supabase/migrations/20260613000000_initial_schema.sql`
 3. Clic en **Run**
 
+> **Antes de ejecutar `supabase/migrations/20260613000001_super_admin.sql`**, configura la contraseña del super admin en Supabase:
+> ```sql
+> ALTER DATABASE postgres SET "app.settings.super_admin_password" = 'tu_clave_segura';
+> ```
+> La migración fallará con `RAISE EXCEPTION` si `app.settings.super_admin_password` no está definida o tiene menos de 8 caracteres.
+
 ---
 
 ## PASO 3 — Crear organización y admin inicial

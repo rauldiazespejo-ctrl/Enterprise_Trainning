@@ -5,7 +5,7 @@ import { Card, Button } from '@/components/ui/Card';
 import { Eye, EyeOff, ShieldCheck, Check, X as XIcon, AlertCircle, Sparkles, KeyRound } from 'lucide-react';
 import { SoldesPLogo } from '@/components/SoldesPLogo';
 import { supabase } from '@/lib/supabase';
-import { validatePasswordComplexity } from '@/contexts/AuthContext';
+import { validatePasswordComplexity } from '@/lib/auth';
 
 // ── Password complexity rules for live validation ────────────────────────────
 const PASSWORD_RULES = [

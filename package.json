@@ -59,7 +59,6 @@
     "mammoth": "^1.12.0",
     "next-themes": "^0.4.4",
     "pdfjs-dist": "^6.0.227",
-    "playwright": "1.57.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-day-picker": "8.10.1",
@@ -67,12 +66,10 @@
     "react-hook-form": "^7.54.2",
     "react-resizable-panels": "^2.1.7",
     "react-router-dom": "^6.30.4",
-    "recharts": "^3.8.1",
     "sonner": "^1.7.2",
     "tailwind-merge": "^2.6.0",
     "uuid": "^14.0.0",
     "vaul": "^1.1.2",
-    "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {

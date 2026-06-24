@@ -1,7 +1,8 @@
 // Página de Login - Premium Dark Theme con logo original SoldesP
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth, validatePasswordComplexity } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { validatePasswordComplexity } from '@/lib/auth';
 import { Card, Button } from '@/components/ui/Card';
 import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon } from 'lucide-react';
 import { SoldesPLogo } from '@/components/SoldesPLogo';

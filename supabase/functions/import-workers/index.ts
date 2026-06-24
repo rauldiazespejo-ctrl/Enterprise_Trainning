@@ -1,8 +1,24 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const corsHeaders = {
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Access-Control-Allow-Origin': '*',
+const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
+
+const getAllowedOrigins = (): string[] => {
+  const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
+  return envOrigins ? envOrigins.split(',').map(o => o.trim()) : DEFAULT_ALLOWED_ORIGINS.split(',');
+};
+
+const isOriginAllowed = (origin: string | null): boolean => {
+  if (!origin) return false;
+  return getAllowedOrigins().includes(origin);
+};
+
+const buildCorsHeaders = (origin: string | null): Record<string, string> => {
+  const allowedOrigin = isOriginAllowed(origin) ? origin : '';
+  return {
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  };
 };
 
 // ─── Rate Limiter: 10 req/min per IP ─────────────────────────────────────────
@@ -39,6 +55,16 @@ const randomPassword = (): string => {
 };
 
 Deno.serve(async request => {
+  const origin = request.headers.get('origin');
+  const corsHeaders = buildCorsHeaders(origin);
+
+  if (origin && !isOriginAllowed(origin)) {
+    return Response.json(
+      { error: 'Origen no permitido.' },
+      { status: 403, headers: corsHeaders }
+    );
+  }
+
   if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   // Rate limiting
