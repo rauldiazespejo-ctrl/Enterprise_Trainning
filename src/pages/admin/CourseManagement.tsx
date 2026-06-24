@@ -1,5 +1,5 @@
 // Gestión de Cursos - Página del Administrador
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Input, Select, Modal } from '@/components/ui/Card';
@@ -27,11 +27,12 @@ const CourseManagement: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
 
-  const filteredCourses = courses.filter(course => {
+  // BOLT OPTIMIZATION: Memoize filtered array to prevent expensive recalculations on every render
+  const filteredCourses = useMemo(() => courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
     return matchesSearch && matchesStatus;
-  });
+  }), [courses, searchTerm, statusFilter]);
 
   // Reset page when search or filter changes
   React.useEffect(() => {
@@ -39,10 +40,10 @@ const CourseManagement: React.FC = () => {
   }, [searchTerm, statusFilter]);
 
   const totalPages = Math.ceil(filteredCourses.length / PAGE_SIZE);
-  const paginatedCourses = filteredCourses.slice(
+  const paginatedCourses = useMemo(() => filteredCourses.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
-  );
+  ), [filteredCourses, currentPage]);
 
   const handleDelete = (courseId: string) => {
     setCourseToDelete(courseId);

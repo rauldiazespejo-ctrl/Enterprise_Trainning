@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo, useCallback } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,23 +65,25 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // BOLT OPTIMIZATION: Memoize callback to prevent recreation on every render
+  const employeeStats = useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
       certificates: certificates.filter(c => c.userId === employeeId).length
     };
-  };
+  }, [getUserAssignments, certificates]);
 
-  const filteredEmployees = employees.filter(emp =>
+  // BOLT OPTIMIZATION: Memoize filtered array to prevent expensive recalculations on every render
+  const filteredEmployees = useMemo(() => employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -89,10 +91,10 @@ const EmployeeManagement: React.FC = () => {
   }, [searchTerm]);
 
   const totalPages = Math.ceil(filteredEmployees.length / PAGE_SIZE);
-  const paginatedEmployees = filteredEmployees.slice(
+  const paginatedEmployees = useMemo(() => filteredEmployees.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE
-  );
+  ), [filteredEmployees, currentPage]);
 
   const openAddModal = () => {
     setEditingId(null);
