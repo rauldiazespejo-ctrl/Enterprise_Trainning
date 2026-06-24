@@ -29,28 +29,34 @@ const EmployeeDashboard: React.FC = () => {
   }, []);
 
   // Obtener asignaciones del usuario
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const userAssignments = React.useMemo(() => {
+    return user ? assignments.filter(a => a.userId === user.id) : [];
+  }, [user, assignments]);
+
+  const courseMap = React.useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
 
   // Obtener cursos asignados
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  const assignedCourses = React.useMemo(() => {
+    return userAssignments.map(a => {
+      const course = courseMap.get(a.courseId);
+      return course ? { ...course, assignment: a } : null;
+    }).filter((c): c is NonNullable<typeof c> => Boolean(c));
+  }, [userAssignments, courseMap]);
 
   // Estadísticas
   const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
+  const completedCourses = React.useMemo(() => assignedCourses.filter(c => c.assignment.status === 'completed').length, [assignedCourses]);
+  const inProgressCourses = React.useMemo(() => assignedCourses.filter(c => c.assignment.status === 'in_progress').length, [assignedCourses]);
+  const certificates = React.useMemo(() => user ? getUserCertificates(user.id) : [], [user, getUserCertificates]);
 
   // Próximo curso
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
+  const nextCourse = React.useMemo(() => assignedCourses.find(c => c.assignment.status === 'in_progress'), [assignedCourses]);
 
   // Cursos en progreso
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
+  const inProgressList = React.useMemo(() => assignedCourses.filter(c => c.assignment.status === 'in_progress'), [assignedCourses]);
 
   // Cursos pendientes
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+  const pendingCourses = React.useMemo(() => assignedCourses.filter(c => c.assignment.status === 'pending'), [assignedCourses]);
 
   const renderSkeleton = () => (
     <div className="space-y-6 animate-fadeIn">

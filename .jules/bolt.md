@@ -1,0 +1,3 @@
+## 2023-10-27 - O(N*M) nested `.find()` iterations in React mappings
+**Learning:** Found O(N*M) time complexity loops in frontend views (`AssignmentManagement.tsx`, `CertificateManagement.tsx`, and `EmployeeDashboard.tsx`) because arrays of reference data were searched with `.find()` inside a mapping function during sync render, and worse, recalculating every render.
+**Action:** Always convert standard reference arrays into Maps (`Map`) to reduce lookup to O(1). Then wrap both map creation and map usage logic inside `useMemo` hooks so it only calculates upon reference array changes, keeping O(N+M) and minimizing main thread blocking issues.
