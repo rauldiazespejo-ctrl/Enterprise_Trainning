@@ -1,4 +1,4 @@
-// Componentes UI modernos - Dark Theme
+// Componentes UI modernos — tema HSL claro/oscuro
 import React from 'react';
 import { AnimatedNumber as AnimatedNumberComponent } from './AnimatedNumber';
 
@@ -24,8 +24,10 @@ export const Card: React.FC<CardProps> = ({
 
   return (
     <div
-      className={`${variantClasses[variant]} ${onClick ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99]' : ''} ${className}`}
+      className={`${variantClasses[variant]} ${onClick ? 'cursor-pointer hover:scale-[1.01] active:scale-[0.99] focus-ring' : ''} ${className}`}
       onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
     >
       {children}
     </div>
@@ -51,9 +53,9 @@ export const Button: React.FC<ButtonProps> = ({
   const variants = {
     primary: 'btn-primary',
     secondary: 'btn-secondary',
-    outline: 'border border-slate-600 text-slate-300 hover:border-[#D15F3D]/50 hover:text-white hover:bg-white/[0.04] backdrop-blur-sm',
-    danger: 'bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25 hover:border-red-500/50',
-    ghost: 'text-slate-400 hover:text-white hover:bg-white/[0.06]',
+    outline: 'border border-border text-muted-foreground hover:border-primary/50 hover:text-foreground hover:bg-primary/5 backdrop-blur-sm',
+    danger: 'bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 hover:border-destructive/50',
+    ghost: 'text-muted-foreground hover:text-foreground hover:bg-muted',
     accent: 'btn-accent'
   };
 
@@ -81,12 +83,12 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 
 export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => (
   <div className="space-y-1.5">
-    {label && <label className="block text-sm font-medium text-slate-300 tracking-wide">{label}</label>}
+    {label && <label className="block text-sm font-medium text-muted-foreground tracking-wide">{label}</label>}
     <input
-      className={`input-modern transition-all duration-200 ${error ? 'border-red-500 focus:border-red-400 focus:ring-red-500/20' : ''} ${className}`}
+      className={`input-modern transition-all duration-200 ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''} ${className}`}
       {...props}
     />
-    {error && <p className="text-sm text-red-400 flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-red-400 inline-block" />{error}</p>}
+    {error && <p className="text-sm text-destructive flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-destructive inline-block" />{error}</p>}
   </div>
 );
 
@@ -98,7 +100,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
 
 export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => (
   <div className="space-y-1">
-    {label && <label className="block text-sm font-medium text-slate-300">{label}</label>}
+    {label && <label className="block text-sm font-medium text-muted-foreground">{label}</label>}
     <select
       className={`input-modern ${className}`}
       {...props}
@@ -119,12 +121,12 @@ interface BadgeProps {
 
 export const Badge: React.FC<BadgeProps> = ({ children, variant = 'default', className = '' }) => {
   const variants = {
-    default: 'bg-slate-700/60 text-slate-300 border border-slate-600/50',
-    success: 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30',
-    warning: 'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-    danger: 'bg-red-500/15 text-red-400 border border-red-500/30',
-    info: 'bg-blue-500/15 text-blue-400 border border-blue-500/30',
-    primary: 'bg-[#D15F3D]/15 text-[#D15F3D] border border-[#D15F3D]/30'
+    default: 'bg-muted text-muted-foreground border border-border',
+    success: 'bg-emerald-500/15 text-emerald-500 border border-emerald-500/30',
+    warning: 'bg-accent/15 text-accent border border-accent/30',
+    danger: 'bg-destructive/15 text-destructive border border-destructive/30',
+    info: 'bg-secondary/15 text-secondary border border-secondary/30',
+    primary: 'bg-primary/15 text-primary border border-primary/30'
   };
 
   return (
@@ -154,15 +156,15 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ value, max = 100, show
 
   return (
     <div className={`w-full ${className}`}>
-      <div className={`w-full ${sizes[size]} bg-slate-800 rounded-full overflow-hidden`}>
+      <div className={`w-full ${sizes[size]} bg-muted rounded-full overflow-hidden`}>
         <div
-          className="h-full rounded-full bg-gradient-to-r from-[#D15F3D] to-[#E87A58] transition-all duration-500 ease-out relative"
+          className="progress-modern-bar"
           style={{ width: `${percentage}%` }}
         >
-          {percentage > 0 && <div className="absolute inset-0 rounded-full bg-white/20 animate-shimmer" />}
+          {percentage > 0 && <div className="absolute inset-0 rounded-full bg-primary-foreground/20 animate-shimmer" />}
         </div>
       </div>
-      {showLabel && <p className="text-xs text-slate-400 mt-1.5 font-medium tabular-nums">{Math.round(percentage)}%</p>}
+      {showLabel && <p className="text-xs text-muted-foreground mt-1.5 font-medium tabular-nums">{Math.round(percentage)}%</p>}
     </div>
   );
 };
@@ -182,12 +184,16 @@ export const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }
     <div className="fixed inset-0 z-50 overflow-y-auto animate-fadeIn">
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-        <div className="relative card-modern max-w-lg w-full p-6 z-10 animate-scaleIn border-white/[0.08]">
+        <div className="relative card-modern max-w-lg w-full p-6 z-10 animate-scaleIn">
           {title && (
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-xl font-bold text-white">{title}</h2>
-              <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.08] transition-all duration-200">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <h2 className="text-xl font-bold text-foreground">{title}</h2>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-200 focus-ring tap-target-min"
+                aria-label="Cerrar"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
@@ -217,22 +223,22 @@ export const StatCard: React.FC<StatCardProps> = ({
   variant = 'default'
 }) => {
   const iconColors = {
-    default: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
-    primary: 'bg-[#D15F3D]/10 text-[#D15F3D] ring-1 ring-[#D15F3D]/20',
-    success: 'bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20',
-    warning: 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20'
+    default: 'bg-primary/10 text-primary ring-1 ring-primary/20',
+    primary: 'bg-primary/10 text-primary ring-1 ring-primary/20',
+    success: 'bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/20',
+    warning: 'bg-accent/10 text-accent ring-1 ring-accent/20'
   };
 
   return (
     <Card className="p-5 group">
       <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-slate-400 font-medium">{label}</p>
-          <p className="text-2xl font-bold text-white mt-1 tracking-tight">
+          <p className="text-sm text-muted-foreground font-medium">{label}</p>
+          <p className="text-2xl font-bold text-foreground mt-1 tracking-tight">
             {value}
           </p>
           {trend && (
-            <p className={`text-sm mt-1.5 font-medium flex items-center gap-1 ${trend.positive ? 'text-emerald-400' : 'text-red-400'}`}>
+            <p className={`text-sm mt-1.5 font-medium flex items-center gap-1 ${trend.positive ? 'text-emerald-500' : 'text-destructive'}`}>
               <span className={`inline-block transition-transform ${trend.positive ? 'rotate-0' : 'rotate-180'}`}>↑</span>
               {Math.abs(trend.value)}%
             </p>
@@ -258,9 +264,9 @@ export const Table: React.FC<TableProps> = ({ headers, children }) => (
   <div className="overflow-x-auto">
     <table className="w-full">
       <thead>
-        <tr className="border-b border-slate-700">
+        <tr className="border-b border-border">
           {headers.map((header, idx) => (
-            <th key={idx} className="px-4 py-3 text-left text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            <th key={idx} className="px-4 py-3 text-left text-sm font-semibold text-muted-foreground uppercase tracking-wider">
               {header}
             </th>
           ))}
@@ -286,11 +292,11 @@ export const Avatar: React.FC<AvatarProps> = ({ name, size = 'md', src }) => {
   };
 
   if (src) {
-    return <img src={src} alt={name} className={`${sizes[size]} rounded-xl object-cover ring-1 ring-white/10`} />;
+    return <img src={src} alt={name} className={`${sizes[size]} rounded-xl object-cover ring-1 ring-foreground/10`} />;
   }
 
   return (
-    <div className={`${sizes[size]} rounded-xl flex items-center justify-center text-white font-bold bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] ring-1 ring-white/10`}>
+    <div className={`${sizes[size]} rounded-xl flex items-center justify-center text-primary-foreground font-bold bg-gradient-to-br from-primary to-primary/80 ring-1 ring-foreground/10`}>
       {name.charAt(0).toUpperCase()}
     </div>
   );
@@ -307,12 +313,12 @@ interface EmptyStateProps {
 export const EmptyState: React.FC<EmptyStateProps> = ({ icon, title, description, action }) => (
   <div className="text-center py-16 animate-fadeIn">
     {icon && (
-      <div className="inline-flex p-5 rounded-2xl bg-slate-800/50 text-slate-400 mb-5 ring-1 ring-white/[0.06]">
+      <div className="inline-flex p-5 rounded-2xl bg-muted text-muted-foreground mb-5 ring-1 ring-border">
         {icon}
       </div>
     )}
-    <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-    {description && <p className="text-sm text-slate-400 mb-6 max-w-sm mx-auto">{description}</p>}
+    <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+    {description && <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">{description}</p>}
     {action && <div>{action}</div>}
   </div>
 );
@@ -325,7 +331,7 @@ interface SpinnerProps {
 export const Spinner: React.FC<SpinnerProps> = ({ size = 'md' }) => {
   const sizes = { sm: 'w-4 h-4', md: 'w-6 h-6', lg: 'w-8 h-8' };
   return (
-    <div className={`${sizes[size]} animate-spin rounded-full border-2 border-slate-700 border-t-[#D15F3D]`} />
+    <div className={`${sizes[size]} animate-spin rounded-full border-2 border-muted border-t-primary`} />
   );
 };
 

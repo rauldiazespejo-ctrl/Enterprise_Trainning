@@ -15,7 +15,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({ children, title, subtitle, isAd
   const closeMenu = useCallback(() => setMobileMenuOpen(false), []);
 
   return (
-    <div className="flex min-h-screen" style={{ background: '#0a0d14' }}>
+    <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
       <div className="hidden lg:flex lg:shrink-0">
         <Sidebar isAdmin={isAdmin} />

@@ -19,6 +19,11 @@ const toNumber = (val: number | string): number => {
   return Number.isNaN(parsed) ? 0 : parsed;
 };
 
+const prefersReducedMotion = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
 export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
   value,
   duration = 800,
@@ -41,6 +46,13 @@ export const AnimatedNumber: React.FC<AnimatedNumberProps> = ({
 
     const target = toNumber(value);
     targetRef.current = target;
+
+    if (prefersReducedMotion()) {
+      const isInteger = Number.isInteger(target);
+      setDisplay(`${prefix}${isInteger ? Math.round(target) : target.toFixed(1)}${suffix}`);
+      return;
+    }
+
     startRef.current = null;
 
     const step = (timestamp: number) => {

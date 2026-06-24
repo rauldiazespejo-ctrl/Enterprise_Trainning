@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   Home, BookOpen, Users, Award, Settings, LogOut, FileText, FolderOpen,
   BarChart3, UserCheck, GraduationCap, Crown, Shield, LayoutGrid, RefreshCw,
+  Sun, Moon,
 } from 'lucide-react';
 import { SoldesPLogoSmall } from '@/components/SoldesPLogo';
 
@@ -34,6 +36,7 @@ const employeeLinks = [
 
 const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const { user, logout, isSuperAdmin } = useAuth();
+  const { theme } = useTheme();
   const location = useLocation();
   const links = isAdmin ? adminLinks : employeeLinks;
 
@@ -41,21 +44,21 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
   const roleBadgeClass = isSuperAdmin
     ? 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30'
     : isAdmin
-    ? 'bg-[#D15F3D]/15 text-[#D15F3D] border-[#D15F3D]/30'
-    : 'bg-slate-700/50 text-slate-400 border-slate-600/50';
+    ? 'bg-primary/15 text-primary border-primary/30'
+    : 'bg-muted text-muted-foreground border-border';
 
   return (
-    <aside className="sidebar-root w-64 flex flex-col min-h-screen select-none">
+    <aside className="sidebar-root w-64 flex flex-col min-h-screen select-none bg-background">
       {/* ── Logo ─────────────────────────────────────────────────── */}
-      <div className="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-white/[0.05] animate-fadeIn">
+      <div className="px-5 pt-6 pb-5 flex items-center gap-3 border-b border-border animate-fadeIn">
         <div className="shrink-0">
           <SoldesPLogoSmall size={44} />
         </div>
         <div>
-          <p className="text-[15px] font-bold tracking-tight text-white leading-tight">
-            Capacita<span className="text-[#D15F3D]">Pro</span>
+          <p className="text-[15px] font-bold tracking-tight text-foreground leading-tight">
+            Capacita<span className="text-brand">Pro</span>
           </p>
-          <p className="text-[10px] text-slate-500 font-medium uppercase tracking-widest mt-0.5">
+          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-widest mt-0.5">
             {isAdmin ? 'Administración' : 'Portal Empleado'}
           </p>
         </div>
@@ -96,9 +99,9 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
                 <li key={path}>
                   <Link
                     to={path}
-                    className={`sidebar-item ${active ? 'sidebar-item-active sidebar-glow-active' : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'}`}
+                    className={`sidebar-item ${active ? 'sidebar-item-active sidebar-glow-active' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
                   >
-                    <span className={`sidebar-icon ${active ? 'bg-white/20' : 'bg-white/[0.04] group-hover:bg-[#D15F3D]/10'}`}>
+                    <span className={`sidebar-icon ${active ? 'bg-primary-foreground/20' : 'bg-foreground/[0.04] hover:bg-primary/10'}`}>
                       <Icon className="w-4 h-4" />
                     </span>
                     <span>{label}</span>
@@ -112,39 +115,57 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
       </nav>
 
       {/* ── User ─────────────────────────────────────────────────── */}
-      <div className="px-3 pb-4 border-t border-white/[0.05] pt-4 space-y-2">
+      <div className="px-3 pb-4 border-t border-border/50 pt-4 space-y-2">
         {/* User card */}
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-white/[0.04] border border-white/[0.06] hover:border-white/[0.1] transition-all duration-200">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white text-xs font-bold shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-muted/50 border border-border hover:border-border/80 transition-all duration-200 min-h-[52px]">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand to-primary/80 flex items-center justify-center text-primary-foreground text-xs font-bold shrink-0">
             {user?.name?.charAt(0).toUpperCase()}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white truncate leading-tight">{user?.name}</p>
+            <p className="text-sm font-semibold text-foreground truncate leading-tight">{user?.name}</p>
             <span className={`inline-flex items-center mt-0.5 text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${roleBadgeClass}`}>
               {roleLabel}
             </span>
           </div>
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
+          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" aria-hidden="true" />
         </div>
 
         {/* Logout */}
         <button
           onClick={logout}
-          className="sidebar-item w-full text-slate-500 hover:text-red-400 hover:bg-red-500/[0.08]"
+          className="sidebar-item w-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 focus-ring"
+          aria-label="Cerrar sesión"
         >
-          <span className="sidebar-icon bg-red-500/[0.08]">
-            <LogOut className="w-4 h-4 text-red-400/70" />
+          <span className="sidebar-icon bg-destructive/10">
+            <LogOut className="w-4 h-4 text-destructive/70" aria-hidden="true" />
           </span>
           <span>Cerrar Sesión</span>
         </button>
       </div>
 
-      {/* ── Footer brand ─────────────────────────────────────────── */}
-      <div className="px-5 py-3 border-t border-white/[0.04] flex items-center justify-center gap-1.5">
-        <GraduationCap className="w-3.5 h-3.5 text-[#D15F3D]/60" />
-        <span className="text-[10px] text-slate-600 font-medium tracking-wider uppercase">
-          © 2026 SoldesP
-        </span>
+      {/* ── Footer brand + theme ─────────────────────────────────── */}
+      <div className="px-5 py-3 border-t border-border/40 flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <GraduationCap className="w-3.5 h-3.5 text-brand/60" />
+          <span className="text-[10px] text-muted-foreground font-medium tracking-wider uppercase">
+            © 2026 SoldesP
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80 uppercase tracking-wider">
+          {theme === 'dark' ? (
+            <>
+              <Moon className="w-3 h-3 text-secondary" aria-hidden="true" />
+              <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+              Oscuro
+            </>
+          ) : (
+            <>
+              <Sun className="w-3 h-3 text-accent" aria-hidden="true" />
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              Claro
+            </>
+          )}
+        </div>
       </div>
     </aside>
   );

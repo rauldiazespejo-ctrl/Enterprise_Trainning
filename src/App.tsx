@@ -3,6 +3,7 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 import { CourseProvider } from '@/contexts/CourseContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Páginas de autenticación
 import Login from '@/pages/auth/Login';
@@ -260,11 +261,13 @@ const AppRoutes: React.FC = () => {
 const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CourseProvider>
-          <AppRoutes />
-        </CourseProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <CourseProvider>
+            <AppRoutes />
+          </CourseProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 };

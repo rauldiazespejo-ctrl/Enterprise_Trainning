@@ -1,12 +1,15 @@
-// Página de Login - Premium Dark Theme con logo original SoldesP
+// Página de Login — Split-screen premium con tema claro/oscuro
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { validatePasswordComplexity } from '@/lib/auth';
 import { Card, Button } from '@/components/ui/Card';
-import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon, Sun, Moon } from 'lucide-react';
 import { SoldesPLogo } from '@/components/SoldesPLogo';
 import { employeeEmailFromRut, isValidRut, normalizeRut } from '@/lib/employeeImport';
+
+const INDUSTRIAL_IMAGE = 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1600&q=80';
 
 const looksLikeRut = (value: string): boolean =>
   /^\d{7,8}-?[\dkK]$/.test(value.replace(/\./g, '').replace(/\s/g, '')) ||
@@ -29,10 +32,60 @@ const PASSWORD_RULES = [
   { label: 'Un carácter especial (!@#$...)', test: (p: string) => /[^A-Za-z0-9]/.test(p) },
 ];
 
+// ── Confetti pieces for welcome celebration ─────────────────────────────────
+const CONFETTI_COLORS = [
+  'hsl(var(--brand))',
+  'hsl(var(--accent))',
+  'hsl(var(--secondary))',
+  'hsl(var(--primary))',
+  'hsl(var(--brand) / 0.7)',
+  'hsl(var(--secondary) / 0.7)',
+];
+
+const prefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const Confetti: React.FC = () => {
+  const pieces = React.useMemo(() => {
+    return Array.from({ length: 40 }).map((_, i) => ({
+      id: i,
+      left: `${Math.random() * 100}%`,
+      delay: `${Math.random() * 0.8}s`,
+      duration: `${1.8 + Math.random() * 1.4}s`,
+      color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
+      rotation: Math.random() * 360,
+      size: 6 + Math.random() * 8,
+    }));
+  }, []);
+
+  if (prefersReducedMotion()) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden z-20">
+      {pieces.map((p) => (
+        <div
+          key={p.id}
+          className="confetti-piece animate-confetti"
+          style={{
+            left: p.left,
+            backgroundColor: p.color,
+            width: `${p.size}px`,
+            height: `${p.size * 1.6}px`,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+            transform: `rotate(${p.rotation}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
 // ── Change Password Screen ──────────────────────────────────────────────────
 
 const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }) => {
   const { changePassword } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNew, setShowNew] = useState(false);
@@ -60,140 +113,173 @@ const ChangePasswordScreen: React.FC<{ onSuccess: () => void }> = ({ onSuccess }
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0A0E1A] via-[#111827] to-[#001B4B] opacity-80" />
-      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-8 animate-fadeIn">
-          <div className="inline-flex items-center justify-center mb-4">
-            <SoldesPLogo size={180} />
+    <div className="min-h-screen flex relative overflow-hidden overflow-x-hidden bg-background">
+      {/* Left: industrial image */}
+      <div className="hidden lg:flex lg:w-1/2 relative">
+        <img
+          src={INDUSTRIAL_IMAGE}
+          alt="Seguridad industrial"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="login-hero-overlay absolute inset-0" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-20" />
+        <div className="relative z-10 flex flex-col justify-end p-12">
+          <div className="mb-8">
+            <SoldesPLogo size={160} />
           </div>
-          <h1 className="text-3xl font-bold gradient-text mb-2 tracking-tight">Cambio de Contraseña</h1>
-          <p className="text-sm text-[#9CA3AF]">Por seguridad, debes crear una contraseña personal</p>
+          <h2 className="text-4xl font-bold text-white mb-4 leading-tight">
+            Seguridad y<br />capacitación <span className="text-brand">sin límites</span>
+          </h2>
+          <p className="text-white/70 text-lg max-w-md">
+            Plataforma corporativa de gestión HSEQ para el desarrollo continuo de tu equipo.
+          </p>
         </div>
+      </div>
 
-        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
-          <div className="flex items-center gap-3 mb-6 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
-            <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0" />
-            <p className="text-sm text-amber-300">
-              Tu contraseña actual es temporal. Crea una contraseña segura para proteger tu cuenta.
-            </p>
+      {/* Right: form */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 relative overflow-x-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/10" />
+        <div className="absolute inset-0 bg-dots-pattern opacity-30" />
+        <div className="orb-orange" style={{ top: '10%', right: '5%' }} />
+        <div className="orb-navy" style={{ bottom: '15%', left: '10%' }} />
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 p-2.5 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:border-brand/40 transition-all z-10 focus-ring tap-target-min"
+          aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
+        <div className="w-full max-w-md relative z-10">
+          <div className="text-center mb-8 animate-fadeIn">
+            <div className="inline-flex items-center justify-center mb-4 lg:hidden">
+              <SoldesPLogo size={140} />
+            </div>
+            <h1 className="text-3xl font-bold gradient-text mb-2 tracking-tight">Cambio de Contraseña</h1>
+            <p className="text-sm text-muted-foreground">Por seguridad, debes crear una contraseña personal</p>
           </div>
 
-          {error && (
-            <div role="alert" className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full" />
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* New password */}
-            <div className="space-y-1 relative">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
-                Nueva Contraseña
-              </label>
-              <input
-                type={showNew ? 'text' : 'password'}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Ingresa tu nueva contraseña"
-                required
-                autoComplete="new-password"
-                aria-invalid={!!error}
-                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)] focus-ring tap-target-min"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNew(!showNew)}
-                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
-                aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+          <Card className="login-glass p-6 sm:p-8 animate-slideUp">
+            <div className="flex items-center gap-3 mb-6 p-3 bg-accent/10 border border-accent/30 rounded-xl">
+              <ShieldCheck className="w-5 h-5 text-accent shrink-0" />
+              <p className="text-sm text-accent">
+                Tu contraseña actual es temporal. Crea una contraseña segura para proteger tu cuenta.
+              </p>
             </div>
 
-            {/* Complexity checklist */}
-            {newPassword.length > 0 && (
-              <div className="space-y-1.5 p-3 bg-slate-800/50 rounded-xl border border-slate-700">
-                {PASSWORD_RULES.map((rule) => {
-                  const passes = rule.test(newPassword);
-                  return (
-                    <div key={rule.label} className="flex items-center gap-2 text-xs">
-                      {passes ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      ) : (
-                        <XIcon className="w-3.5 h-3.5 text-slate-500 shrink-0" />
-                      )}
-                      <span className={passes ? 'text-emerald-400' : 'text-slate-500'}>
-                        {rule.label}
-                      </span>
-                    </div>
-                  );
-                })}
+            {error && (
+              <div role="alert" className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm flex items-center gap-2">
+                <div className="w-2 h-2 bg-destructive rounded-full" />
+                {error}
               </div>
             )}
 
-            {/* Confirm password */}
-            <div className="space-y-1 relative">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
-                Confirmar Contraseña
-              </label>
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repite tu nueva contraseña"
-                required
-                autoComplete="new-password"
-                aria-invalid={!!error || (confirmPassword.length > 0 && !passwordsMatch)}
-                className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)] focus-ring tap-target-min"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm(!showConfirm)}
-                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
-                aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-              >
-                {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
-              {confirmPassword.length > 0 && !passwordsMatch && (
-                <p className="text-xs text-red-400 flex items-center gap-1 mt-1">
-                  <XIcon className="w-3 h-3" />
-                  Las contraseñas no coinciden
-                </p>
-              )}
-              {passwordsMatch && (
-                <p className="text-xs text-emerald-400 flex items-center gap-1 mt-1">
-                  <Check className="w-3 h-3" />
-                  Las contraseñas coinciden
-                </p>
-              )}
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1 relative">
+                <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <div className="w-1 h-4 bg-brand rounded-full" />
+                  Nueva Contraseña
+                </label>
+                <input
+                  type={showNew ? 'text' : 'password'}
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Ingresa tu nueva contraseña"
+                  required
+                  autoComplete="new-password"
+                  aria-invalid={!!error}
+                  className="input-modern pr-12 font-mono focus:border-brand focus:shadow-[0_0_0_3px_hsl(var(--brand)/0.15)] focus-ring tap-target-min"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNew(!showNew)}
+                  className="absolute right-3 top-[40px] text-muted-foreground hover:text-brand transition-colors tap-target-min p-2 focus-ring rounded-lg"
+                  aria-label={showNew ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
 
-            <Button
-              type="submit"
-              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)] tap-target-min focus-ring"
-              size="lg"
-              disabled={!canSubmit}
-            >
-              {isSubmitting ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 animate-pulse" />
-                  Guardando...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5" />
-                  Guardar Nueva Contraseña
-                </span>
+              {newPassword.length > 0 && (
+                <div className="space-y-1.5 p-3 bg-muted rounded-xl border border-border">
+                  {PASSWORD_RULES.map((rule) => {
+                    const passes = rule.test(newPassword);
+                    return (
+                      <div key={rule.label} className="flex items-center gap-2 text-xs">
+                        {passes ? (
+                          <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                        ) : (
+                          <XIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        )}
+                        <span className={passes ? 'text-emerald-500' : 'text-muted-foreground'}>
+                          {rule.label}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-            </Button>
-          </form>
-        </Card>
+
+              <div className="space-y-1 relative">
+                <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <div className="w-1 h-4 bg-brand rounded-full" />
+                  Confirmar Contraseña
+                </label>
+                <input
+                  type={showConfirm ? 'text' : 'password'}
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Repite tu nueva contraseña"
+                  required
+                  autoComplete="new-password"
+                  aria-invalid={!!error || (confirmPassword.length > 0 && !passwordsMatch)}
+                  className="input-modern pr-12 font-mono focus:border-brand focus:shadow-[0_0_0_3px_hsl(var(--brand)/0.15)] focus-ring tap-target-min"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(!showConfirm)}
+                  className="absolute right-3 top-[40px] text-muted-foreground hover:text-brand transition-colors tap-target-min p-2 focus-ring rounded-lg"
+                  aria-label={showConfirm ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+                {confirmPassword.length > 0 && !passwordsMatch && (
+                  <p className="text-xs text-destructive flex items-center gap-1 mt-1">
+                    <XIcon className="w-3 h-3" />
+                    Las contraseñas no coinciden
+                  </p>
+                )}
+                {passwordsMatch && (
+                  <p className="text-xs text-emerald-500 flex items-center gap-1 mt-1">
+                    <Check className="w-3 h-3" />
+                    Las contraseñas coinciden
+                  </p>
+                )}
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full text-base py-4 shadow-[0_4px_20px_hsl(var(--brand)/0.4)] tap-target-min focus-ring"
+                size="lg"
+                disabled={!canSubmit}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    Guardando...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5" />
+                    Guardar Nueva Contraseña
+                  </span>
+                )}
+              </Button>
+            </form>
+          </Card>
+        </div>
       </div>
     </div>
   );
@@ -210,6 +296,7 @@ const Login: React.FC = () => {
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
   const { login, user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const isRutMode = looksLikeRut(identifier);
@@ -235,14 +322,12 @@ const Login: React.FC = () => {
     setIsLoading(false);
   };
 
-  // Step 1: resolve 'loading' → actual name
   React.useEffect(() => {
     if (welcomeName === 'loading' && user?.name) {
       setWelcomeName(user.name);
     }
   }, [welcomeName, user?.name]);
 
-  // Step 2: once name is resolved, redirect after animation
   React.useEffect(() => {
     if (welcomeName && welcomeName !== 'loading') {
       const timer = setTimeout(() => navigate('/'), 2500);
@@ -252,25 +337,29 @@ const Login: React.FC = () => {
 
   if (welcomeName && welcomeName !== 'loading') {
     return (
-      <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0A0E1A] via-[#111827] to-[#001B4B] opacity-80" />
-        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-background">
+        <Confetti />
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/20" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-20" />
         <div className="orb-orange" style={{ top: '20%', right: '15%' }} />
         <div className="orb-navy" style={{ bottom: '20%', left: '15%' }} />
 
         <div className="relative z-10 text-center animate-slideUp">
-          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-[#D15F3D]/20 border-2 border-[#D15F3D]/50 mb-6 animate-pulse-glow">
-            <Sparkles className="w-10 h-10 text-[#D15F3D]" />
+          <div className="relative inline-flex items-center justify-center mb-8">
+            <div className="absolute inset-0 rounded-full bg-brand/20 animate-ping" />
+            <div className="relative inline-flex items-center justify-center w-28 h-28 rounded-full bg-brand/15 border-2 border-brand/40 animate-pulse-glow animate-pop">
+              <Sparkles className="w-12 h-12 text-brand" />
+            </div>
           </div>
-          <h1 className="text-4xl font-bold text-white mb-3">
+          <h1 className="text-5xl font-bold text-foreground mb-3 animate-fadeInUp" style={{ animationDelay: '0.1s' }}>
             ¡Bienvenido/a!
           </h1>
-          <p className="text-2xl text-[#D15F3D] font-semibold mb-2">
+          <p className="text-3xl text-brand font-bold mb-2 animate-fadeInUp" style={{ animationDelay: '0.2s' }}>
             {welcomeName}
           </p>
-          <p className="text-slate-400 text-sm mt-4">Ingresando a la plataforma...</p>
-          <div className="mt-6 w-48 mx-auto h-1 bg-white/10 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#D15F3D] to-[#E87A58] rounded-full animate-fillBar" />
+          <p className="text-muted-foreground text-base mt-4 animate-fadeInUp" style={{ animationDelay: '0.3s' }}>Ingresando a la plataforma...</p>
+          <div className="mt-8 w-56 mx-auto h-1.5 bg-muted rounded-full overflow-hidden animate-fadeInUp" style={{ animationDelay: '0.4s' }}>
+            <div className="h-full bg-gradient-to-r from-brand to-accent rounded-full animate-fillBar" />
           </div>
         </div>
       </div>
@@ -285,144 +374,199 @@ const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] flex items-center justify-center p-4 relative overflow-hidden">
-      <div className="absolute inset-0 bg-gradient-to-br from-[#0A0E1A] via-[#111827] to-[#001B4B] opacity-80" />
-      <div className="absolute top-0 left-0 w-full h-full bg-dots-pattern" />
+    <div className="min-h-screen flex relative overflow-hidden bg-background">
+      {/* Left: industrial split-screen image */}
+      <div className="hidden lg:flex lg:w-[55%] xl:w-1/2 relative">
+        <img
+          src={INDUSTRIAL_IMAGE}
+          alt="Seguridad industrial"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        <div className="login-hero-overlay absolute inset-0" />
+        <div className="absolute inset-0 bg-grid-pattern opacity-20" />
 
-      <div className="orb-orange" style={{ top: '10%', left: '5%' }} />
-      <div className="orb-navy" style={{ bottom: '15%', right: '10%' }} />
-      <div className="orb-orange" style={{ bottom: '40%', left: '30%', width: '200px', height: '200px' }} />
-
-      <div className="absolute inset-0 bg-grid-pattern opacity-30" />
-
-      <div className="w-full max-w-md relative z-10">
-        <div className="text-center mb-10 animate-fadeIn">
-          <div className="inline-flex items-center justify-center mb-6 animate-float">
-            <SoldesPLogo size={260} />
+        <div className="relative z-10 flex flex-col justify-between p-10 xl:p-16">
+          <div className="animate-fadeIn">
+            <SoldesPLogo size={160} className="drop-shadow-lg" />
           </div>
 
-          <h1 className="text-5xl font-bold gradient-text mb-3 tracking-tight">CapacitaPro</h1>
-          <p className="text-lg text-[#9CA3AF] flex items-center justify-center gap-2">
-            <span className="w-2 h-2 bg-[#D15F3D] rounded-full animate-pulse" />
-            Powered by SoldesP
+          <div className="space-y-6 animate-slideUp">
+            <h2 className="text-5xl xl:text-6xl font-extrabold text-white leading-[1.1]">
+              Capacita<span className="text-brand">Pro</span>
+            </h2>
+            <p className="text-xl text-white/80 max-w-lg leading-relaxed">
+              Capacitación corporativa de alto impacto para la seguridad, calidad y productividad de tu equipo.
+            </p>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+                <ShieldCheck className="w-4 h-4 text-brand" />
+                <span className="text-sm text-white font-medium">HSEQ</span>
+              </div>
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 backdrop-blur-sm">
+                <Award className="w-4 h-4 text-brand" />
+                <span className="text-sm text-white font-medium">Certificaciones</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-white/50 text-sm animate-fadeIn">
+            © 2026 SoldesP — Todos los derechos reservados
           </p>
-          <p className="text-sm text-[#64748B] mt-2">Plataforma de Capacitación Corporativa</p>
         </div>
+      </div>
 
-        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[rgba(209,95,61,0.1)] rounded-full border border-[rgba(209,95,61,0.3)] mb-4">
-              <Award className="w-4 h-4 text-[#D15F3D]" />
-              <span className="text-sm text-[#D15F3D] font-medium">Acceso Seguro</span>
+      {/* Right: floating glass form */}
+      <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-x-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-secondary/10" />
+        <div className="absolute top-0 left-0 w-full h-full bg-dots-pattern" />
+        <div className="orb-orange" style={{ top: '8%', right: '8%' }} />
+        <div className="orb-navy" style={{ bottom: '12%', left: '5%' }} />
+        <div className="absolute inset-0 bg-grid-pattern opacity-30" />
+
+        {/* Theme toggle */}
+        <button
+          onClick={toggleTheme}
+          className="absolute top-6 right-6 p-2.5 rounded-xl bg-card border border-border text-muted-foreground hover:text-foreground hover:border-brand/40 transition-all z-10 focus-ring tap-target-min"
+          aria-label={theme === 'dark' ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'}
+        >
+          {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+        </button>
+
+        <div className="w-full max-w-md relative z-10">
+          <div className="text-center mb-8 animate-fadeIn">
+            <div className="inline-flex items-center justify-center mb-5 lg:hidden animate-float">
+              <SoldesPLogo size={160} />
             </div>
-            <h2 className="text-2xl font-bold text-white mb-1">Bienvenido</h2>
-            <p className="text-sm text-[#9CA3AF]">Ingresa tus credenciales para continuar</p>
+
+            <div className="hidden lg:block mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand/10 border border-brand/20 mb-4 animate-pulse-glow">
+                <ShieldCheck className="w-8 h-8 text-brand" />
+              </div>
+            </div>
+
+            <h1 className="text-4xl font-bold gradient-text mb-2 tracking-tight">CapacitaPro</h1>
+            <p className="text-lg text-muted-foreground flex items-center justify-center gap-2">
+              <span className="w-2 h-2 bg-brand rounded-full animate-pulse" />
+              Powered by SoldesP
+            </p>
+            <p className="text-sm text-muted-foreground/70 mt-2">Plataforma de Capacitación Corporativa</p>
           </div>
 
-          {error && (
-            <div id="login-error" role="alert" className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
-              <div className="w-2 h-2 bg-red-500 rounded-full" />
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
-                RUT
-              </label>
-              <input
-                type="text"
-                value={identifier}
-                onChange={(e) => setIdentifier(e.target.value)}
-                placeholder="15422822-5 o 154228225"
-                required
-                autoComplete="username"
-                aria-invalid={!!error}
-                aria-describedby={error ? 'login-error' : undefined}
-                className="input-modern font-mono focus-ring tap-target-min"
-              />
-              {isRutMode && (
-                <p className="text-xs text-emerald-400 flex items-center gap-1 mt-1">
-                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
-                  RUT reconocido
-                </p>
-              )}
+          <Card className="login-glass p-6 sm:p-8 animate-slideUp">
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand/10 rounded-full border border-brand/20 mb-4">
+                <Award className="w-4 h-4 text-brand" />
+                <span className="text-sm text-brand font-medium">Acceso Seguro</span>
+              </div>
+              <h2 className="text-2xl font-bold text-foreground mb-1">Bienvenido</h2>
+              <p className="text-sm text-muted-foreground">Ingresa tus credenciales para continuar</p>
             </div>
 
-            <div className="space-y-1 relative">
-              <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
-                Contraseña
-              </label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={isRutMode ? 'RUT sin dígito verificador (ej. 15422822)' : 'Tu contraseña'}
-                required
-                autoComplete="current-password"
-                aria-invalid={!!error}
-                aria-describedby={error ? 'login-error' : undefined}
-                className="input-modern pr-12 font-mono focus-ring tap-target-min"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min p-1 focus-ring rounded-lg"
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+            {error && (
+              <div id="login-error" role="alert" className="mb-4 p-4 bg-destructive/10 border border-destructive/30 rounded-xl text-destructive text-sm flex items-center gap-2">
+                <div className="w-2 h-2 bg-destructive rounded-full" />
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <div className="w-1 h-4 bg-brand rounded-full" />
+                  RUT
+                </label>
+                <input
+                  type="text"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  placeholder="15422822-5 o 154228225"
+                  required
+                  autoComplete="username"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'login-error' : undefined}
+                  className="input-modern text-base font-mono focus-ring tap-target-min"
+                />
+                {isRutMode && (
+                  <p className="text-xs text-emerald-500 flex items-center gap-1 mt-1">
+                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block" />
+                    RUT reconocido
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-1 relative">
+                <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <div className="w-1 h-4 bg-brand rounded-full" />
+                  Contraseña
+                </label>
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={isRutMode ? 'RUT sin dígito verificador (ej. 15422822)' : 'Tu contraseña'}
+                  required
+                  autoComplete="current-password"
+                  aria-invalid={!!error}
+                  aria-describedby={error ? 'login-error' : undefined}
+                  className="input-modern text-base pr-12 font-mono focus-ring tap-target-min"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-[40px] text-muted-foreground hover:text-brand transition-colors tap-target-min p-2 focus-ring rounded-lg"
+                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full text-base py-4 shadow-[0_4px_20px_hsl(var(--brand)/0.4)] tap-target-min focus-ring"
+                size="lg"
+                disabled={isLoading}
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 animate-pulse" />
+                    Iniciando sesión...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                    </svg>
+                    Iniciar Sesión
+                  </span>
+                )}
+              </Button>
+            </form>
+
+            <div className="mt-5 text-center">
+              <Link
+                to="/forgot-password"
+                className="text-sm text-muted-foreground hover:text-brand transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
             </div>
 
-            <Button
-              type="submit"
-              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)] tap-target-min focus-ring"
-              size="lg"
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 animate-pulse" />
-                  Iniciando sesión...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
-                  </svg>
-                  Iniciar Sesión
-                </span>
-              )}
-            </Button>
-          </form>
+            {import.meta.env.DEV && (
+              <div className="mt-5 p-4 bg-secondary/10 rounded-xl border border-secondary/30">
+                <p className="text-xs text-muted-foreground text-center leading-relaxed">
+                  <span className="text-brand font-semibold">Usuario:</span> RUT con dígito verificador — <span className="font-mono">15422822-5</span><br />
+                  <span className="text-brand font-semibold">Contraseña:</span> RUT sin dígito verificador — <span className="font-mono">15422822</span>
+                </p>
+              </div>
+            )}
+          </Card>
 
-          <div className="mt-4 text-center">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
-            >
-              ¿Olvidaste tu contraseña?
-            </Link>
+          <div className="text-center mt-8 animate-fadeIn lg:hidden">
+            <p className="text-muted-foreground text-sm flex items-center justify-center gap-2">
+              <span className="w-2 h-2 bg-secondary rounded-full border border-brand" />
+              © 2026 SoldesP - CapacitaPro
+            </p>
           </div>
-
-          {import.meta.env.DEV && (
-            <div className="mt-5 p-4 bg-[rgba(0,27,75,0.2)] rounded-xl border border-[rgba(0,27,75,0.4)]">
-              <p className="text-xs text-[#9CA3AF] text-center leading-relaxed">
-                <span className="text-[#D15F3D] font-semibold">Usuario:</span> RUT con dígito verificador — <span className="font-mono">15422822-5</span><br />
-                <span className="text-[#D15F3D] font-semibold">Contraseña:</span> RUT sin dígito verificador — <span className="font-mono">15422822</span>
-              </p>
-            </div>
-          )}
-        </Card>
-
-        <div className="text-center mt-8 animate-fadeIn">
-          <p className="text-slate-400 text-sm flex items-center justify-center gap-2">
-            <span className="w-2 h-2 bg-[#001B4B] rounded-full border border-[#D15F3D]" />
-            © 2026 SoldesP - CapacitaPro. Todos los derechos reservados.
-          </p>
         </div>
       </div>
     </div>
