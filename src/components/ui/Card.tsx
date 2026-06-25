@@ -1,5 +1,5 @@
 // Componentes UI modernos — tema HSL claro/oscuro
-import React from 'react';
+import React, { useId } from 'react';
 import { AnimatedNumber as AnimatedNumberComponent } from './AnimatedNumber';
 
 // Card Component
@@ -81,16 +81,25 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => (
-  <div className="space-y-1.5">
-    {label && <label className="block text-sm font-medium text-muted-foreground tracking-wide">{label}</label>}
-    <input
-      className={`input-modern transition-all duration-200 ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''} ${className}`}
-      {...props}
-    />
-    {error && <p className="text-sm text-destructive flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-destructive inline-block" />{error}</p>}
-  </div>
-);
+export const Input: React.FC<InputProps> = ({ label, error, className = '', ...props }) => {
+  const generatedId = useId();
+  const inputId = props.id || generatedId;
+  const errorId = error ? `${inputId}-error` : undefined;
+
+  return (
+    <div className="space-y-1.5">
+      {label && <label htmlFor={inputId} className="block text-sm font-medium text-muted-foreground tracking-wide">{label}</label>}
+      <input
+        id={inputId}
+        aria-invalid={error ? "true" : undefined}
+        aria-describedby={errorId}
+        className={`input-modern transition-all duration-200 ${error ? 'border-destructive focus:border-destructive focus:ring-destructive/20' : ''} ${className}`}
+        {...props}
+      />
+      {error && <p id={errorId} className="text-sm text-destructive flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-destructive inline-block" />{error}</p>}
+    </div>
+  );
+};
 
 // Select Component
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
@@ -98,19 +107,25 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[];
 }
 
-export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => (
-  <div className="space-y-1">
-    {label && <label className="block text-sm font-medium text-muted-foreground">{label}</label>}
-    <select
-      className={`input-modern ${className}`}
-      {...props}
-    >
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
-  </div>
-);
+export const Select: React.FC<SelectProps> = ({ label, options, className = '', ...props }) => {
+  const generatedId = useId();
+  const selectId = props.id || generatedId;
+
+  return (
+    <div className="space-y-1">
+      {label && <label htmlFor={selectId} className="block text-sm font-medium text-muted-foreground">{label}</label>}
+      <select
+        id={selectId}
+        className={`input-modern ${className}`}
+        {...props}
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  );
+};
 
 // Badge Component
 interface BadgeProps {
