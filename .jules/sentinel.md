@@ -1,0 +1,4 @@
+## 2025-01-20 - [Reverse Tabnabbing Vulnerability]
+**Vulnerability:** Reverse tabnabbing vulnerability found where links open in a new tab (`target="_blank"`) without the `rel="noopener noreferrer"` attribute, both in static HTML `<a>` tags and dynamically created elements (`document.createElement('a')`).
+**Learning:** When `target="_blank"` is used, the newly opened page gains access to the original window's object via `window.opener`. This can be exploited by malicious sites to redirect the original page to a phishing site or perform unauthorized actions.
+**Prevention:** Always add `rel="noopener noreferrer"` to any link that opens in a new tab, whether it's a static HTML element or dynamically created via JavaScript. For dynamic elements, explicitly set `a.rel = 'noopener noreferrer'` before simulating a click.
