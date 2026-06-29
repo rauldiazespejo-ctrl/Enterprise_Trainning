@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -30,11 +30,28 @@ const AssignmentManagement: React.FC = () => {
   const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
   const publishedCourses = courses.filter(c => c.status === 'published');
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // Bolt Performance: Converted O(N) array lookups (users.find and courses.find) inside a map loop
+  // into O(1) hash map lookups using useMemo. This avoids O(N*M) time complexity during renders,
+  // which blocks the main thread as the assignments list grows.
+  const userMap = useMemo(() => {
+    const map = new Map();
+    users.forEach(u => map.set(u.id, u));
+    return map;
+  }, [users]);
+
+  const courseMap = useMemo(() => {
+    const map = new Map();
+    courses.forEach(c => map.set(c.id, c));
+    return map;
+  }, [courses]);
+
+  const enrichedAssignments = useMemo(() => {
+    return assignments.map(a => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+  }, [assignments, userMap, courseMap]);
 
   const filtered = enrichedAssignments.filter(a => {
     if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
