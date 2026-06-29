@@ -502,6 +502,8 @@ const DocumentRepository: React.FC = () => {
                             a.href = doc.fileUrl;
                             a.download = doc.name;
                             a.target = '_blank';
+                            // Security: Prevent reverse tabnabbing on target="_blank" links
+                            a.rel = 'noopener noreferrer';
                             a.click();
                           }}
                           title="Descargar"
