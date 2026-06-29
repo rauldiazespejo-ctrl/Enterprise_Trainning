@@ -1,0 +1,3 @@
+## 2025-06-29 - Accessible Icon-Only Buttons
+**Learning:** Icon-only buttons (like refresh, promote, demote, password toggles) are inaccessible to screen readers without explicit `aria-label`s. Furthermore, screen readers may announce the raw HTML of the SVG if it's not hidden.
+**Action:** Always add descriptive `aria-label` attributes to `<button>` elements that only contain icons, and apply `aria-hidden="true"` to the inner SVG/icon components to ensure a clean, understandable experience for assistive technologies. Add a tooltip via the `title` attribute for mouse users if one doesn't exist.
