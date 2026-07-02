@@ -162,10 +162,10 @@ const SummarySlide: React.FC<{ slide: Slide }> = ({ slide }) => (
 const ContentSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
   <div className="h-full flex flex-col bg-gradient-to-br from-[#0D1B2A] via-[#0A1520] to-[#111827] rounded-2xl border border-white/10 p-8 overflow-y-auto">
     <div className="flex items-center gap-3 mb-6">
-      <div className="p-2.5 bg-hsl(var(--brand))/15 border border-hsl(var(--brand))/30 rounded-xl">
-        <BookOpen className="w-5 h-5 text-hsl(var(--brand))" />
+      <div className="p-2.5 bg-brand/15 border border-brand/30 rounded-xl">
+        <BookOpen className="w-5 h-5 text-brand" />
       </div>
-      <span className="text-xs text-hsl(var(--brand)) font-bold uppercase tracking-widest">Contenido</span>
+      <span className="text-xs text-brand font-bold uppercase tracking-widest">Contenido</span>
     </div>
 
     <h2 className="text-2xl md:text-3xl font-bold text-white mb-5 leading-tight">{slide.title}</h2>
@@ -175,7 +175,7 @@ const ContentSlide: React.FC<{ slide: Slide }> = ({ slide }) => (
       <div className="mt-auto space-y-2.5">
         {slide.keyPoints.map((point, i) => (
           <div key={i} className="flex items-start gap-3 p-3 bg-white/5 rounded-xl border border-white/10">
-            <div className="w-1.5 h-1.5 rounded-full bg-hsl(var(--brand)) mt-2 shrink-0" />
+            <div className="w-1.5 h-1.5 rounded-full bg-brand mt-2 shrink-0" />
             <span className="text-gray-300 text-sm md:text-base">{point}</span>
           </div>
         ))}
@@ -190,11 +190,11 @@ const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
   const hasText = slide.keyPoints && slide.keyPoints.length > 0;
 
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-[#0D1321] via-[#080E18] to-[#050A0F] rounded-2xl border border-hsl(var(--brand))/20 overflow-hidden">
+    <div className="h-full flex flex-col bg-gradient-to-br from-[#0D1321] via-[#080E18] to-[#050A0F] rounded-2xl border border-brand/20 overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 px-6 pt-5 pb-3 shrink-0">
-        <div className="p-2 bg-hsl(var(--brand))/20 border border-hsl(var(--brand))/30 rounded-lg">
-          <FileText className="w-4 h-4 text-hsl(var(--brand))" />
+        <div className="p-2 bg-brand/20 border border-brand/30 rounded-lg">
+          <FileText className="w-4 h-4 text-brand" />
         </div>
         <div className="flex-1 min-w-0">
           <h2 className="text-lg md:text-xl font-bold text-white leading-tight truncate">{slide.title}</h2>
@@ -226,7 +226,7 @@ const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
               onClick={() => setActiveImg(idx)}
               className={`shrink-0 w-16 h-11 rounded-lg border-2 overflow-hidden transition-all ${
                 idx === activeImg
-                  ? 'border-hsl(var(--brand)) opacity-100'
+                  ? 'border-brand opacity-100'
                   : 'border-white/15 opacity-50 hover:opacity-80 hover:border-white/40'
               }`}
             >
@@ -241,7 +241,7 @@ const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
         <div className="px-4 pb-4 space-y-1.5 shrink-0 max-h-28 overflow-y-auto">
           {slide.keyPoints!.map((point, i) => (
             <div key={i} className="flex items-start gap-2 text-xs text-slate-400">
-              <span className="w-1 h-1 rounded-full bg-hsl(var(--brand)) mt-1.5 shrink-0" />
+              <span className="w-1 h-1 rounded-full bg-brand mt-1.5 shrink-0" />
               {point}
             </div>
           ))}
