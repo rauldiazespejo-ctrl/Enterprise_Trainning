@@ -1,5 +1,5 @@
 /* CapacitaPro — Sistema de Diseño con Tema Claro/Oscuro */
-/* Brand Colors: Navy #001B4B | Orange #D15F3D */
+/* Brand Colors: Navy #001B4B | Orange #C4502C (WCAG AA compliant) */
 
 @import url('https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&display=swap');
 
@@ -15,27 +15,27 @@
   --brand-navy: #001B4B;
   --brand-navy-light: #1E3A6E;
   --brand-navy-dark: #000D28;
-  --brand-orange: #D15F3D;
-  --brand-orange-light: #E87A58;
-  --brand-orange-dark: #B34E2D;
+  --brand-orange: #C4502C;
+  --brand-orange-light: #D15F3D;
+  --brand-orange-dark: #A23F20;
 
   /* Extended Palette */
-  --color-primary: #D15F3D;
-  --color-primary-hover: #E87A58;
+  --color-primary: #C4502C;
+  --color-primary-hover: #D15F3D;
   --color-secondary: #001B4B;
   --color-secondary-hover: #1E3A6E;
 
   /* Gradients */
-  --gradient-brand: linear-gradient(135deg, #D15F3D 0%, #E87A58 50%, #001B4B 100%);
+  --gradient-brand: linear-gradient(135deg, #C4502C 0%, #D15F3D 50%, #001B4B 100%);
   --gradient-navy: linear-gradient(135deg, #001B4B 0%, #1E3A6E 100%);
-  --gradient-orange: linear-gradient(135deg, #D15F3D 0%, #B34E2D 100%);
+  --gradient-orange: linear-gradient(135deg, #C4502C 0%, #A23F20 100%);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-brand: 0 4px 20px rgba(209, 95, 61, 0.3);
-  --shadow-glow: 0 0 40px rgba(209, 95, 61, 0.2);
+  --shadow-brand: 0 4px 20px rgba(196, 80, 44, 0.3);
+  --shadow-glow: 0 0 40px rgba(196, 80, 44, 0.2);
 
   /* Timing */
   --duration-fast: 150ms;
@@ -54,7 +54,7 @@
   --card-foreground: 210 40% 98%;
   --popover: 220 30% 9%;
   --popover-foreground: 210 40% 98%;
-  --primary: 15 65% 53%;
+  --primary: 15 58% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 217 60% 25%;
   --secondary-foreground: 0 0% 100%;
@@ -66,8 +66,8 @@
   --destructive-foreground: 0 0% 100%;
   --border: 220 20% 16%;
   --input: 220 20% 16%;
-  --ring: 15 65% 53%;
-  --brand: 15 65% 53%;
+  --ring: 15 58% 47%;
+  --brand: 15 58% 47%;
   --brand-foreground: 0 0% 100%;
   --surface: 220 30% 12%;
   --surface-foreground: 210 40% 98%;
@@ -79,15 +79,15 @@
   --color-bg-card: rgba(17, 24, 39, 0.8);
   --color-bg-elevated: rgba(30, 58, 110, 0.15);
   --glass-bg: rgba(17, 24, 39, 0.7);
-  --glass-border: rgba(209, 95, 61, 0.2);
-  --glass-highlight: rgba(209, 95, 61, 0.1);
+  --glass-border: rgba(196, 80, 44, 0.2);
+  --glass-highlight: rgba(196, 80, 44, 0.1);
   --border-subtle: rgba(255, 255, 255, 0.05);
   --border-medium: rgba(255, 255, 255, 0.1);
-  --border-brand: rgba(209, 95, 61, 0.3);
+  --border-brand: rgba(196, 80, 44, 0.3);
   --text-primary: #F9FAFB;
   --text-secondary: #D1D5DB;
   --text-muted: #9CA3AF;
-  --text-accent: #D15F3D;
+  --text-accent: #C4502C;
   --gradient-hero: linear-gradient(135deg, #0A0E1A 0%, #111827 50%, #1E3A6E 100%);
 }
 
@@ -98,7 +98,7 @@
   --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
-  --primary: 15 65% 53%;
+  --primary: 15 58% 47%;
   --primary-foreground: 0 0% 100%;
   --secondary: 217 60% 28%;
   --secondary-foreground: 0 0% 100%;
@@ -110,8 +110,8 @@
   --destructive-foreground: 0 0% 100%;
   --border: 220 13% 86%;
   --input: 220 13% 86%;
-  --ring: 15 65% 53%;
-  --brand: 15 65% 53%;
+  --ring: 15 58% 47%;
+  --brand: 15 58% 47%;
   --brand-foreground: 0 0% 100%;
   --surface: 220 14% 94%;
   --surface-foreground: 222 47% 11%;
@@ -123,15 +123,15 @@
   --color-bg-card: rgba(255, 255, 255, 0.9);
   --color-bg-elevated: rgba(0, 27, 75, 0.06);
   --glass-bg: rgba(255, 255, 255, 0.75);
-  --glass-border: rgba(209, 95, 61, 0.25);
-  --glass-highlight: rgba(209, 95, 61, 0.08);
+  --glass-border: rgba(196, 80, 44, 0.25);
+  --glass-highlight: rgba(196, 80, 44, 0.08);
   --border-subtle: rgba(0, 0, 0, 0.06);
   --border-medium: rgba(0, 0, 0, 0.12);
-  --border-brand: rgba(209, 95, 61, 0.35);
+  --border-brand: rgba(196, 80, 44, 0.35);
   --text-primary: #111827;
   --text-secondary: #374151;
   --text-muted: #6B7280;
-  --text-accent: #D15F3D;
+  --text-accent: #C4502C;
   --gradient-hero: linear-gradient(135deg, #FAFAFA 0%, #FFFFFF 50%, #E0E7FF 100%);
 }
 
@@ -1249,4 +1249,89 @@ textarea:focus-visible,
     outline-offset: 2px !important;
     box-shadow: 0 0 0 4px hsl(var(--ring) / 0.15) !important;
   }
+}
+
+/* =====================================================
+   26. MICRO-INTERACCIONES PREMIUM
+   ===================================================== */
+
+/* Tap scale — feedback táctil en móviles */
+@media (hover: none) and (pointer: coarse) {
+  button:active:not(:disabled),
+  a:active,
+  [role="button"]:active {
+    transform: scale(0.97) !important;
+    transition: transform 80ms ease-out !important;
+  }
+}
+
+/* Focus-visible global mejorado — solo keyboard, no mouse */
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Remover outline en click de mouse */
+*:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Skeleton shimmer premium */
+@keyframes shimmer-sweep {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-premium {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 0%,
+    hsl(var(--muted) / 0.5) 50%,
+    hsl(var(--muted)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer-sweep 1.8s ease-in-out infinite;
+  border-radius: var(--radius);
+}
+
+/* Smooth content transition */
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-content-enter {
+  animation: content-enter 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Stagger children utility */
+.stagger-children > * {
+  opacity: 0;
+  animation: content-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0.05s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.15s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* Selection color */
+::selection {
+  background: hsl(var(--brand) / 0.25);
+  color: hsl(var(--foreground));
+}
+
+/* ScrollbarFirefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--brand) / 0.3) transparent;
 }
