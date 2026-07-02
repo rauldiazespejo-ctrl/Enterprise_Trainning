@@ -37,3 +37,10 @@ package-lock.json
 
 # Supabase CLI temp files
 supabase/.temp/
+
+# Archivos no esenciales (manuales, scripts de deploy, binarios)
+*.pdf
+manual_capacitapro.py
+deploy_produccion.sh
+git_backup.sh
+public/use.txt
