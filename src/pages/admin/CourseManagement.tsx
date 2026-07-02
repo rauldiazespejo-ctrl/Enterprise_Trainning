@@ -110,7 +110,7 @@ const CourseManagement: React.FC = () => {
           {paginatedCourses.map((course) => (
             <Card key={course.id} className="overflow-hidden !p-0">
               {/* Course Thumbnail */}
-              <div className="h-40 bg-gradient-to-br from-[#D15F3D] to-[#001B4B] flex items-center justify-center overflow-hidden">
+              <div className="h-40 bg-gradient-to-br from-brand to-[#001B4B] flex items-center justify-center overflow-hidden">
                 {course.thumbnail ? (
                   <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover" />
                 ) : (

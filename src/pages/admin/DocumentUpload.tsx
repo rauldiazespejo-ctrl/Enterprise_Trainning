@@ -398,7 +398,7 @@ const DocumentUpload: React.FC = () => {
           {!selectedFile ? (
             <div
               className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors cursor-pointer ${
-                isDragging ? 'border-[#D15F3D] bg-[#D15F3D]/10' : 'border-slate-600 hover:border-[#D15F3D]/60'
+                isDragging ? 'border-brand bg-brand/10' : 'border-slate-600 hover:border-brand/60'
               }`}
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -406,7 +406,7 @@ const DocumentUpload: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
             >
               <div className="flex flex-col items-center gap-3">
-                <div className="w-16 h-16 bg-[#D15F3D]/20 rounded-full flex items-center justify-center text-3xl">
+                <div className="w-16 h-16 bg-brand/20 rounded-full flex items-center justify-center text-3xl">
                   📊
                 </div>
                 <h3 className="text-lg font-semibold text-white">Sube tu presentación .PPTX</h3>
@@ -417,7 +417,7 @@ const DocumentUpload: React.FC = () => {
             </div>
           ) : (
             <div className="flex items-center gap-4 p-4 bg-slate-800 rounded-xl border border-slate-700">
-              <div className="w-12 h-12 bg-[#D15F3D]/20 rounded-lg flex items-center justify-center text-2xl shrink-0">📊</div>
+              <div className="w-12 h-12 bg-brand/20 rounded-lg flex items-center justify-center text-2xl shrink-0">📊</div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-white truncate">{selectedFile.name}</p>
                 <p className="text-sm text-slate-400">
@@ -427,7 +427,7 @@ const DocumentUpload: React.FC = () => {
                 </p>
               </div>
               {isParsing
-                ? <Loader2 className="w-5 h-5 text-[#D15F3D] animate-spin shrink-0" />
+                ? <Loader2 className="w-5 h-5 text-brand animate-spin shrink-0" />
                 : <button onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" /></button>
               }
             </div>
@@ -445,7 +445,7 @@ const DocumentUpload: React.FC = () => {
         {slides.length > 0 && (
           <Card className="p-6">
             <div className="flex items-center gap-2 mb-1">
-              <FileText className="w-5 h-5 text-[#D15F3D]" />
+              <FileText className="w-5 h-5 text-brand" />
               <h3 className="font-semibold text-white">
                 Documento de Referencia{' '}
                 <span className="text-slate-400 font-normal text-sm">(opcional)</span>
@@ -460,8 +460,8 @@ const DocumentUpload: React.FC = () => {
               <div
                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
                   isDraggingSource
-                    ? 'border-[#D15F3D] bg-[#D15F3D]/10'
-                    : 'border-slate-600 hover:border-[#D15F3D]/60'
+                    ? 'border-brand bg-brand/10'
+                    : 'border-slate-600 hover:border-brand/60'
                 }`}
                 onDragOver={(e) => { e.preventDefault(); setIsDraggingSource(true); }}
                 onDragLeave={() => setIsDraggingSource(false)}
@@ -536,7 +536,7 @@ const DocumentUpload: React.FC = () => {
             <Card className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-[#D15F3D]" />
+                  <BookOpen className="w-5 h-5 text-brand" />
                   <h3 className="font-semibold text-white">{slides.length} diapositivas extraídas</h3>
                 </div>
                 <button onClick={() => setShowSlidesPreview(v => !v)} className="text-slate-400 hover:text-white">
@@ -549,7 +549,7 @@ const DocumentUpload: React.FC = () => {
                   {slides.map(slide => (
                     <div key={slide.slideNumber} className="p-3 bg-slate-800 rounded-lg border border-slate-700">
                       <p className="text-sm font-medium text-white">
-                        <span className="text-[#D15F3D] mr-2">#{slide.slideNumber}</span>
+                        <span className="text-brand mr-2">#{slide.slideNumber}</span>
                         {slide.title || '(sin título)'}
                       </p>
                       {slide.bullets.length > 0 && (
@@ -634,7 +634,7 @@ const DocumentUpload: React.FC = () => {
             )}
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-start gap-3">
-                <Sparkles className="w-5 h-5 text-[#D15F3D] mt-0.5 shrink-0" />
+                <Sparkles className="w-5 h-5 text-brand mt-0.5 shrink-0" />
                 <div>
                   <p className="font-medium text-white">
                     {generatedQuestions
@@ -676,7 +676,7 @@ const DocumentUpload: React.FC = () => {
               <div className="mt-4 space-y-2 max-h-48 overflow-y-auto pr-1">
                 {generatedQuestions.map((q, idx) => (
                   <div key={idx} className="p-3 bg-slate-800 rounded-lg border border-slate-700 text-sm text-slate-300">
-                    <span className="text-[#D15F3D] font-medium mr-2">{idx + 1}.</span>
+                    <span className="text-brand font-medium mr-2">{idx + 1}.</span>
                     {q.question}
                   </div>
                 ))}

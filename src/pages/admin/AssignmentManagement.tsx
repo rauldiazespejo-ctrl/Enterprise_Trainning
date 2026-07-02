@@ -176,7 +176,7 @@ const AssignmentManagement: React.FC = () => {
               placeholder="Buscar por empleado o curso..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
+              className="w-full pl-10 pr-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none"
             />
           </div>
           <div className="flex gap-2">
@@ -198,7 +198,7 @@ const AssignmentManagement: React.FC = () => {
             <select
               value={filterCourse}
               onChange={(e) => setFilterCourse(e.target.value)}
-              className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30"
+              className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-brand/30"
             >
               <option value="">Todos los cursos</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.title}</option>)}
@@ -207,7 +207,7 @@ const AssignmentManagement: React.FC = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30"
+            className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-brand/30"
           >
             <option value="">Todos los estados</option>
             <option value="pending">Pendiente</option>
@@ -258,7 +258,7 @@ const AssignmentManagement: React.FC = () => {
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-2 bg-slate-700 rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#D15F3D] rounded-full transition-all"
+                                className="h-full bg-brand rounded-full transition-all"
                                 style={{ width: `${a.progress || 0}%` }}
                               />
                             </div>
@@ -289,7 +289,7 @@ const AssignmentManagement: React.FC = () => {
                     <div className="flex items-center gap-2">
                       {getStatusIcon(a.status)}
                       <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
-                        <div className="h-full bg-[#D15F3D] rounded-full" style={{ width: `${a.progress || 0}%` }} />
+                        <div className="h-full bg-brand rounded-full" style={{ width: `${a.progress || 0}%` }} />
                       </div>
                       <span className="text-xs text-slate-400 w-8 text-right">{a.progress || 0}%</span>
                     </div>
@@ -309,7 +309,7 @@ const AssignmentManagement: React.FC = () => {
             <select
               value={selectedCourse}
               onChange={(e) => setSelectedCourse(e.target.value)}
-              className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30"
+              className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30"
             >
               <option value="">— Seleccionar curso —</option>
               {publishedCourses.map(c => (
@@ -324,11 +324,11 @@ const AssignmentManagement: React.FC = () => {
                 type="checkbox"
                 checked={assignToAll}
                 onChange={(e) => { setAssignToAll(e.target.checked); setSelectedEmployee(''); }}
-                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-[#D15F3D] focus:ring-[#D15F3D]/30"
+                className="w-5 h-5 rounded border-slate-600 bg-slate-700 text-brand focus:ring-brand/30"
               />
               <div>
                 <span className="text-white font-medium flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#D15F3D]" />
+                  <Users className="w-4 h-4 text-brand" />
                   Asignar a todos los empleados
                 </span>
                 <p className="text-xs text-slate-400 mt-0.5">{employees.length} empleados activos recibirán el curso</p>
@@ -342,7 +342,7 @@ const AssignmentManagement: React.FC = () => {
               <select
                 value={selectedEmployee}
                 onChange={(e) => setSelectedEmployee(e.target.value)}
-                className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30"
+                className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30"
               >
                 <option value="">— Seleccionar empleado —</option>
                 {employees.map(e => {
@@ -366,7 +366,7 @@ const AssignmentManagement: React.FC = () => {
               type="date"
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30"
+              className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30"
             />
           </div>
 

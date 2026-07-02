@@ -204,7 +204,7 @@ const SuperAdminPanel: React.FC = () => {
                     <tr key={u.id} className="hover:bg-white/5 transition-colors">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand to-[brand] flex items-center justify-center text-white font-bold text-sm shrink-0">
                             {u.name.charAt(0).toUpperCase()}
                           </div>
                           <span className="text-white font-medium truncate max-w-[180px]">{u.name}</span>

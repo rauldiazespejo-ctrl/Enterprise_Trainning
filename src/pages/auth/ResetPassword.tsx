@@ -122,10 +122,10 @@ const ResetPassword: React.FC = () => {
             <h1 className="text-3xl font-bold gradient-text mb-2 tracking-tight">Validando Enlace</h1>
           </div>
 
-          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl">
+          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[hsl(var(--brand) / )] shadow-2xl">
             <div className="flex flex-col items-center text-center">
-              <div className="w-16 h-16 rounded-full bg-[#D15F3D]/20 border-2 border-[#D15F3D]/50 flex items-center justify-center mb-4">
-                <Sparkles className="w-8 h-8 text-[#D15F3D] animate-pulse" />
+              <div className="w-16 h-16 rounded-full bg-brand/20 border-2 border-brand/50 flex items-center justify-center mb-4">
+                <Sparkles className="w-8 h-8 text-brand animate-pulse" />
               </div>
               <p className="text-[#9CA3AF]">Verificando el enlace de recuperación...</p>
             </div>
@@ -150,7 +150,7 @@ const ResetPassword: React.FC = () => {
             <h1 className="text-3xl font-bold gradient-text mb-2 tracking-tight">Contraseña Actualizada</h1>
           </div>
 
-          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
+          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[hsl(var(--brand) / )] shadow-2xl animate-slideUp">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-4">
                 <ShieldCheck className="w-8 h-8 text-emerald-400" />
@@ -165,7 +165,7 @@ const ResetPassword: React.FC = () => {
 
               <Button
                 onClick={() => navigate('/login')}
-                className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)]"
+                className="w-full text-base py-4 shadow-[0_4px_20px_hsl(var(--brand) / )]"
                 size="lg"
               >
                 <span className="flex items-center gap-2">
@@ -197,7 +197,7 @@ const ResetPassword: React.FC = () => {
           <p className="text-sm text-[#9CA3AF]">Crea una contraseña segura para tu cuenta</p>
         </div>
 
-        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
+        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[hsl(var(--brand) / )] shadow-2xl animate-slideUp">
           {error && (
             <div className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-start gap-2">
               <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
@@ -206,7 +206,7 @@ const ResetPassword: React.FC = () => {
                 {isTokenError && (
                   <Link
                     to="/forgot-password"
-                    className="text-[#D15F3D] hover:underline mt-2 inline-block"
+                    className="text-brand hover:underline mt-2 inline-block"
                   >
                     Solicitar nuevo enlace
                   </Link>
@@ -220,7 +220,7 @@ const ResetPassword: React.FC = () => {
               {/* New password */}
               <div className="space-y-1 relative">
                 <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                  <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
+                  <div className="w-1 h-4 bg-brand rounded-full" />
                   Nueva Contraseña
                 </label>
                 <input
@@ -230,12 +230,12 @@ const ResetPassword: React.FC = () => {
                   placeholder="Ingresa tu nueva contraseña"
                   required
                   autoComplete="new-password"
-                  className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                  className="input-modern pr-12 font-mono focus:border-brand focus:shadow-[0_0_0_3px_hsl(var(--brand) / )]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
-                  className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                  className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-brand transition-colors p-1"
                 >
                   {showNew ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -265,7 +265,7 @@ const ResetPassword: React.FC = () => {
               {/* Confirm password */}
               <div className="space-y-1 relative">
                 <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                  <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
+                  <div className="w-1 h-4 bg-brand rounded-full" />
                   Confirmar Contraseña
                 </label>
                 <input
@@ -275,12 +275,12 @@ const ResetPassword: React.FC = () => {
                   placeholder="Repite tu nueva contraseña"
                   required
                   autoComplete="new-password"
-                  className="input-modern pr-12 font-mono focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                  className="input-modern pr-12 font-mono focus:border-brand focus:shadow-[0_0_0_3px_hsl(var(--brand) / )]"
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-[#D15F3D] transition-colors p-1"
+                  className="absolute right-4 top-[38px] text-[#9CA3AF] hover:text-brand transition-colors p-1"
                 >
                   {showConfirm ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                 </button>
@@ -300,7 +300,7 @@ const ResetPassword: React.FC = () => {
 
               <Button
                 type="submit"
-                className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)]"
+                className="w-full text-base py-4 shadow-[0_4px_20px_hsl(var(--brand) / )]"
                 size="lg"
                 disabled={!canSubmit}
               >
@@ -322,7 +322,7 @@ const ResetPassword: React.FC = () => {
           <div className="mt-6 pt-6 border-t border-[rgba(255,255,255,0.1)] text-center">
             <Link
               to="/login"
-              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors flex items-center justify-center gap-2"
+              className="text-sm text-[#9CA3AF] hover:text-brand transition-colors flex items-center justify-center gap-2"
             >
               <KeyRound className="w-4 h-4" />
               Volver al Login

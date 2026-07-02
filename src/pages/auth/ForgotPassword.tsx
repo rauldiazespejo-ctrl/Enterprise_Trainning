@@ -60,7 +60,7 @@ const ForgotPassword: React.FC = () => {
             <h1 className="text-3xl font-bold gradient-text mb-3 tracking-tight">Correo Enviado</h1>
           </div>
 
-          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
+          <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[hsl(var(--brand) / )] shadow-2xl animate-slideUp">
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mb-4">
                 <CheckCircle className="w-8 h-8 text-emerald-400" />
@@ -68,7 +68,7 @@ const ForgotPassword: React.FC = () => {
 
               <h2 className="text-xl font-bold text-white mb-2">Revisa tu correo electrónico</h2>
               <p className="text-sm text-[#9CA3AF] mb-6 leading-relaxed">
-                Hemos enviado un enlace de recuperación a <span className="text-[#D15F3D] font-medium">{email}</span>.
+                Hemos enviado un enlace de recuperación a <span className="text-brand font-medium">{email}</span>.
                 <br />
                 Haz clic en el enlace para restablecer tu contraseña.
               </p>
@@ -109,7 +109,7 @@ const ForgotPassword: React.FC = () => {
           <p className="text-sm text-[#9CA3AF]">Ingresa tu correo para recibir un enlace de recuperación</p>
         </div>
 
-        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[rgba(209,95,61,0.2)] shadow-2xl animate-slideUp">
+        <Card className="p-8 backdrop-blur-xl bg-[rgba(17,24,39,0.9)] border border-[hsl(var(--brand) / )] shadow-2xl animate-slideUp">
           {error && (
             <div className="mb-4 p-4 bg-[rgba(239,68,68,0.1)] border border-[rgba(239,68,68,0.3)] rounded-xl text-red-400 text-sm flex items-center gap-2">
               <AlertCircle className="w-5 h-5 shrink-0" />
@@ -120,7 +120,7 @@ const ForgotPassword: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-1">
               <label className="block text-sm font-medium text-[#D1D5DB] flex items-center gap-2">
-                <div className="w-1 h-4 bg-[#D15F3D] rounded-full" />
+                <div className="w-1 h-4 bg-brand rounded-full" />
                 Correo Electrónico
               </label>
               <div className="relative">
@@ -132,14 +132,14 @@ const ForgotPassword: React.FC = () => {
                   placeholder="tu@correo.com"
                   required
                   autoComplete="email"
-                  className="input-modern pl-12 focus:border-[#D15F3D] focus:shadow-[0_0_0_3px_rgba(209,95,61,0.15)]"
+                  className="input-modern pl-12 focus:border-brand focus:shadow-[0_0_0_3px_hsl(var(--brand) / )]"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full text-base py-4 shadow-[0_4px_20px_rgba(209,95,61,0.4)]"
+              className="w-full text-base py-4 shadow-[0_4px_20px_hsl(var(--brand) / )]"
               size="lg"
               disabled={isLoading}
             >
@@ -160,7 +160,7 @@ const ForgotPassword: React.FC = () => {
           <div className="mt-6 pt-6 border-t border-[rgba(255,255,255,0.1)] text-center">
             <Link
               to="/login"
-              className="text-sm text-[#9CA3AF] hover:text-[#D15F3D] transition-colors flex items-center justify-center gap-2"
+              className="text-sm text-[#9CA3AF] hover:text-brand transition-colors flex items-center justify-center gap-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al Login

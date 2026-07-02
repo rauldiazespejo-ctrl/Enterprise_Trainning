@@ -36,7 +36,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
         </div>
         <div className="w-full h-1 bg-slate-700 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#D15F3D] rounded-full transition-all duration-300"
+            className="h-full bg-brand rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -52,7 +52,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
           <ul className="space-y-3">
             {slide.bullets.map((bullet, idx) => (
               <li key={idx} className="flex items-start gap-3">
-                <span className="mt-2 shrink-0 w-2 h-2 rounded-full bg-[#D15F3D]" />
+                <span className="mt-2 shrink-0 w-2 h-2 rounded-full bg-brand" />
                 <span className="text-gray-300 text-base leading-relaxed">{bullet}</span>
               </li>
             ))}
@@ -79,7 +79,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
               onClick={() => setCurrent(idx)}
               className={`rounded-full transition-all ${
                 idx === current
-                  ? 'w-6 h-2 bg-[#D15F3D]'
+                  ? 'w-6 h-2 bg-brand'
                   : 'w-2 h-2 bg-slate-600 hover:bg-slate-400'
               }`}
             />
@@ -89,7 +89,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
         {isLast ? (
           <button
             onClick={onComplete}
-            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-[#D15F3D] text-white font-medium hover:bg-[#B84E2E] transition-colors"
+            className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand text-white font-medium hover:bg-[brand] transition-colors"
           >
             Ir a la Evaluación
             <ChevronRight className="w-4 h-4" />

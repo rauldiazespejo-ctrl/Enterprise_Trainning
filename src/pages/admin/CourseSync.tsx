@@ -333,7 +333,7 @@ const CourseSync: React.FC = () => {
               onClick={() => setTab(id)}
               className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                 tab === id
-                  ? 'bg-[#D15F3D] text-white'
+                  ? 'bg-brand text-white'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -623,7 +623,7 @@ const CourseSync: React.FC = () => {
                   return (
                     <Card key={uv.profile.id} className={`p-4 border ${allOk ? 'border-emerald-500/20' : 'border-red-500/20'}`}>
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#D15F3D] to-[#B34E2D] flex items-center justify-center text-white text-sm font-bold shrink-0">
+                        <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-brand to-[brand] flex items-center justify-center text-white text-sm font-bold shrink-0">
                           {uv.profile.name.charAt(0).toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">

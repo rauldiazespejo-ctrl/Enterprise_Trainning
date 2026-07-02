@@ -170,7 +170,7 @@ const EmployeeCertificates: React.FC = () => {
                 setVerifyResult(null);
               }}
               onKeyDown={(e) => e.key === 'Enter' && handleVerify()}
-              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none"
+              className="flex-1 px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none"
             />
             <Button variant="outline" onClick={handleVerify} disabled={!verifyCode.trim()}>
               Verificar

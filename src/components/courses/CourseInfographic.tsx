@@ -59,11 +59,11 @@ const CourseInfographic: React.FC<CourseInfographicProps> = ({ course }) => {
       <div className="max-w-4xl mx-auto">
         {/* Infographic Header */}
         <div className="text-center mb-16 relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-[#D15F3D]/20 to-transparent blur-3xl -z-10 rounded-full opacity-50" />
+          <div className="absolute inset-0 bg-gradient-to-b from-brand/20 to-transparent blur-3xl -z-10 rounded-full opacity-50" />
           <h1 className="text-4xl md:text-5xl font-black text-white mb-6 tracking-tight leading-tight">
             {course.title}
           </h1>
-          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto border-l-4 border-[#D15F3D] pl-4 text-left italic">
+          <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto border-l-4 border-brand pl-4 text-left italic">
             "{course.description}"
           </p>
         </div>
@@ -73,7 +73,7 @@ const CourseInfographic: React.FC<CourseInfographicProps> = ({ course }) => {
           {course.modules.map((module, mIdx) => (
             <div key={module.id || mIdx} className="relative pl-8 md:pl-12">
               {/* Module Node */}
-              <div className="absolute -left-[17px] top-0 w-8 h-8 bg-[#0D1321] border-4 border-[#D15F3D] rounded-full flex items-center justify-center shadow-[0_0_15px_rgba(209,95,61,0.5)]">
+              <div className="absolute -left-[17px] top-0 w-8 h-8 bg-[#0D1321] border-4 border-brand rounded-full flex items-center justify-center shadow-[0_0_15px_hsl(var(--brand) / )]">
                 <span className="text-xs font-bold text-white">{mIdx + 1}</span>
               </div>
 
@@ -124,7 +124,7 @@ const CourseInfographic: React.FC<CourseInfographicProps> = ({ course }) => {
                       <ul className="space-y-2 mt-4">
                         {slide.keyPoints.map((kp, kIdx) => (
                           <li key={kIdx} className="flex gap-2 text-sm text-gray-300 items-start">
-                            <CheckCircle className="w-4 h-4 text-[#D15F3D] mt-0.5 shrink-0" />
+                            <CheckCircle className="w-4 h-4 text-brand mt-0.5 shrink-0" />
                             <span>{kp}</span>
                           </li>
                         ))}
@@ -147,7 +147,7 @@ const CourseInfographic: React.FC<CourseInfographicProps> = ({ course }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
               {/* Glossary */}
               <div>
-                <h3 className="text-xl font-bold text-[#D15F3D] mb-6 flex items-center gap-2">
+                <h3 className="text-xl font-bold text-brand mb-6 flex items-center gap-2">
                   <BookOpen className="w-6 h-6" />
                   Glosario
                 </h3>
@@ -175,7 +175,7 @@ const CourseInfographic: React.FC<CourseInfographicProps> = ({ course }) => {
                         {item.question}
                       </h4>
                       <p className="text-gray-400 text-sm leading-relaxed flex items-start gap-2">
-                        <span className="text-[#D15F3D] font-bold">A.</span>
+                        <span className="text-brand font-bold">A.</span>
                         {item.answer}
                       </p>
                     </div>

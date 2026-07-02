@@ -278,7 +278,7 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ mod, moduleIndex, onChange 
         className="w-full flex items-center justify-between px-5 py-4 bg-slate-800 hover:bg-slate-750 transition-colors text-left"
       >
         <div className="flex items-center gap-3">
-          <BookOpen className="w-5 h-5 text-[#D15F3D]" />
+          <BookOpen className="w-5 h-5 text-brand" />
           <span className="font-semibold text-white">
             Módulo {moduleIndex + 1}: {mod.title || '(sin título)'}
           </span>
@@ -318,7 +318,7 @@ const ModuleEditor: React.FC<ModuleEditorProps> = ({ mod, moduleIndex, onChange 
                 onClick={() => setActiveTab(tab)}
                 className={`px-5 py-2.5 text-sm font-medium transition-colors border-b-2 -mb-px
                   ${activeTab === tab
-                    ? 'border-[#D15F3D] text-[#D15F3D]'
+                    ? 'border-brand text-brand'
                     : 'border-transparent text-slate-400 hover:text-slate-300'
                   }`}
               >
@@ -447,7 +447,7 @@ const CourseEditor: React.FC = () => {
     return (
       <MainLayout title="Editor de Curso" isAdmin>
         <div className="flex items-center justify-center py-24">
-          <div className="w-10 h-10 border-4 border-[#D15F3D] border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-brand border-t-transparent rounded-full animate-spin" />
         </div>
       </MainLayout>
     );

@@ -406,7 +406,7 @@ const DocumentRepository: React.FC = () => {
                 placeholder="Buscar documento..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] outline-none min-h-[44px]"
+                className="w-full pl-10 pr-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white placeholder-slate-500 focus:ring-2 focus:ring-brand/30 focus:border-brand outline-none min-h-[44px]"
               />
             </div>
             <div className="flex gap-2">
@@ -428,7 +428,7 @@ const DocumentRepository: React.FC = () => {
               <select
                 value={filterCategory}
                 onChange={(e) => setFilterCategory(e.target.value)}
-                className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 min-h-[44px]"
+                className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
               >
                 <option value="">Todas las categorías</option>
                 {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -437,7 +437,7 @@ const DocumentRepository: React.FC = () => {
             <select
               value={filterFileType}
               onChange={(e) => setFilterFileType(e.target.value)}
-              className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 min-h-[44px]"
+              className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
             >
               <option value="">Todos los tipos</option>
               <option value="pdf">PDF</option>
@@ -451,7 +451,7 @@ const DocumentRepository: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 min-h-[44px]"
+                className="text-base bg-slate-800 border border-slate-600 rounded-lg px-3 py-2 text-white outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
               >
                 <option value="recent">Más reciente</option>
                 <option value="name">Nombre A-Z</option>
@@ -555,7 +555,7 @@ const DocumentRepository: React.FC = () => {
               onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
                 isDragOver
-                  ? 'border-[#D15F3D] bg-[#D15F3D]/5'
+                  ? 'border-brand bg-brand/5'
                   : 'border-slate-600 hover:border-slate-500 hover:bg-slate-800/50'
               }`}
             >
@@ -596,7 +596,7 @@ const DocumentRepository: React.FC = () => {
                   type="text"
                   value={uploadName}
                   onChange={(e) => setUploadName(e.target.value)}
-                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 focus:border-[#D15F3D] min-h-[44px]"
+                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand min-h-[44px]"
                   placeholder="Nombre del documento"
                 />
               </div>
@@ -606,7 +606,7 @@ const DocumentRepository: React.FC = () => {
                 <select
                   value={uploadCategory}
                   onChange={(e) => setUploadCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 min-h-[44px]"
+                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30 min-h-[44px]"
                 >
                   <option value="">— Seleccionar categoría —</option>
                   {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -619,7 +619,7 @@ const DocumentRepository: React.FC = () => {
                   value={uploadDescription}
                   onChange={(e) => setUploadDescription(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-[#D15F3D]/30 resize-none min-h-[44px]"
+                  className="w-full px-4 py-2.5 text-base bg-slate-800 border border-slate-600 rounded-xl text-white outline-none focus:ring-2 focus:ring-brand/30 resize-none min-h-[44px]"
                   placeholder="Descripción breve del documento..."
                 />
               </div>
