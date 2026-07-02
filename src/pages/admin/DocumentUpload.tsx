@@ -428,7 +428,7 @@ const DocumentUpload: React.FC = () => {
               </div>
               {isParsing
                 ? <Loader2 className="w-5 h-5 text-brand animate-spin shrink-0" />
-                : <button onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" /></button>
+                : <button aria-label="Eliminar documento base" onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" aria-hidden="true" /></button>
               }
             </div>
           )}
@@ -509,10 +509,11 @@ const DocumentUpload: React.FC = () => {
                   <>
                     {sourceDocText && <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />}
                     <button
+                      aria-label="Eliminar documento de apoyo"
                       onClick={removeSourceDoc}
                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                   </>
                 )}
@@ -539,8 +540,8 @@ const DocumentUpload: React.FC = () => {
                   <BookOpen className="w-5 h-5 text-brand" />
                   <h3 className="font-semibold text-white">{slides.length} diapositivas extraídas</h3>
                 </div>
-                <button onClick={() => setShowSlidesPreview(v => !v)} className="text-slate-400 hover:text-white">
-                  {showSlidesPreview ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <button aria-label={showSlidesPreview ? "Ocultar diapositivas" : "Mostrar diapositivas"} aria-expanded={showSlidesPreview} onClick={() => setShowSlidesPreview(v => !v)} className="text-slate-400 hover:text-white">
+                  {showSlidesPreview ? <ChevronUp className="w-4 h-4" aria-hidden="true" /> : <ChevronDown className="w-4 h-4" aria-hidden="true" />}
                 </button>
               </div>
 
