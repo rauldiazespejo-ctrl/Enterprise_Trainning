@@ -295,7 +295,7 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
-  const { login, user } = useAuth();
+  const { login, loginByRut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
@@ -306,17 +306,27 @@ const Login: React.FC = () => {
     setError('');
     setIsLoading(true);
 
-    const email = resolveLoginEmail(identifier);
-    const result = await login(email, password);
-
-    if (result.success) {
-      if (result.mustChangePassword) {
-        setShowChangePassword(true);
-      } else {
+    if (isRutMode) {
+      // Login sin contraseña: solo RUT
+      const result = await loginByRut(identifier);
+      if (result.success) {
         setWelcomeName('loading');
+      } else {
+        setError(result.error || 'Error al iniciar sesión');
       }
     } else {
-      setError(result.error || 'Error al iniciar sesión');
+      // Login con email + contraseña (admins)
+      const email = resolveLoginEmail(identifier);
+      const result = await login(email, password);
+      if (result.success) {
+        if (result.mustChangePassword) {
+          setShowChangePassword(true);
+        } else {
+          setWelcomeName('loading');
+        }
+      } else {
+        setError(result.error || 'Error al iniciar sesión');
+      }
     }
 
     setIsLoading(false);
@@ -456,10 +466,10 @@ const Login: React.FC = () => {
             <div className="text-center mb-6">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-brand/10 rounded-full border border-brand/20 mb-4">
                 <Award className="w-4 h-4 text-brand" />
-                <span className="text-sm text-brand font-medium">Acceso Seguro</span>
+                <span className="text-sm text-brand font-medium">Acceso Rápido</span>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-1">Bienvenido</h2>
-              <p className="text-sm text-muted-foreground">Ingresa tus credenciales para continuar</p>
+              <p className="text-sm text-muted-foreground">Ingresa tu RUT para acceder a la plataforma</p>
             </div>
 
             {error && (
@@ -489,36 +499,38 @@ const Login: React.FC = () => {
                 {isRutMode && (
                   <p className="text-xs text-emerald-500 flex items-center gap-1 mt-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block" />
-                    RUT reconocido
+                    RUT reconocido — presiona Ingresar
                   </p>
                 )}
               </div>
 
-              <div className="space-y-1 relative">
-                <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
-                  <div className="w-1 h-4 bg-brand rounded-full" />
-                  Contraseña
-                </label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isRutMode ? 'RUT sin dígito verificador (ej. 15422822)' : 'Tu contraseña'}
-                  required
-                  autoComplete="current-password"
-                  aria-invalid={!!error}
-                  aria-describedby={error ? 'login-error' : undefined}
-                  className="input-modern text-base pr-12 font-mono focus-ring tap-target-min"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-[40px] text-muted-foreground hover:text-brand transition-colors tap-target-min p-2 focus-ring rounded-lg"
-                  aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
+              {!isRutMode && (
+                <div className="space-y-1 relative">
+                  <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <div className="w-1 h-4 bg-brand rounded-full" />
+                    Contraseña
+                  </label>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu contraseña"
+                    required
+                    autoComplete="current-password"
+                    aria-invalid={!!error}
+                    aria-describedby={error ? 'login-error' : undefined}
+                    className="input-modern text-base pr-12 font-mono focus-ring tap-target-min"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-[40px] text-muted-foreground hover:text-brand transition-colors tap-target-min p-2 focus-ring rounded-lg"
+                    aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
+                </div>
+              )}
 
               <Button
                 type="submit"
@@ -536,26 +548,33 @@ const Login: React.FC = () => {
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
-                    Iniciar Sesión
+                    Ingresar
                   </span>
                 )}
               </Button>
             </form>
 
             <div className="mt-5 text-center">
-              <Link
-                to="/forgot-password"
-                className="text-sm text-muted-foreground hover:text-brand transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
-              >
-                ¿Olvidaste tu contraseña?
-              </Link>
+              {!isRutMode && (
+                <Link
+                  to="/forgot-password"
+                  className="text-sm text-muted-foreground hover:text-brand transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              )}
+              {isRutMode && (
+                <p className="text-xs text-muted-foreground">
+                  Solo necesitas tu RUT para ingresar
+                </p>
+              )}
             </div>
 
             {import.meta.env.DEV && (
               <div className="mt-5 p-4 bg-secondary/10 rounded-xl border border-secondary/30">
                 <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                  <span className="text-brand font-semibold">Usuario:</span> RUT con dígito verificador — <span className="font-mono">15422822-5</span><br />
-                  <span className="text-brand font-semibold">Contraseña:</span> RUT sin dígito verificador — <span className="font-mono">15422822</span>
+                  <span className="text-brand font-semibold">Empleado:</span> Ingresa solo el RUT — <span className="font-mono">15422822-5</span><br />
+                  <span className="text-brand font-semibold">Admin:</span> Email + contraseña
                 </p>
               </div>
             )}

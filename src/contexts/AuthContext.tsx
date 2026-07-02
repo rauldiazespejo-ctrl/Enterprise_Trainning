@@ -5,6 +5,7 @@ import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { validatePasswordComplexity } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
+import { normalizeRut, isValidRut, rutBodyNoDv, employeeEmailFromRut } from '@/lib/employeeImport';
 
 // ── Helper para audit log ISO 45001 ──────────────────────────────────────────
 const logAuditEvent = async (
@@ -29,6 +30,7 @@ interface AuthContextType {
   isLoading: boolean;
   isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
+  loginByRut: (rut: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -167,6 +169,67 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       saveToStorage(STORAGE_KEYS.session, sessionUser);
       setIsLoading(false);
       return { success: true, mustChangePassword: foundUser.mustChangePassword ?? true };
+    } catch {
+      setIsLoading(false);
+      return { success: false, error: 'Error al iniciar sesión' };
+    }
+  };
+
+  const loginByRut = async (rutInput: string): Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }> => {
+    setIsLoading(true);
+
+    try {
+      const rut = normalizeRut(rutInput);
+      if (!isValidRut(rut)) {
+        setIsLoading(false);
+        return { success: false, error: 'RUT inválido. Verifica el formato (ej: 15422822-5)' };
+      }
+
+      const email = employeeEmailFromRut(rut);
+      const password = rutBodyNoDv(rut);
+
+      if (isSupabaseConfigured) {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error || !data.user) {
+          setIsLoading(false);
+          void logAuditEvent('login_failed', 'auth', undefined, { rut, reason: 'rut_not_found' });
+          return { success: false, error: 'RUT no encontrado. Contacta al administrador.' };
+        }
+        const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
+        if (profileError || !profile) {
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return { success: false, error: 'La cuenta no tiene un perfil habilitado.' };
+        }
+        const mapped = mapProfile(profile as Record<string, unknown>);
+        setUser(mapped);
+        setIsLoading(false);
+        void logAuditEvent('login', 'auth', data.user.id, { rut, method: 'rut_passwordless' });
+        // Empleados nunca deben cambiar contraseña en este modelo
+        return { success: true, mustChangePassword: false };
+      }
+
+      // Modo demo (sin Supabase) — buscar por RUT en usuarios locales
+      await new Promise(resolve => setTimeout(resolve, 300));
+      const foundUser = users.find(u => {
+        const uRut = u.rut ? normalizeRut(u.rut) : '';
+        return uRut === rut;
+      });
+
+      if (!foundUser) {
+        setIsLoading(false);
+        return { success: false, error: 'RUT no encontrado. Contacta al administrador.' };
+      }
+      if (foundUser.status === 'inactive') {
+        setIsLoading(false);
+        return { success: false, error: 'Esta cuenta está desactivada. Contacta al administrador.' };
+      }
+
+      const sessionUser = sanitize(foundUser);
+      setUser(sessionUser);
+      saveToStorage(STORAGE_KEYS.session, sessionUser);
+      setIsLoading(false);
+      return { success: true, mustChangePassword: false };
     } catch {
       setIsLoading(false);
       return { success: false, error: 'Error al iniciar sesión' };
@@ -437,6 +500,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isLoading,
         isSuperAdmin,
         login,
+        loginByRut,
         changePassword,
         register,
         logout,

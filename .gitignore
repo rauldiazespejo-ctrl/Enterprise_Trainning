@@ -31,3 +31,9 @@ Credenciales_KMC_CapacitaPro.xlsx
 .env.local
 .env.production
 .env.*.local
+
+# Solo se usa pnpm (no npm)
+package-lock.json
+
+# Supabase CLI temp files
+supabase/.temp/
