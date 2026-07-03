@@ -1,0 +1,3 @@
+## 2024-07-03 - [Performance] Convert O(N*M) employee stats lookup to O(1) Map
+**Learning:** In React components like `EmployeeManagement`, nested array loops (e.g., calling `.filter()` inside `.map()` or `.reduce()`) combined with frequent re-renders block the main thread. Specifically, calculating stats per employee by iterating through the entire assignments array synchronously creates O(N*M) time complexity.
+**Action:** Replace nested array filtering with an O(1) Map built using `useMemo`. Construct the `Map` once per data change, then use `.get(id)` inside render loops to achieve O(N+M) time complexity, drastically reducing main thread blocking during user interactions.
