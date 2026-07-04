@@ -1,0 +1,3 @@
+## 2024-05-18 - A11y Attributes for Pagination and Carousels
+**Learning:** Components like Pagination or Carousel Indicators that use multiple identical controls often lack sufficient ARIA roles to distinguish active elements. While adding `aria-label` is good, screen reader users also need to know the *current* selection without guessing.
+**Action:** Always add `aria-current="page"` to the active pagination button and `aria-current="step"` (or `true` if role="tab") to the active slide indicator. Additionally, use `aria-hidden="true"` on inner SVG icons when the parent button already provides the `aria-label` to prevent double announcements.
