@@ -1,0 +1,3 @@
+## 2024-03-24 - Convert O(N^2) Array Lookups to O(1) Map Lookups in React List Renders
+**Learning:** When calculating derived statistics for a list of items (e.g., employee training stats in EmployeeManagement) during render, using array `.filter` or `.find` inside a `.map` or `.reduce` leads to an O(N*M) time complexity bottleneck. This blocks the main thread during frequent state updates like typing in a search bar.
+**Action:** Pre-compute the statistics using `useMemo` to build an O(1) Map lookup (`Map<Id, Stats>`) based on the arrays (assignments, certificates, employees). Then, reference the Map inside the `.map` or `.reduce` block. Always retrieve values directly from the Map instead of via external helper functions to avoid `react-hooks/exhaustive-deps` issues.

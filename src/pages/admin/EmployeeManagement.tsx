@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -42,8 +42,10 @@ const emptyForm: EmployeeForm = {
   status: 'active'
 };
 
+const DEFAULT_STATS = { completed: 0, inProgress: 0, certificates: 0 };
+
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,23 +67,40 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Performance optimization: Pre-compute employee statistics using O(1) Map lookups
+  // instead of O(N) array filtering per employee. This reduces time complexity from O(N*M)
+  // to O(N+M), preventing main thread blocking during frequent state updates like search filtering.
+  const employeeStatsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+    for (const emp of employees) {
+      map.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    }
+    for (const a of assignments) {
+      const s = map.get(a.userId);
+      if (s) {
+        if (a.status === 'completed') s.completed++;
+        if (a.status === 'in_progress') s.inProgress++;
+      }
+    }
+    for (const c of certificates) {
+      const s = map.get(c.userId);
+      if (s) {
+        s.certificates++;
+      }
+    }
+    return map;
+  }, [employees, assignments, certificates]);
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() =>
+    employees.filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+  [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +280,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = useMemo(() => employees.reduce((sum, e) => sum + (employeeStatsMap.get(e.id) || DEFAULT_STATS).completed, 0), [employees, employeeStatsMap]);
+  const totalInTraining = useMemo(() => employees.filter(e => (employeeStatsMap.get(e.id) || DEFAULT_STATS).inProgress > 0).length, [employees, employeeStatsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +402,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = employeeStatsMap.get(employee.id) || DEFAULT_STATS;
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
