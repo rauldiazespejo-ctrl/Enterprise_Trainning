@@ -224,6 +224,8 @@ const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
             <button
               key={idx}
               onClick={() => setActiveImg(idx)}
+              aria-label={`Ver imagen ${idx + 1}`}
+              aria-current={idx === activeImg ? 'step' : undefined}
               className={`shrink-0 w-16 h-11 rounded-lg border-2 overflow-hidden transition-all ${
                 idx === activeImg
                   ? 'border-brand opacity-100'
