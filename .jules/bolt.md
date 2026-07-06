@@ -1,0 +1,3 @@
+## 2025-07-06 - O(N*M) Array Lookups in React Renders
+**Learning:** Using `Array.find()` inside `Array.map()` or `Array.filter()` within a React component body calculates O(N*M) time complexity on every single render. This heavily blocks the main thread during frequent state updates like typing in search inputs, causing noticeable input lag.
+**Action:** When computing derived state that joins relational data (e.g., matching User ID to User objects), always pre-compute an `O(1)` Map outside the loop and wrap the entire transformation logic inside `useMemo()` to guarantee calculations only run when underlying data actually changes.
