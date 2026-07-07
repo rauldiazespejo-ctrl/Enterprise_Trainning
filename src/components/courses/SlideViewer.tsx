@@ -77,6 +77,8 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
             <button
               key={idx}
               onClick={() => setCurrent(idx)}
+              aria-label={`Diapositiva ${idx + 1}`}
+              aria-current={idx === current ? 'step' : undefined}
               className={`rounded-full transition-all ${
                 idx === current
                   ? 'w-6 h-2 bg-brand'
