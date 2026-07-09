@@ -1,0 +1,3 @@
+## 2024-05-15 - React Frontend Array Mapping Optimization
+**Learning:** O(N) array lookups (`Array.prototype.find()`) inside `.map()` or `.filter()` functions cause significant main thread blocking due to O(N*M) time complexity during renders, particularly when iterating over large collections of user or course data in administrative management pages.
+**Action:** Always replace nested array `find()` lookups with O(1) `Map` lookups inside `useMemo` hooks. Ensure to memoize both the Map creation and the subsequent array iteration/mapping to avoid synchronous calculation delays during user input and rendering cycles.
