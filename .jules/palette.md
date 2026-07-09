@@ -1,0 +1,3 @@
+## 2024-07-09 - Hiding Decorative Elements in Pagination
+**Learning:** When implementing structural visual elements like pagination, standard ARIA labels on buttons are not enough. Assistive technologies will redundantly announce decorative SVG icons inside buttons or unlabelled decorative structural elements (like ellipsis `<span>...</span>`), creating a confusing, disjointed navigation experience.
+**Action:** Always complement `aria-label`s on functional pagination buttons by explicitly silencing their inner decorative children (e.g., `<ChevronLeft aria-hidden="true" />`) and any non-interactive structural elements (e.g., `<span aria-hidden="true">...</span>`) to ensure a clean, linear screen-reader flow.
