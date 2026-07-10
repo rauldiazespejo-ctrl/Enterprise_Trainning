@@ -159,6 +159,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         return { success: false, error: 'Esta cuenta está desactivada. Contacta al administrador.' };
       }
 
+      // FIXME (Security): Plaintext password comparison. This is insecure and should be migrated to hashed passwords.
       if (foundUser.password && foundUser.password !== password) {
         setIsLoading(false);
         return { success: false, error: 'Credenciales incorrectas' };
