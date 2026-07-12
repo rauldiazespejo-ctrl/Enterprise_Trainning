@@ -1,0 +1,3 @@
+## 2024-07-12 - Prevent Synchronous O(N*M) Computations Inside React Renders
+**Learning:** Performing O(N) operations like `.find()` inside of loops like `.map()` without `useMemo` blocks the main UI thread during synchronous renders. This causes significant performance bottlenecks, particularly when filtering data on every user interaction like typing in a search input.
+**Action:** Always wrap derived list computations, such as mapping and filtering arrays, inside `useMemo()` hooks. Additionally, convert nested O(N) lookups into O(1) Map lookups, generating the Maps statically or via `useMemo` to keep lookups fast and maintain stable references.
