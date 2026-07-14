@@ -211,6 +211,14 @@ La filosofía es **"claridad operacional"**: cada elemento visual tiene un
 propósito funcional. Los ornamentos se eliminan en favor de densidad
 informativa y escaneo rápido.
 
+### Dirección material: acero operativo
+
+Las superficies principales reinterpretan gabinetes eléctricos y equipos de
+planta mediante grafito, acero frío, reflejos superiores y una veta cepillada
+muy tenue. El efecto se reserva para navegación, header, login y tarjetas;
+no se aplica al texto ni compite con los estados HSEQ. El cobre SoldesP se
+mantiene como material de acción y nunca como fondo dominante.
+
 ## Colors
 
 - **Brand Navy (#001B4B):** Color corporativo de SoldesP. Usado para headers,
