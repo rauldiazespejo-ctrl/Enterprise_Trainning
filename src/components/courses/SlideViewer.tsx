@@ -67,16 +67,18 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
           disabled={isFirst}
           className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
           Anterior
         </button>
 
         {/* Dot indicators */}
-        <div className="flex items-center gap-1.5">
+        <div role="group" aria-label="Navegación de diapositivas" className="flex items-center gap-1.5">
           {slides.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrent(idx)}
+              aria-label={`Diapositiva ${idx + 1}`}
+              aria-current={idx === current ? 'step' : undefined}
               className={`rounded-full transition-all ${
                 idx === current
                   ? 'w-6 h-2 bg-brand'
@@ -92,7 +94,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
             className="flex items-center gap-2 px-5 py-2 rounded-lg bg-brand text-white font-medium hover:bg-[brand] transition-colors"
           >
             Ir a la Evaluación
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         ) : (
           <button
@@ -100,7 +102,7 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
             className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 transition-colors"
           >
             Siguiente
-            <ChevronRight className="w-4 h-4" />
+            <ChevronRight className="w-4 h-4" aria-hidden="true" />
           </button>
         )}
       </div>
