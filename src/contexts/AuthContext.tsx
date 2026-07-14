@@ -5,7 +5,7 @@ import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { getLoginErrorMessage, validatePasswordComplexity } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { normalizeRut, isValidRut, employeeEmailFromRut } from '@/lib/employeeImport';
+import { normalizeRut, isValidRut, rutBodyNoDv, employeeEmailFromRut } from '@/lib/employeeImport';
 
 // ── Helper para audit log ISO 45001 ──────────────────────────────────────────
 const logAuditEvent = async (
@@ -224,7 +224,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setUser(mapped);
         setIsLoading(false);
         void logAuditEvent('login', 'auth', data.user.id, { rut, method: 'rut_and_password' });
-        return { success: true, mustChangePassword: mapped.mustChangePassword };
+        const usesTemporaryRutPassword = password === rutBodyNoDv(rut);
+        return { success: true, mustChangePassword: mapped.mustChangePassword || usesTemporaryRutPassword };
       }
 
       // Modo demo (sin Supabase) — buscar por RUT en usuarios locales
@@ -251,7 +252,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(sessionUser);
       saveToStorage(STORAGE_KEYS.session, sessionUser);
       setIsLoading(false);
-      return { success: true, mustChangePassword: foundUser.mustChangePassword ?? true };
+      const usesTemporaryRutPassword = password === rutBodyNoDv(rut);
+      return { success: true, mustChangePassword: (foundUser.mustChangePassword ?? true) || usesTemporaryRutPassword };
     } catch (error) {
       setIsLoading(false);
       return { success: false, error: getLoginErrorMessage(error, 'employee') };
