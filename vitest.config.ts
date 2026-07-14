@@ -9,6 +9,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    include: ['src/**/*.test.{ts,tsx}'],
+    exclude: ['.claude/worktrees/**', '01 Enterprise_trainning/**', 'node_modules/**', 'dist/**'],
     coverage: {
       reporter: ['text', 'html'],
     },

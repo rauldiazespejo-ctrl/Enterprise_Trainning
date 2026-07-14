@@ -129,7 +129,7 @@ Deno.serve(async request => {
         department: worker.department,
         position: worker.position,
         status: 'active',
-        must_change_password: false,
+        must_change_password: true,
       });
       if (profileError) {
         await adminClient.auth.admin.deleteUser(data.user.id);

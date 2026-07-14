@@ -2,10 +2,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { loadFromStorage, saveToStorage, STORAGE_KEYS } from '@/lib/storage';
-import { validatePasswordComplexity } from '@/lib/auth';
+import { getLoginErrorMessage, validatePasswordComplexity } from '@/lib/auth';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
-import { normalizeRut, isValidRut, rutBodyNoDv, employeeEmailFromRut } from '@/lib/employeeImport';
+import { normalizeRut, isValidRut, employeeEmailFromRut } from '@/lib/employeeImport';
 
 // ── Helper para audit log ISO 45001 ──────────────────────────────────────────
 const logAuditEvent = async (
@@ -30,7 +30,7 @@ interface AuthContextType {
   isLoading: boolean;
   isSuperAdmin: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
-  loginByRut: (rut: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
+  loginByRut: (rut: string, password: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
   changePassword: (newPassword: string) => Promise<{ success: boolean; error?: string }>;
   register: (email: string, password: string, name: string, role: UserRole) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
@@ -100,7 +100,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (data.session?.user) {
           const { data: profile } = await supabase.from('profiles').select('*').eq('id', data.session.user.id).single();
           if (profile) {
-            setUser(mapProfile(profile as Record<string, unknown>));
+            const mapped = mapProfile(profile as Record<string, unknown>);
+            if (mapped.status === 'inactive') {
+              await supabase.auth.signOut();
+              setUser(null);
+            } else {
+              setUser(mapped);
+            }
           }
         }
         setIsLoading(false);
@@ -129,7 +135,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           setIsLoading(false);
           // Audit log: login fallido
           void logAuditEvent('login_failed', 'auth', undefined, { email, reason: 'invalid_credentials' });
-          return { success: false, error: 'Credenciales incorrectas' };
+          return { success: false, error: getLoginErrorMessage(error, 'admin') };
         }
         const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
         if (profileError || !profile) {
@@ -138,6 +144,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return { success: false, error: 'La cuenta no tiene un perfil habilitado.' };
         }
         const mapped = mapProfile(profile as Record<string, unknown>);
+        if (mapped.status === 'inactive') {
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return { success: false, error: 'Esta cuenta está desactivada. Contacta al administrador.' };
+        }
         setUser(mapped);
         setIsLoading(false);
         // Audit log: login exitoso
@@ -169,13 +180,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       saveToStorage(STORAGE_KEYS.session, sessionUser);
       setIsLoading(false);
       return { success: true, mustChangePassword: foundUser.mustChangePassword ?? true };
-    } catch {
+    } catch (error) {
       setIsLoading(false);
-      return { success: false, error: 'Error al iniciar sesión' };
+      return { success: false, error: getLoginErrorMessage(error, 'admin') };
     }
   };
 
-  const loginByRut = async (rutInput: string): Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }> => {
+  const loginByRut = async (rutInput: string, password: string): Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }> => {
     setIsLoading(true);
 
     try {
@@ -186,14 +197,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
 
       const email = employeeEmailFromRut(rut);
-      const password = rutBodyNoDv(rut);
+      if (!password) {
+        setIsLoading(false);
+        return { success: false, error: 'Ingresa tu contraseña.' };
+      }
 
       if (isSupabaseConfigured) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error || !data.user) {
           setIsLoading(false);
           void logAuditEvent('login_failed', 'auth', undefined, { rut, reason: 'rut_not_found' });
-          return { success: false, error: 'RUT no encontrado. Contacta al administrador.' };
+          return { success: false, error: getLoginErrorMessage(error, 'employee') };
         }
         const { data: profile, error: profileError } = await supabase.from('profiles').select('*').eq('id', data.user.id).single();
         if (profileError || !profile) {
@@ -202,11 +216,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           return { success: false, error: 'La cuenta no tiene un perfil habilitado.' };
         }
         const mapped = mapProfile(profile as Record<string, unknown>);
+        if (mapped.status === 'inactive') {
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return { success: false, error: 'Esta cuenta está desactivada. Contacta al administrador.' };
+        }
         setUser(mapped);
         setIsLoading(false);
-        void logAuditEvent('login', 'auth', data.user.id, { rut, method: 'rut_passwordless' });
-        // Empleados nunca deben cambiar contraseña en este modelo
-        return { success: true, mustChangePassword: false };
+        void logAuditEvent('login', 'auth', data.user.id, { rut, method: 'rut_and_password' });
+        return { success: true, mustChangePassword: mapped.mustChangePassword };
       }
 
       // Modo demo (sin Supabase) — buscar por RUT en usuarios locales
@@ -224,15 +242,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         setIsLoading(false);
         return { success: false, error: 'Esta cuenta está desactivada. Contacta al administrador.' };
       }
+      if (foundUser.password && foundUser.password !== password) {
+        setIsLoading(false);
+        return { success: false, error: getLoginErrorMessage(undefined, 'employee') };
+      }
 
       const sessionUser = sanitize(foundUser);
       setUser(sessionUser);
       saveToStorage(STORAGE_KEYS.session, sessionUser);
       setIsLoading(false);
-      return { success: true, mustChangePassword: false };
-    } catch {
+      return { success: true, mustChangePassword: foundUser.mustChangePassword ?? true };
+    } catch (error) {
       setIsLoading(false);
-      return { success: false, error: 'Error al iniciar sesión' };
+      return { success: false, error: getLoginErrorMessage(error, 'employee') };
     }
   };
 

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { validatePasswordComplexity } from '@/lib/auth';
 import { Card, Button } from '@/components/ui/Card';
-import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon, Sun, Moon } from 'lucide-react';
+import { Eye, EyeOff, Sparkles, Award, ShieldCheck, Check, X as XIcon, Sun, Moon, Mail, UserRound } from 'lucide-react';
 import { SoldesPLogo } from '@/components/SoldesPLogo';
 import { employeeEmailFromRut, isValidRut, normalizeRut } from '@/lib/employeeImport';
 
@@ -295,22 +295,38 @@ const Login: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [welcomeName, setWelcomeName] = useState<string | null>(null);
+  const [accessMode, setAccessMode] = useState<'employee' | 'admin'>('employee');
   const { login, loginByRut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
-  const isRutMode = looksLikeRut(identifier);
+  const isRutMode = accessMode === 'employee' && looksLikeRut(identifier);
+
+  const changeAccessMode = (mode: 'employee' | 'admin') => {
+    setAccessMode(mode);
+    setIdentifier('');
+    setPassword('');
+    setError('');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
-    if (isRutMode) {
-      // Login sin contraseña: solo RUT
-      const result = await loginByRut(identifier);
+    if (accessMode === 'employee') {
+      if (!isRutMode) {
+        setError('Ingresa un RUT válido, por ejemplo 15.422.822-5.');
+        setIsLoading(false);
+        return;
+      }
+      const result = await loginByRut(identifier, password);
       if (result.success) {
-        setWelcomeName('loading');
+        if (result.mustChangePassword) {
+          setShowChangePassword(true);
+        } else {
+          setWelcomeName('loading');
+        }
       } else {
         setError(result.error || 'Error al iniciar sesión');
       }
@@ -469,7 +485,30 @@ const Login: React.FC = () => {
                 <span className="text-sm text-brand font-medium">Acceso Rápido</span>
               </div>
               <h2 className="text-2xl font-bold text-foreground mb-1">Bienvenido</h2>
-              <p className="text-sm text-muted-foreground">Ingresa tu RUT para acceder a la plataforma</p>
+              <p className="text-sm text-muted-foreground">
+                {accessMode === 'employee' ? 'Acceso de trabajadores con RUT' : 'Acceso de administración con correo'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 mb-5" role="tablist" aria-label="Tipo de acceso">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={accessMode === 'employee'}
+                onClick={() => changeAccessMode('employee')}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all focus-ring ${accessMode === 'employee' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <UserRound className="w-4 h-4" /> Trabajador
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={accessMode === 'admin'}
+                onClick={() => changeAccessMode('admin')}
+                className={`flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-sm font-semibold transition-all focus-ring ${accessMode === 'admin' ? 'bg-card text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+              >
+                <Mail className="w-4 h-4" /> Administrador
+              </button>
             </div>
 
             {error && (
@@ -483,13 +522,13 @@ const Login: React.FC = () => {
               <div className="space-y-1">
                 <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
                   <div className="w-1 h-4 bg-brand rounded-full" />
-                  RUT
+                  {accessMode === 'employee' ? 'RUT' : 'Correo electrónico'}
                 </label>
                 <input
                   type="text"
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}
-                  placeholder="15422822-5 o 154228225"
+                  placeholder={accessMode === 'employee' ? '15.422.822-5' : 'nombre@empresa.cl'}
                   required
                   autoComplete="username"
                   aria-invalid={!!error}
@@ -499,13 +538,12 @@ const Login: React.FC = () => {
                 {isRutMode && (
                   <p className="text-xs text-emerald-500 flex items-center gap-1 mt-1">
                     <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full inline-block" />
-                    RUT reconocido — presiona Ingresar
+                    RUT reconocido
                   </p>
                 )}
               </div>
 
-              {!isRutMode && (
-                <div className="space-y-1 relative">
+              <div className="space-y-1 relative">
                   <label className="block text-sm font-medium text-muted-foreground flex items-center gap-2">
                     <div className="w-1 h-4 bg-brand rounded-full" />
                     Contraseña
@@ -514,7 +552,7 @@ const Login: React.FC = () => {
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Tu contraseña"
+                    placeholder={accessMode === 'employee' ? 'Contraseña temporal o personal' : 'Tu contraseña'}
                     required
                     autoComplete="current-password"
                     aria-invalid={!!error}
@@ -529,8 +567,7 @@ const Login: React.FC = () => {
                   >
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
-                </div>
-              )}
+              </div>
 
               <Button
                 type="submit"
@@ -555,7 +592,7 @@ const Login: React.FC = () => {
             </form>
 
             <div className="mt-5 text-center">
-              {!isRutMode && (
+              {accessMode === 'admin' && (
                 <Link
                   to="/forgot-password"
                   className="text-sm text-muted-foreground hover:text-brand transition-colors tap-target-min inline-block py-2 px-3 rounded-lg focus-ring"
@@ -563,9 +600,9 @@ const Login: React.FC = () => {
                   ¿Olvidaste tu contraseña?
                 </Link>
               )}
-              {isRutMode && (
+              {accessMode === 'employee' && (
                 <p className="text-xs text-muted-foreground">
-                  Solo necesitas tu RUT para ingresar
+                  En tu primer acceso usa la contraseña temporal entregada por administración; luego deberás cambiarla.
                 </p>
               )}
             </div>
@@ -573,7 +610,7 @@ const Login: React.FC = () => {
             {import.meta.env.DEV && (
               <div className="mt-5 p-4 bg-secondary/10 rounded-xl border border-secondary/30">
                 <p className="text-xs text-muted-foreground text-center leading-relaxed">
-                  <span className="text-brand font-semibold">Empleado:</span> Ingresa solo el RUT — <span className="font-mono">15422822-5</span><br />
+                  <span className="text-brand font-semibold">Empleado:</span> RUT + contraseña temporal o personal<br />
                   <span className="text-brand font-semibold">Admin:</span> Email + contraseña
                 </p>
               </div>

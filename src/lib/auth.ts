@@ -12,3 +12,19 @@ export function validatePasswordComplexity(password: string): PasswordValidation
   if (!/[^A-Za-z0-9]/.test(password)) errors.push('Al menos un carácter especial (!@#$...)');
   return { valid: errors.length === 0, errors };
 }
+
+export function getLoginErrorMessage(error: unknown, mode: 'admin' | 'employee'): string {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error ?? '').toLowerCase();
+
+  if (message.includes('failed to fetch') || message.includes('network') || message.includes('timeout')) {
+    return 'No pudimos conectar con el servicio de acceso. Revisa tu conexión e intenta nuevamente.';
+  }
+
+  if (message.includes('email not confirmed')) {
+    return 'Tu correo aún no está confirmado. Revisa tu bandeja de entrada.';
+  }
+
+  return mode === 'employee'
+    ? 'No pudimos validar este RUT. Verifica que esté registrado o solicita al administrador sincronizar sus credenciales.'
+    : 'Correo o contraseña incorrectos.';
+}

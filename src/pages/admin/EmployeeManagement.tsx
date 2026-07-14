@@ -341,7 +341,7 @@ const EmployeeManagement: React.FC = () => {
             />
             <Button variant="outline" onClick={() => setShowResetRutModal(true)}>
               <KeyRound className="w-4 h-4" />
-              Resetear a RUT
+              Restablecer accesos
             </Button>
             <Button variant="outline" onClick={() => importInputRef.current?.click()}>
               <Upload className="w-4 h-4" />
@@ -679,8 +679,8 @@ const EmployeeManagement: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Reset All to RUT Modal */}
-      <Modal isOpen={showResetRutModal} onClose={() => { setShowResetRutModal(false); setResetRutResult(null); }} title="Resetear Credenciales a Modelo RUT">
+      {/* Restablecimiento masivo de credenciales temporales */}
+      <Modal isOpen={showResetRutModal} onClose={() => { setShowResetRutModal(false); setResetRutResult(null); }} title="Restablecer accesos de trabajadores">
         <div className="space-y-4">
           {!resetRutResult ? (
             <>
@@ -688,7 +688,7 @@ const EmployeeManagement: React.FC = () => {
                 <p className="text-sm text-amber-300 font-medium mb-2">Esta acción cambiará las credenciales de TODOS los empleados:</p>
                 <ul className="text-sm text-amber-200/80 space-y-1 ml-4 list-disc">
                   <li><strong>Usuario:</strong> RUT completo como email — <code className="font-mono bg-black/20 px-1 rounded">154228225@acceso.soldesp.cl</code></li>
-                  <li><strong>Contraseña:</strong> RUT sin dígito verificador — <code className="font-mono bg-black/20 px-1 rounded">15422822</code></li>
+                  <li><strong>Contraseña temporal:</strong> RUT sin dígito verificador — debe entregarse por un canal seguro</li>
                   <li>Se activará el cambio de contraseña obligatorio en el primer login</li>
                   <li>Los usuarios sin RUT registrado serán omitidos</li>
                 </ul>
@@ -699,7 +699,7 @@ const EmployeeManagement: React.FC = () => {
                   {isResettingRut ? (
                     <span className="flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" />Procesando...</span>
                   ) : (
-                    <span className="flex items-center gap-2"><KeyRound className="w-4 h-4" />Confirmar Reset</span>
+                    <span className="flex items-center gap-2"><KeyRound className="w-4 h-4" />Confirmar restablecimiento</span>
                   )}
                 </Button>
               </div>
