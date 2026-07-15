@@ -1,5 +1,5 @@
 // Panel de Diagnóstico y Sincronización de Cursos — CapacitaPro
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
@@ -51,6 +51,25 @@ const CourseSync: React.FC = () => {
   const [checking, setChecking] = useState(false);
   const [repairLog, setRepairLog] = useState<string[]>([]);
   const [repairing, setRepairing] = useState(false);
+
+  // ⚡ Bolt Performance Optimization:
+  // Convert Supabase courses and profiles arrays to O(1) Maps using useMemo
+  // to avoid O(n^2) nested lookups during diagnostics rendering (diag.sbAssignments.map).
+  const sbCoursesMap = useMemo(() => {
+    const map = new Map<string, SbCourse>();
+    if (diag?.sbCourses) {
+      diag.sbCourses.forEach(c => map.set(c.id, c));
+    }
+    return map;
+  }, [diag?.sbCourses]);
+
+  const sbProfilesMap = useMemo(() => {
+    const map = new Map<string, SbProfile>();
+    if (diag?.sbProfiles) {
+      diag.sbProfiles.forEach(p => map.set(p.id, p));
+    }
+    return map;
+  }, [diag?.sbProfiles]);
 
   // ── Tab 1: Diagnóstico completo ─────────────────────────────────────────────
 
@@ -499,8 +518,8 @@ const CourseSync: React.FC = () => {
                   ) : (
                     <div className="space-y-1.5 max-h-64 overflow-y-auto">
                       {diag.sbAssignments.map(a => {
-                        const course  = diag.sbCourses.find(c => c.id === a.course_id);
-                        const profile = diag.sbProfiles.find(p => p.id === a.user_id);
+                        const course  = sbCoursesMap.get(a.course_id);
+                        const profile = sbProfilesMap.get(a.user_id);
                         return (
                           <div key={a.id} className="flex items-center gap-3 text-sm py-1.5 border-b border-slate-700/50">
                             {course
