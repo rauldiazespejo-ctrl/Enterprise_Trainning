@@ -1,0 +1,3 @@
+## 2024-05-24 - O(N*M) nested array lookups in list rendering
+**Learning:** Calling array methods like `.filter()` or custom getter methods that iterate arrays internally (like `getUserAssignments` -> `assignments.filter()`) inside a `.map()` or `.reduce()` for a list of items creates an O(N*M) complexity. This causes severe main thread blocking on each render, especially during search typing.
+**Action:** Convert nested array lookups into O(1) Maps using `useMemo()`. Iterate over the source collections (`assignments`, `certificates`) once to build a lookup Map keyed by `userId`, then retrieve stats using `map.get(id)` in the component render loop.
