@@ -55,29 +55,54 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const assignedCourses = React.useMemo(() => {
+    if (!user) return [];
+    // ⚡ Bolt: Convert O(N) array find to O(1) Map lookup and memoize
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+    return assignments
+      .filter(a => a.userId === user.id)
+      .map(a => {
+        const course = courseMap.get(a.courseId);
+        return course ? { ...course, assignment: a } : null;
+      })
+      .filter(Boolean);
+  }, [user, assignments, courses]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  const {
+    totalCourses,
+    completedCourses,
+    inProgressCourses,
+    nextCourse,
+    inProgressList,
+    pendingCourses,
+    completionPct
+  } = React.useMemo(() => {
+    const total = assignedCourses.length;
+    const inProgList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
+    const pendList = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    const completed = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
 
-  const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    return {
+      totalCourses: total,
+      completedCourses: completed,
+      inProgressCourses: inProgList.length,
+      nextCourse: inProgList.length > 0 ? inProgList[0] : undefined,
+      inProgressList: inProgList,
+      pendingCourses: pendList,
+      completionPct: total > 0 ? Math.round((completed / total) * 100) : 0
+    };
+  }, [assignedCourses]);
 
-  const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
+  const certificates = React.useMemo(() => {
+    return user ? getUserCertificates(user.id) : [];
+  }, [user, getUserCertificates]);
 
-  const stats = [
+  const stats = React.useMemo(() => [
     { label: 'Cursos Asignados', value: totalCourses, icon: BookOpen, color: 'bg-primary/15 text-primary' },
     { label: 'Completados', value: completedCourses, icon: CheckCircle, color: 'bg-emerald-500/15 text-emerald-500' },
     { label: 'En Progreso', value: inProgressCourses, icon: Clock, color: 'bg-accent/15 text-accent' },
     { label: 'Certificados', value: certificates.length, icon: Award, color: 'bg-secondary/15 text-secondary' },
-  ];
+  ], [totalCourses, completedCourses, inProgressCourses, certificates.length]);
 
   const renderSkeleton = () => (
     <div className="space-y-6 animate-fadeIn">
