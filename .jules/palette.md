@@ -1,0 +1,3 @@
+## 2025-07-05 - Robust Form Associations and Dynamic ARIA error attributes using useId
+**Learning:** When building custom React form components (like Input or Select), generating a unique ID via `useId()` avoids reliance on consumer-provided IDs while allowing full a11y label association (`htmlFor` `<->` `id`) and correct association of error messages via `aria-describedby` and `aria-invalid`. Without this pattern, developers manually providing or forgetting the `id` prop compromises the accessibility of forms.
+**Action:** Always implement `React.useId()` as a fallback for the `id` prop, and dynamically generate associated error IDs to automatically connect `<label>`, `<input>`, and error `<p>` tags for complete screen-reader form support.
