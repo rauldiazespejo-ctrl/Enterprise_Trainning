@@ -1,0 +1,3 @@
+## 2024-05-18 - [Pagination & Carousel Dot Accessibility]
+**Learning:** Pagination and carousel dot navigation patterns often rely on visual cues (like color changes) to indicate the active state, which are invisible to screen readers. Furthermore, the generic buttons (e.g. "1", "2") lack context.
+**Action:** When implementing visual indicators (like carousel dots) or pagination buttons, always add `aria-label` describing the element (e.g. "Diapositiva 1", "Página 1") and `aria-current="step"` or `aria-current="page"` respectively to properly communicate the active state to assistive technologies.
