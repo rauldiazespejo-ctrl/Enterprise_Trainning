@@ -1,0 +1,4 @@
+## 2025-02-24 - Missing rel="noopener noreferrer" on target="_blank" links
+**Vulnerability:** External and programmatic download links using `target="_blank"` were missing `rel="noopener noreferrer"`.
+**Learning:** React/JSX does not automatically enforce `rel="noopener noreferrer"` for `target="_blank"` links unless linting rules are strictly configured. Dynamically generated DOM elements (`document.createElement('a')`) are completely invisible to static JSX linters. This gap exposes the application to reverse tabnabbing attacks, where the newly opened tab can hijack the `window.opener` object and navigate the original tab to a malicious site.
+**Prevention:** 1) Always pair `target="_blank"` with `rel="noopener noreferrer"` in JSX. 2) When dynamically creating download or external links via `document.createElement('a')`, explicitly add `a.rel = 'noopener noreferrer'` before calling `.click()`.
