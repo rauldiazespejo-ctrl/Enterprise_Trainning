@@ -337,7 +337,8 @@ const SettingsPage: React.FC = () => {
           <div className="p-4 bg-blue-50 rounded-lg">
             <h4 className="font-medium text-blue-900 mb-2">¿Cómo obtener tus credenciales?</h4>
             <ol className="text-sm text-blue-700 space-y-1 list-decimal list-inside">
-              <li>Ve a <a href="https://supabase.com" target="_blank" className="underline">supabase.com</a> y crea una cuenta</li>
+              {/* Security: Prevent reverse tabnabbing by adding rel="noopener noreferrer" */}
+              <li>Ve a <a href="https://supabase.com" target="_blank" rel="noopener noreferrer" className="underline">supabase.com</a> y crea una cuenta</li>
               <li>Crea un nuevo proyecto</li>
               <li>En Settings → API, copia la URL y la clave anon</li>
               <li>Pega ambas credenciales aquí</li>
