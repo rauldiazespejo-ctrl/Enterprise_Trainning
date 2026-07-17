@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -270,6 +271,15 @@ Deno.serve(async (request) => {
   }
 
   try {
+    const authorization = request.headers.get('Authorization');
+    if (!authorization) throw new Error('Sesión requerida.');
+
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const callerClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
+
+    const { data: { user } } = await callerClient.auth.getUser();
+    if (!user) throw new Error('Sesión inválida.');
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
     if (!apiKey) throw new Error('DEEPSEEK_API_KEY no está configurada.');
 
