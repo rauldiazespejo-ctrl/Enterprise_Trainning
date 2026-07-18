@@ -1,0 +1,3 @@
+## 2024-07-18 - Memoizing derived lists in search bars
+**Learning:** Returning inline fallback objects during O(N*M) to O(1) map conversions in `useMemo` hooks (e.g., `statsMap.get(e.id) || { completed: 0 }`) causes the map to yield a new object reference on every evaluation, breaking referential equality and triggering unnecessary downstream re-renders. Also, filtering arrays asynchronously on search inputs can cause UI stutter if not memoized.
+**Action:** Extract default fallback objects as static constants outside the React component (e.g., `const DEFAULT_STATS = { ... }`). Ensure expensive O(N) filtering operations dependent on search input state are always wrapped in `useMemo`.
