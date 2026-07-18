@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -251,6 +253,39 @@ Deno.serve(async (request) => {
 
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Autenticación obligatoria
+  const authorization = request.headers.get('Authorization');
+  if (!authorization) {
+    return Response.json(
+      { error: 'No autorizado. Falta el token de autenticación.' },
+      { status: 401, headers: corsHeaders }
+    );
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: authorization } },
+    });
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return Response.json(
+        { error: 'No autorizado. Token inválido o expirado.' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+  } catch (error) {
+    return Response.json(
+      { error: 'Error de autenticación.' },
+      { status: 401, headers: corsHeaders }
+    );
   }
 
   // Rate limiting
