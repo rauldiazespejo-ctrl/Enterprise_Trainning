@@ -1,0 +1,3 @@
+## 2024-07-19 - Convert O(N*M) lookups to O(1) in React Renders
+**Learning:** Nested array `.find()` calls inside `.map()` or `.filter()` (O(N*M) complexity) block the main thread and cause significant lag during synchronous React renders, particularly noticeable when users are typing in search inputs or filtering data.
+**Action:** When filtering or mapping related datasets, always pre-compute a `Map` wrapped in `useMemo` to convert O(N*M) operations to O(N + M) complexity and provide O(1) lookups during the render phase. Wrap dependent derived data structures in `useMemo` as well.

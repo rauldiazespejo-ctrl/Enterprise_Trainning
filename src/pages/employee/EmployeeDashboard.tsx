@@ -1,5 +1,5 @@
 // EmployeeDashboard — tarjetas premium, hero animado y progreso circular
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Badge, ProgressBar, Button, Skeleton, EmptyState } from '@/components/ui/Card';
@@ -55,29 +55,31 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const coursesMap = useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
+  const userAssignments = useMemo(() => user ? assignments.filter(a => a.userId === user.id) : [], [user, assignments]);
+
+  const assignedCourses = useMemo(() => userAssignments.map(a => {
+    const course = coursesMap.get(a.courseId);
     return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  }).filter(Boolean), [userAssignments, coursesMap]);
 
   const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+  const completedCourses = useMemo(() => assignedCourses.filter(c => c?.assignment.status === 'completed').length, [assignedCourses]);
+  const inProgressCourses = useMemo(() => assignedCourses.filter(c => c?.assignment.status === 'in_progress').length, [assignedCourses]);
+  const certificates = useMemo(() => user ? getUserCertificates(user.id) : [], [user, getUserCertificates]);
+  const nextCourse = useMemo(() => assignedCourses.find(c => c?.assignment.status === 'in_progress'), [assignedCourses]);
+  const inProgressList = useMemo(() => assignedCourses.filter(c => c?.assignment.status === 'in_progress'), [assignedCourses]);
+  const pendingCourses = useMemo(() => assignedCourses.filter(c => c?.assignment.status === 'pending'), [assignedCourses]);
 
-  const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
+  const completionPct = useMemo(() => totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0, [completedCourses, totalCourses]);
 
-  const stats = [
+  const stats = useMemo(() => [
     { label: 'Cursos Asignados', value: totalCourses, icon: BookOpen, color: 'bg-primary/15 text-primary' },
     { label: 'Completados', value: completedCourses, icon: CheckCircle, color: 'bg-emerald-500/15 text-emerald-500' },
     { label: 'En Progreso', value: inProgressCourses, icon: Clock, color: 'bg-accent/15 text-accent' },
     { label: 'Certificados', value: certificates.length, icon: Award, color: 'bg-secondary/15 text-secondary' },
-  ];
+  ], [totalCourses, completedCourses, inProgressCourses, certificates.length]);
 
   const renderSkeleton = () => (
     <div className="space-y-6 animate-fadeIn">
@@ -294,7 +296,7 @@ const EmployeeDashboard: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-foreground truncate">Certificado de Finalización</h4>
                         <p className="text-sm text-muted-foreground truncate">
-                          {courses.find(c => c.id === cert.courseId)?.title || 'Curso'}
+                          {coursesMap.get(cert.courseId)?.title || 'Curso'}
                         </p>
                         <p className="text-xs text-muted-foreground/70 mt-1">
                           Emitido: {new Date(cert.issuedAt).toLocaleDateString('es-ES')}
