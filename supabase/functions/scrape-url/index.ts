@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -46,6 +47,28 @@ serve(async (req) => {
   }
 
   try {
+    // 🛡️ Sentinel: Enforce Authentication to prevent SSRF and abuse
+    const authorization = req.headers.get('Authorization');
+    if (!authorization) {
+      throw new Error("Sesión requerida.");
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (supabaseUrl && supabaseAnonKey) {
+      const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authorization } }
+      });
+
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        throw new Error("Sesión inválida o expirada.");
+      }
+    } else {
+      console.warn("Supabase credentials not found, assuming local development or testing mode.");
+    }
+
     const { url } = await req.json();
 
     if (!url) {
