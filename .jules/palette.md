@@ -1,0 +1,3 @@
+## 2025-03-08 - Accessible Pagination Controls
+**Learning:** Generic container elements like `<div>` for pagination controls do not convey structural meaning to assistive technologies. Additionally, dynamically rendered page buttons require `aria-label` and `aria-current` to accurately describe their function and active state.
+**Action:** When implementing pagination, always wrap the container in a semantic `<nav>` element with an appropriate `aria-label` (e.g., `aria-label="Navegación de páginas"`). Always add `aria-label` to dynamically generated page buttons (e.g., `aria-label={\`Página \${page}\`}`) and `aria-current="page"` to indicate the currently active page. Hide decorative elements like ellipsis spans and icons from screen readers using `aria-hidden="true"`.
