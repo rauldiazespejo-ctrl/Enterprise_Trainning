@@ -1,0 +1,3 @@
+## 2026-07-20 - O(N*M) context helpers bottleneck in React rendering
+**Learning:** Context helper abstractions like `getUserAssignments` that perform O(N) array filtering are dangerous when called inside render loops (like `.map` or `.reduce`) across a list of M items, creating silent O(N*M) bottlenecks. Furthermore, returning inline object literals (e.g. `{ completed: 0 }`) as fallbacks during mapping breaks referential equality and degrades rendering performance.
+**Action:** Always bypass O(N) context helpers in favor of a single `useMemo` pass that builds an O(1) lookup Map when iterating over lists. Always define fallback objects statically outside the component to preserve referential equality.
