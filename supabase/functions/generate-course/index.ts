@@ -1,3 +1,5 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -251,6 +253,27 @@ Deno.serve(async (request) => {
 
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const authorization = request.headers.get('Authorization');
+    if (!authorization) {
+      throw new Error('Sesión requerida.');
+    }
+
+    const url = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const supabaseClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
+
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) {
+      throw new Error('Sesión inválida.');
+    }
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'No autorizado.' },
+      { status: 401, headers: corsHeaders }
+    );
   }
 
   // Rate limiting
