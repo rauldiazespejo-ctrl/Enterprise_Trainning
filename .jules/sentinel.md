@@ -1,0 +1,4 @@
+## 2024-05-24 - [CRITICAL] Fix Missing Authentication in Edge Functions
+**Vulnerability:** Found that the `scrape-url` and `audit-log` Supabase Edge Functions were lacking explicit authentication, allowing unauthorized actors to perform SSRF attacks or flood the audit log.
+**Learning:** Supabase Edge Functions do not enforce RLS or authentication automatically. It must be explicitly enforced in the edge function code itself using `auth.getUser()` to ensure that only authenticated sessions can trigger these endpoints.
+**Prevention:** Always initialize a standard user-scoped Supabase client inside Edge Functions using the provided `Authorization` header, and call `await callerClient.auth.getUser()` before executing sensitive operations. Include exceptions carefully only for strictly required public actions like `login_failed`.

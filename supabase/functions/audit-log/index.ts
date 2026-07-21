@@ -48,13 +48,46 @@ Deno.serve(async request => {
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    const body: AuditLogEntry & { user_id?: string } = await request.json();
 
+    // Read body early to check action type
+    const body: AuditLogEntry & { user_id?: string } = await request.json();
     const { action, resource_type, resource_id, details, user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
     }
+
+    // Authentication check, except for public actions like login_failed
+    const PUBLIC_ACTIONS = ['login_failed'];
+
+    if (!PUBLIC_ACTIONS.includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) {
+        throw new Error('Sesión requerida para esta acción.');
+      }
+
+      const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+      const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Error de configuración del servidor.');
+      }
+
+      const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authorization } }
+      });
+
+      const { data: { user }, error } = await callerClient.auth.getUser();
+      if (error || !user) {
+        throw new Error('Sesión inválida.');
+      }
+
+      // Prevent log spoofing by ensuring the user_id in payload matches the authenticated user (if user_id is provided)
+      if (user_id && user_id !== user.id) {
+        throw new Error('No autorizado para registrar acciones de otro usuario.');
+      }
+    }
+
 
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()

@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -43,6 +44,38 @@ serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
+  }
+
+  // Authentication check
+  try {
+    const authorization = req.headers.get('Authorization');
+    if (!authorization) {
+      throw new Error('Sesión requerida.');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+       throw new Error('Error de configuración del servidor.');
+    }
+
+    const callerClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } }
+    });
+
+    const { data: { user }, error } = await callerClient.auth.getUser();
+    if (error || !user) {
+      throw new Error('Sesión inválida.');
+    }
+  } catch (error) {
+    return new Response(
+      JSON.stringify({ success: false, error: error.message }),
+      {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      }
+    );
   }
 
   try {
