@@ -47,7 +47,7 @@ const CircularProgress: React.FC<{ value: number; size?: number; stroke?: number
 
 const EmployeeDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { courses, assignments, getUserCertificates } = useCourses();
+  const { courses, assignments, certificates } = useCourses();
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
@@ -55,20 +55,65 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const coursesMap = React.useMemo(() => {
+    const map = new Map();
+    for (const c of courses) {
+      map.set(c.id, c);
+    }
+    return map;
+  }, [courses]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  const {
+    totalCourses,
+    completedCourses,
+    inProgressCourses,
+    nextCourse,
+    inProgressList,
+    pendingCourses,
+    userCertificates
+  } = React.useMemo(() => {
+    let completedCount = 0;
+    let inProgressCount = 0;
+    let totalCount = 0;
 
-  const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    const inProgress: any[] = [];
+    const pending: any[] = [];
+    let next: any = null;
+
+    if (user) {
+      for (const a of assignments) {
+        if (a.userId === user.id) {
+          const course = coursesMap.get(a.courseId);
+          if (course) {
+            const mapped = { ...course, assignment: a };
+            totalCount++;
+
+            if (a.status === 'completed') {
+              completedCount++;
+            } else if (a.status === 'in_progress') {
+              inProgressCount++;
+              inProgress.push(mapped);
+              if (!next) next = mapped;
+            } else if (a.status === 'pending') {
+              pending.push(mapped);
+            }
+          }
+        }
+      }
+    }
+
+    const certs = user ? certificates.filter(c => c.userId === user.id) : [];
+
+    return {
+      totalCourses: totalCount,
+      completedCourses: completedCount,
+      inProgressCourses: inProgressCount,
+      nextCourse: next,
+      inProgressList: inProgress,
+      pendingCourses: pending,
+      userCertificates: certs
+    };
+  }, [user, assignments, coursesMap, certificates]);
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
@@ -76,7 +121,7 @@ const EmployeeDashboard: React.FC = () => {
     { label: 'Cursos Asignados', value: totalCourses, icon: BookOpen, color: 'bg-primary/15 text-primary' },
     { label: 'Completados', value: completedCourses, icon: CheckCircle, color: 'bg-emerald-500/15 text-emerald-500' },
     { label: 'En Progreso', value: inProgressCourses, icon: Clock, color: 'bg-accent/15 text-accent' },
-    { label: 'Certificados', value: certificates.length, icon: Award, color: 'bg-secondary/15 text-secondary' },
+    { label: 'Certificados', value: userCertificates.length, icon: Award, color: 'bg-secondary/15 text-secondary' },
   ];
 
   const renderSkeleton = () => (
@@ -275,14 +320,14 @@ const EmployeeDashboard: React.FC = () => {
         </div>
 
         {/* Certificates credential style */}
-        {certificates.length > 0 && (
+        {userCertificates.length > 0 && (
           <div>
             <h3 className="text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
               <Award className="w-5 h-5 text-accent" aria-hidden="true" />
               Mis Certificados
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger-children">
-              {certificates.slice(0, 4).map((cert) => (
+              {userCertificates.slice(0, 4).map((cert) => (
                 <Card key={cert.id} className="p-0 overflow-hidden rounded-2xl hover:border-primary/50 transition-colors group">
                   <div className="flex">
                     <div className="w-24 shrink-0 bg-gradient-to-br from-accent via-primary to-secondary flex flex-col items-center justify-center text-primary-foreground relative overflow-hidden">
@@ -294,7 +339,7 @@ const EmployeeDashboard: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-foreground truncate">Certificado de Finalización</h4>
                         <p className="text-sm text-muted-foreground truncate">
-                          {courses.find(c => c.id === cert.courseId)?.title || 'Curso'}
+                          {coursesMap.get(cert.courseId)?.title || 'Curso'}
                         </p>
                         <p className="text-xs text-muted-foreground/70 mt-1">
                           Emitido: {new Date(cert.issuedAt).toLocaleDateString('es-ES')}
