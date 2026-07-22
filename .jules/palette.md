@@ -1,0 +1,3 @@
+## 2024-07-22 - Pagination Component Accessibility
+**Learning:** Pagination components require `<nav aria-label="...">` to define the navigation region, `aria-live="polite"` on summary info to announce page changes without interrupting, `aria-current="page"` to indicate active state on buttons, and `aria-hidden="true"` on non-interactive ellipsis spans and icons to prevent redundant screen reader announcements.
+**Action:** Apply these specific ARIA attributes (`aria-current`, `<nav>`, `aria-live`, `aria-hidden`) consistently across all pagination and structural visual elements to ensure a fully accessible navigation experience for screen reader users.
