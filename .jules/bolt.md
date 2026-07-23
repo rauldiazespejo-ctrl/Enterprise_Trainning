@@ -1,0 +1,3 @@
+## 2024-05-18 - Convert O(N*M) Array Lookups to O(1) Maps in React Renders
+**Learning:** In list rendering where each item requires looking up related data (like finding a user and a course for each assignment), using `array.find()` inside `array.map()` creates an O(N*M) time complexity bottleneck. This blocks the main thread during synchronous React renders, causing slow typing and rendering issues, especially noticeable in search fields and large data sets.
+**Action:** Always pre-compute a lookup Map using `useMemo` for the related data (e.g., `new Map(users.map(u => [u.id, u]))`), reducing the inner lookup to O(1) and the total complexity to O(N + M). Ensure all derived computations are wrapped in `useMemo` with correct dependencies to avoid redundant recalculations.

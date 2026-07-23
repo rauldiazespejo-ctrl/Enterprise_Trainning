@@ -1,5 +1,5 @@
 // Gestión de Certificados - Página del Administrador
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -30,10 +30,13 @@ const CertificateManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateRow | null>(null);
 
+  const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const courseMap = useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
+
   // Unir certificados con empleados y cursos
-  const rows: CertificateRow[] = certificates.map(cert => {
-    const employee = users.find(u => u.id === cert.userId);
-    const course = courses.find(c => c.id === cert.courseId);
+  const rows: CertificateRow[] = useMemo(() => certificates.map(cert => {
+    const employee = userMap.get(cert.userId);
+    const course = courseMap.get(cert.courseId);
     return {
       id: cert.id,
       employeeName: employee?.name || 'Usuario eliminado',
@@ -43,14 +46,14 @@ const CertificateManagement: React.FC = () => {
       issuedAt: new Date(cert.issuedAt),
       verificationCode: cert.verificationCode
     };
-  });
+  }), [certificates, userMap, courseMap]);
 
-  const filteredRows = rows.filter(cert =>
+  const filteredRows = useMemo(() => rows.filter(cert =>
     cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cert.employeeEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cert.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     cert.verificationCode.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [rows, searchTerm]);
 
   const averageScore = rows.length > 0
     ? Math.round(rows.reduce((sum, c) => sum + c.score, 0) / rows.length)
