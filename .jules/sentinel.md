@@ -1,0 +1,4 @@
+## 2024-05-18 - [CRITICAL] Fix missing authentication in edge functions
+**Vulnerability:** Supabase edge functions (specifically `generate-course`) lack built-in authentication, allowing anyone with the function URL to invoke it and potentially consume paid resources (like DeepSeek API credits).
+**Learning:** Supabase Edge Functions do NOT enforce authentication automatically based on RLS or the caller's session by default; they execute in a trusted Deno environment. You must explicitly validate the `Authorization` header by initializing a client and calling `auth.getUser()`.
+**Prevention:** Always follow the "Fail Closed" security principle: extract the `Authorization` header, explicitly initialize a Supabase client (`createClient`), call `auth.getUser()`, and throw an error (401) if authentication is missing, invalid, or if auth configuration variables are missing. Never assume an edge function is protected just because it's called from an authenticated frontend.
