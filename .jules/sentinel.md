@@ -1,0 +1,4 @@
+## 2025-03-05 - Fix Missing Authentication on generate-course Edge Function
+**Vulnerability:** The Supabase Edge Function `generate-course` was missing an explicit authentication validation check, making it vulnerable to unauthorized access where any user could invoke the DeepSeek AI endpoint.
+**Learning:** Supabase Edge Functions do not enforce authentication automatically. Even if the function requires a valid JWT token structurally, developers must explicitly extract the `Authorization` header and invoke `auth.getUser()` using `createClient` to perform real authentication inside the handler.
+**Prevention:** Follow the 'Fail Closed' security principle for all Edge Functions. Extract the auth headers, explicitly validate the user, and if configuration keys (like SUPABASE_URL) are missing or `auth.getUser()` fails, throw an error preventing access (returning 401 instead of exposing API keys). Always treat Edge Functions as public endpoints by default.
