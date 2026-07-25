@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -42,6 +42,8 @@ const emptyForm: EmployeeForm = {
   status: 'active'
 };
 
+const EMPTY_STATS = { completed: 0, inProgress: 0, certificates: 0 };
+
 const EmployeeManagement: React.FC = () => {
   const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
@@ -65,23 +67,35 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  const statsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    for (const a of assignments) {
+      const stats = map.get(a.userId) || { completed: 0, inProgress: 0, certificates: 0 };
+      if (a.status === 'completed') stats.completed++;
+      else if (a.status === 'in_progress') stats.inProgress++;
+      map.set(a.userId, stats);
+    }
+
+    for (const c of certificates) {
+      const stats = map.get(c.userId) || { completed: 0, inProgress: 0, certificates: 0 };
+      stats.certificates++;
+      map.set(c.userId, stats);
+    }
+
+    return map;
+  }, [assignments, certificates]);
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +275,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = useMemo(() => employees.reduce((sum, e) => sum + (statsMap.get(e.id) || EMPTY_STATS).completed, 0), [employees, statsMap]);
+  const totalInTraining = useMemo(() => employees.filter(e => (statsMap.get(e.id) || EMPTY_STATS).inProgress > 0).length, [employees, statsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +397,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = statsMap.get(employee.id) || EMPTY_STATS;
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
