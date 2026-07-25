@@ -1,3 +1,4 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -18,6 +19,14 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
   };
 };
+
+// ─── Authentication Error Class ──────────────────────────────────────────────
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 // ─── Rate Limiter: 10 req/min per IP ─────────────────────────────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -252,6 +261,29 @@ Deno.serve(async (request) => {
   if (request.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
+
+  // Authentication Check
+  try {
+    const authorization = request.headers.get('Authorization');
+    if (!authorization) throw new AuthError('Sesión requerida.');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) throw new AuthError('Configuración de autenticación faltante.');
+
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } }
+    });
+
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError || !user) throw new AuthError('Sesión inválida.');
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return Response.json({ error: error.message }, { status: 401, headers: corsHeaders });
+    }
+    return Response.json({ error: 'Error de servidor durante la autenticación.' }, { status: 500, headers: corsHeaders });
+  }
+
 
   // Rate limiting
   const clientIp = getClientIp(request);
@@ -523,7 +555,7 @@ Deno.serve(async (request) => {
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Error inesperado.' },
-      { status: 500, headers: rateLimitHeaders }
+      { status: error instanceof AuthError ? 401 : 500, headers: rateLimitHeaders }
     );
   }
 });
