@@ -1,0 +1,3 @@
+## 2024-07-25 - Standardized Accessible Pagination Pattern
+**Learning:** Pagination controls often lack crucial semantics, preventing screen reader users from understanding structural navigation or recognizing state changes when moving between pages. Custom implementations typically miss container landmarks and proper state bindings.
+**Action:** Always wrap pagination in a `<nav aria-label="Navegación de páginas">`. Use `aria-current="page"` on the active page button and explicitly label numbered buttons (e.g. `aria-label="Página X"`). Apply `aria-live="polite"` to summary elements (like "Showing 1-10") to announce updates gracefully, and hide decorative elements (like ellipses or icon-only chevronSVGs) with `aria-hidden="true"`.
