@@ -1,0 +1,3 @@
+## 2024-07-25 - Avoid O(N*M) bottlenecks from contextual helper functions in mapping/reducing components
+**Learning:** Re-using convenient O(N) context lookups (like `getUserAssignments` which calls `.filter()`) inside an O(M) mapping or reducing loop in a React component creates an invisible O(N*M) performance bottleneck, causing significant UI freezes on actions like typing into a search input.
+**Action:** Always refactor derived list computations and aggregated summaries using a `useMemo` map object that pre-computes stats in O(N) time with O(1) lookups inside list iterators to preserve synchronous rendering speed.
