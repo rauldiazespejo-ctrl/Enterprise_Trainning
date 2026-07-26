@@ -1,5 +1,14 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+// Custom error class for authentication failures
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -46,6 +55,23 @@ serve(async (req) => {
   }
 
   try {
+    const authorization = req.headers.get('Authorization');
+    if (!authorization) {
+      throw new AuthError('Sesión requerida.');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } }
+    });
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      throw new AuthError('Sesión inválida.');
+    }
+
     const { url } = await req.json();
 
     if (!url) {
@@ -100,6 +126,17 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error en scrape-url:", error.message);
+
+    if (error instanceof AuthError) {
+      return new Response(
+        JSON.stringify({ success: false, error: error.message }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
