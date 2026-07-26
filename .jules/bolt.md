@@ -1,0 +1,3 @@
+## 2024-07-26 - O(N*M) Lookup Optimization with useMemo and Maps
+**Learning:** In React components that render large lists (e.g., assignment tables), mapping over an array and calling `.find()` on other arrays (like users or courses) inside the map creates an O(N*M) time complexity bottleneck. This recalculates on every render (such as every keystroke in a search bar), blocking the main thread and causing input lag.
+**Action:** Always wrap derived list computations in `useMemo`. For nested lookups within a map, pre-compute O(1) `Map` objects at the start of the `useMemo` callback instead of using array `.find()`. Retrieve values directly from the Map (e.g., `usersMap.get(id)`) inside the `.map()` iteration to ensure O(N) complexity and smooth rendering.
