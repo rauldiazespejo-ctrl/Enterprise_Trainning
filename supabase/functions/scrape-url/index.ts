@@ -1,6 +1,10 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+class AuthError extends Error {}
+
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
@@ -46,6 +50,27 @@ serve(async (req) => {
   }
 
   try {
+    // ── Authentication Check ──
+    const authorization = req.headers.get('Authorization');
+    if (!authorization) {
+      throw new AuthError('Sesión requerida.');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!supabaseUrl || !anonKey) {
+      throw new Error('Configuración de Supabase incompleta en el servidor.');
+    }
+
+    const supabase = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      throw new AuthError('Sesión inválida o expirada.');
+    }
+    // ─────────────────────────
+
     const { url } = await req.json();
 
     if (!url) {
@@ -100,6 +125,17 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error en scrape-url:", error.message);
+
+    if (error instanceof AuthError) {
+      return new Response(
+        JSON.stringify({ success: false, error: error.message }),
+        {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 401,
+        }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
