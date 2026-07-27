@@ -1,0 +1,3 @@
+## 2024-05-24 - O(N*M) lookups inside `.map()` arrays and how to fix them
+**Learning:** Found nested `Array.prototype.find()` calls inside `.map()` iterations within React renders (e.g., in `AssignmentManagement.tsx` and `CertificateManagement.tsx`). This pattern causes an O(N*M) time complexity bottleneck, blocking the main thread during simple state updates (like typing in a search bar).
+**Action:** Convert the nested array lookups into O(1) `Map` lookups, and memoize them using `useMemo` to construct the map and calculate derived values only when the underlying data changes, not on every render.
