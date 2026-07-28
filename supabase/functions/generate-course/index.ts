@@ -1,3 +1,12 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -270,6 +279,21 @@ Deno.serve(async (request) => {
   }
 
   try {
+    // -- Authentication --
+    const authorization = request.headers.get('Authorization');
+    if (!authorization) throw new AuthError('Sesión requerida.');
+
+    const url = Deno.env.get('SUPABASE_URL');
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+
+    if (!url || !anonKey) {
+      throw new Error('Missing Supabase configuration.');
+    }
+
+    const supabase = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new AuthError('Sesión inválida.');
+
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
     if (!apiKey) throw new Error('DEEPSEEK_API_KEY no está configurada.');
 
@@ -521,9 +545,13 @@ Deno.serve(async (request) => {
       { headers: rateLimitHeaders }
     );
   } catch (error) {
+    console.error('Error en generate-course:', error);
+    const isAuthError = error instanceof AuthError;
+    const status = isAuthError ? 401 : 500;
+
     return Response.json(
       { error: error instanceof Error ? error.message : 'Error inesperado.' },
-      { status: 500, headers: rateLimitHeaders }
+      { status: status, headers: rateLimitHeaders }
     );
   }
 });
