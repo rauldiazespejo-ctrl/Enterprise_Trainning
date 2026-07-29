@@ -1,0 +1,4 @@
+## 2024-05-18 - Missing Authentication and SSRF in Edge Function
+**Vulnerability:** The `scrape-url` Supabase Edge Function lacked explicit authentication validation and URL verification, allowing unauthenticated Server-Side Request Forgery (SSRF) attacks on internal/private IP addresses.
+**Learning:** Supabase Edge Functions do not inherently enforce authentication. It must be implemented manually, alongside strict SSRF protections when acting as a proxy or fetching external resources.
+**Prevention:** Always implement explicit authentication validation (extracting `Authorization` header and verifying via `supabase.auth.getUser()`) and robust URL validation (checking protocols and restricting local/private IPs) in Edge Functions that interact with external networks. Follow the "Fail Closed" principle by throwing `AuthError` if environment configurations are missing.

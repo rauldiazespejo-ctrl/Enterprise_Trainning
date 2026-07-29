@@ -1,5 +1,41 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+export class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+export function validateUrl(urlString: string): URL {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlString);
+  } catch {
+    throw new Error("URL malformada");
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error("Solo se permiten URLs HTTP o HTTPS");
+  }
+
+  const hostname = parsedUrl.hostname;
+
+  if (
+    hostname === 'localhost' ||
+    hostname === '[::1]' ||
+    hostname.startsWith('127.') ||
+    hostname.startsWith('10.') ||
+    hostname.startsWith('192.168.') ||
+    (hostname.startsWith('172.') && parseInt(hostname.split('.')[1]) >= 16 && parseInt(hostname.split('.')[1]) <= 31)
+  ) {
+    throw new Error("Acceso a red interna no permitido (SSRF)");
+  }
+
+  return parsedUrl;
+}
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -46,13 +82,33 @@ serve(async (req) => {
   }
 
   try {
+    const authorization = req.headers.get('Authorization');
+    if (!authorization) throw new AuthError('Sesión requerida.');
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://placeholder.supabase.co';
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY') || 'placeholder-key';
+
+    if (supabaseUrl === 'https://placeholder.supabase.co' || anonKey === 'placeholder-key') {
+       throw new AuthError('Falta configuración de Supabase.');
+    }
+
+    const supabase = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authorization } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) throw new AuthError('Sesión inválida.');
+
     const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
     }
 
-    console.log(`Buscando contenido de: ${url}`);
+    // Validar URL (SSRF)
+    const validUrl = validateUrl(url);
+
+    console.log(`Buscando contenido de: ${validUrl.toString()}`);
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
@@ -61,7 +117,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(validUrl.toString(), { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
@@ -100,11 +156,12 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error en scrape-url:", error.message);
+    const status = error instanceof AuthError ? 401 : 400;
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: status,
       }
     );
   }
