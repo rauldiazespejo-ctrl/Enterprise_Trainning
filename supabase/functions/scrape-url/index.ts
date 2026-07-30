@@ -53,6 +53,23 @@ serve(async (req) => {
     }
 
     console.log(`Buscando contenido de: ${url}`);
+
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido");
+    }
+
+    const hostname = parsedUrl.hostname;
+    const isLocalhost = hostname === 'localhost' || /^127\.\d+\.\d+\.\d+$/.test(hostname);
+    const isPrivate10 = /^10\.\d+\.\d+\.\d+$/.test(hostname);
+    const isPrivate192 = /^192\.168\.\d+\.\d+$/.test(hostname);
+    const isPrivate172 = /^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(hostname);
+    const isZero = /^0\.\d+\.\d+\.\d+$/.test(hostname);
+
+    if (isLocalhost || isPrivate10 || isPrivate192 || isPrivate172 || isZero || hostname.endsWith('.internal')) {
+      throw new Error("Acceso a red interna no permitido");
+    }
+
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
