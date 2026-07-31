@@ -67,13 +67,36 @@ const EmployeeManagement: React.FC = () => {
 
   const employees = users.filter(u => u.role === 'employee');
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
+  const employeeStatsMap = React.useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+
+    // Initialize map for all employees
+    employees.forEach(emp => {
+      map.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    });
+
+    // Process assignments in O(N)
+    assignments.forEach(a => {
+      const stats = map.get(a.userId);
+      if (stats) {
+        if (a.status === 'completed') stats.completed++;
+        else if (a.status === 'in_progress') stats.inProgress++;
+      }
+    });
+
+    // Process certificates in O(N)
+    certificates.forEach(c => {
+      const stats = map.get(c.userId);
+      if (stats) {
+        stats.certificates++;
+      }
+    });
+
+    return map;
+  }, [employees, assignments, certificates]);
+
+  const getEmployeeStats = (employeeId: string) => {
+    return employeeStatsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
   };
 
   const filteredEmployees = employees.filter(emp =>
@@ -261,8 +284,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = employees.reduce((sum, e) => sum + getEmployeeStats(e.id).completed, 0);
+  const totalInTraining = employees.filter(e => getEmployeeStats(e.id).inProgress > 0).length;
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +406,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = getEmployeeStats(employee.id);
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
