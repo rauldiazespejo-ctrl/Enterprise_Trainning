@@ -1,0 +1,3 @@
+## 2024-05-24 - O(N*M) bottlenecks in React array mapping with Context helpers
+**Learning:** Context helper functions like `getUserAssignments` that perform O(N) array filtering internally cause hidden O(N*M) bottlenecks when called repeatedly inside React list maps (e.g. `items.map()`) or loop-based aggregations (e.g. `reduce` / `filter`).
+**Action:** When rendering large lists that need aggregated relational data, avoid the helper functions entirely. Iterate through the underlying flat arrays (`assignments`, `certificates`) exactly once within a `useMemo` block to build a pre-aggregated `Map` grouped by the parent ID. This allows O(1) lookups during the render phase.
