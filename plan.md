@@ -1,0 +1,3 @@
+1. **Frontend Performance Optimization**: Identify that in `src/pages/admin/EmployeeManagement.tsx`, `employeeStats` is calling `getUserAssignments(employeeId)` and `certificates.filter(c => c.userId === employeeId)` repeatedly per employee on every render, resulting in an $O(N \cdot M)$ operation within the React render cycle where $N$ is the number of employees and $M$ is the number of assignments/certificates.
+2. **Apply Optimization**: Memoize `employeeStats` by transforming it from a helper function into a `useMemo` map object that groups assignments and certificates by user ID in a single $O(M)$ pass, giving $O(1)$ lookups per employee.
+3. **Verify and Pre-commit**: Test to ensure regressions are not introduced. Follow pre-commit instructions, run format checks.

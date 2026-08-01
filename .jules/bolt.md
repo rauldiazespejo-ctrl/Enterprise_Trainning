@@ -1,0 +1,3 @@
+## 2024-06-25 - Avoid O(N*M) lookup bottlenecks in React renders
+**Learning:** Performing array filtering inside loops (or mapping array lookups per item for N items over M total items) during synchronous React renders creates an O(N*M) bottleneck, potentially blocking the main thread and slowing down pagination, filtering, and component rendering.
+**Action:** Always pre-calculate complex, N*M related groupings into O(1) Maps with `useMemo` in a single O(N+M) pass before rendering to maintain optimal frontend performance, especially for derived UI aggregations. Ensure fallbacks are statically defined to maintain reference equality.
