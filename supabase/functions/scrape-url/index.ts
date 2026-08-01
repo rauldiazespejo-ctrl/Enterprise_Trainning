@@ -24,6 +24,32 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+function isSafeUrl(urlStr: string): boolean {
+  try {
+    const parsedUrl = new URL(urlStr);
+
+    // Only allow HTTP and HTTPS protocols
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsedUrl.hostname;
+
+    // Block local, private, and internal IPs and hostnames to prevent SSRF
+    const isInternal = /^(localhost$|127\.|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|169\.254\.|0\.0\.0\.0$)/.test(hostname)
+      || hostname === '[::1]'
+      || hostname.endsWith('.local');
+
+    if (isInternal) {
+       return false;
+    }
+
+    return true;
+  } catch (e) {
+    return false; // If URL parsing fails, consider it unsafe
+  }
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -50,6 +76,10 @@ serve(async (req) => {
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isSafeUrl(url)) {
+      throw new Error("URL inválida o no permitida");
     }
 
     console.log(`Buscando contenido de: ${url}`);
