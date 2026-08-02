@@ -1,0 +1,4 @@
+## 2024-11-20 - Enforce authentication on generate-course function
+**Vulnerability:** The Supabase Edge Function `generate-course` lacked explicit user authentication validation, which could allow unauthenticated API requests to trigger backend external requests (DeepSeek API calls), leading to potential DoS and excessive billing.
+**Learning:** Supabase Edge Functions do not enforce RLS or automatic request authentication natively when relying solely on internal logic; they require explicit extraction of the `Authorization` header and fetching of the session (`supabase.auth.getUser()`) to ensure caller identity.
+**Prevention:** Always validate `Authorization` headers in Edge Functions using `@supabase/supabase-js`'s `getUser()` and throw an explicit unauthenticated exception (fail closed) to reject anonymous requests.
