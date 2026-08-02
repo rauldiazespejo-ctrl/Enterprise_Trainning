@@ -428,7 +428,7 @@ const DocumentUpload: React.FC = () => {
               </div>
               {isParsing
                 ? <Loader2 className="w-5 h-5 text-brand animate-spin shrink-0" />
-                : <button onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" /></button>
+                : <button onClick={removeFile} aria-label="Eliminar archivo" className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X aria-hidden="true" className="w-5 h-5" /></button>
               }
             </div>
           )}
@@ -510,9 +510,10 @@ const DocumentUpload: React.FC = () => {
                     {sourceDocText && <CheckCircle className="w-5 h-5 text-emerald-400 shrink-0" />}
                     <button
                       onClick={removeSourceDoc}
+                      aria-label="Eliminar documento de referencia"
                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
                     >
-                      <X className="w-5 h-5" />
+                      <X aria-hidden="true" className="w-5 h-5" />
                     </button>
                   </>
                 )}
@@ -539,8 +540,13 @@ const DocumentUpload: React.FC = () => {
                   <BookOpen className="w-5 h-5 text-brand" />
                   <h3 className="font-semibold text-white">{slides.length} diapositivas extraídas</h3>
                 </div>
-                <button onClick={() => setShowSlidesPreview(v => !v)} className="text-slate-400 hover:text-white">
-                  {showSlidesPreview ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                <button
+                  onClick={() => setShowSlidesPreview(v => !v)}
+                  className="text-slate-400 hover:text-white"
+                  aria-label={showSlidesPreview ? "Ocultar previsualización de diapositivas" : "Mostrar previsualización de diapositivas"}
+                  aria-expanded={showSlidesPreview}
+                >
+                  {showSlidesPreview ? <ChevronUp aria-hidden="true" className="w-4 h-4" /> : <ChevronDown aria-hidden="true" className="w-4 h-4" />}
                 </button>
               </div>
 
