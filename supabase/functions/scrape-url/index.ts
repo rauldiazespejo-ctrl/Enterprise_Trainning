@@ -24,6 +24,66 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+// --- SSRF Protection ---
+const validateUrlForSSRF = (urlString: string) => {
+  let url;
+  try {
+    url = new URL(urlString);
+  } catch (e) {
+    throw new Error('URL inválida');
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new Error('Protocolo no permitido. Solo HTTP y HTTPS son soportados.');
+  }
+
+  const hostname = url.hostname;
+
+  // IPv4 mapped IPv6 (e.g., ::ffff:127.0.0.1) are handled if needed, but let's check basic patterns
+
+  // Forbidden exact hostnames
+  const forbiddenHostnames = ['localhost', 'broadcasthost'];
+  if (forbiddenHostnames.includes(hostname) || hostname.endsWith('.local')) {
+    throw new Error('Host no permitido (SSRF restriction)');
+  }
+
+  // IPv6 localhost
+  if (hostname === '::1' || hostname === '[::1]' || hostname === '0:0:0:0:0:0:0:1' || hostname === '[0:0:0:0:0:0:0:1]') {
+      throw new Error('Host IPv6 local no permitido (SSRF restriction)');
+  }
+
+  // IP Regex patterns
+  // 127.0.0.0/8
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    throw new Error('Host loopback no permitido (SSRF restriction)');
+  }
+
+  // 10.0.0.0/8
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    throw new Error('IP privada no permitida (SSRF restriction)');
+  }
+
+  // 172.16.0.0/12
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    throw new Error('IP privada no permitida (SSRF restriction)');
+  }
+
+  // 192.168.0.0/16
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    throw new Error('IP privada no permitida (SSRF restriction)');
+  }
+
+  // 169.254.0.0/16 (Link-local, often used for cloud metadata services)
+  if (/^169\.254\.\d{1,3}\.\d{1,3}$/.test(hostname)) {
+    throw new Error('Metadata IP no permitida (SSRF restriction)');
+  }
+
+  // 0.0.0.0/8
+  if (/^0\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname) || hostname === '0') {
+      throw new Error('Host 0.0.0.0 no permitido (SSRF restriction)');
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -51,6 +111,8 @@ serve(async (req) => {
     if (!url) {
       throw new Error("Se requiere una URL válida");
     }
+
+    validateUrlForSSRF(url);
 
     console.log(`Buscando contenido de: ${url}`);
     
