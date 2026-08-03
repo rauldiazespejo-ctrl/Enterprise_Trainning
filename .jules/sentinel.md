@@ -1,0 +1,4 @@
+## 2025-03-03 - SSRF Vulnerability in URL Scraping Edge Function
+**Vulnerability:** The `supabase/functions/scrape-url/index.ts` function accepted user-provided URLs and fetched them directly without validation, allowing Server-Side Request Forgery (SSRF). Attackers could use this to probe internal networks or access sensitive cloud metadata endpoints (e.g., AWS metadata at 169.254.169.254).
+**Learning:** Edge functions that proxy or scrape external content are high-risk targets for SSRF. Standard CORS checks do not protect against SSRF because the request originates from the server environment, not the user's browser.
+**Prevention:** Always parse untrusted URLs using `new URL()` to handle normalization, explicitly whitelist permitted protocols (`http`, `https`), and block hostnames associated with local loopback (`127.0.0.0/8`, `::1`), private networks (`10.0.0.0/8`, `192.168.0.0/16`, `172.16.0.0/12`), and cloud metadata IP ranges (`169.254.0.0/16`).
