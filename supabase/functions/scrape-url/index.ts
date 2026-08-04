@@ -52,6 +52,32 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection: Validate URL and block internal/private/local addresses
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL con formato inválido");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Solo HTTP y HTTPS son soportados.");
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Block local/internal hostnames
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname === 'broadcasthost') {
+      throw new Error("URL no permitida (SSRF protection)");
+    }
+
+    // Block private/local IP addresses
+    // Matches: 127.x.x.x, 10.x.x.x, 192.168.x.x, 172.16.x.x - 172.31.x.x, 169.254.x.x, 0.0.0.0, and IPv6 loopback
+    const ipPattern = /^(127\.|10\.|192\.168\.|169\.254\.|0\.|172\.(1[6-9]|2[0-9]|3[0-1])\.)|::1$/;
+    if (ipPattern.test(hostname)) {
+      throw new Error("URL no permitida (SSRF protection)");
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
