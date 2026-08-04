@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -27,21 +27,42 @@ const AssignmentManagement: React.FC = () => {
   const [assignResult, setAssignResult] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
-  const publishedCourses = courses.filter(c => c.status === 'published');
+  // Memoize filtered base data
+  const employees = useMemo(() => users.filter(u => u.role === 'employee' && u.status !== 'inactive'), [users]);
+  const publishedCourses = useMemo(() => courses.filter(c => c.status === 'published'), [courses]);
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // ⚡ Bolt Optimization: Use O(1) Map lookups to avoid O(N*M) nested array searches
+  const userMap = useMemo(() => {
+    const map = new Map();
+    users.forEach(u => map.set(u.id, u));
+    return map;
+  }, [users]);
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+  // ⚡ Bolt Optimization: Use O(1) Map lookups to avoid O(N*M) nested array searches
+  const courseMap = useMemo(() => {
+    const map = new Map();
+    courses.forEach(c => map.set(c.id, c));
+    return map;
+  }, [courses]);
+
+  // ⚡ Bolt Optimization: Memoize enriched assignments using O(1) maps
+  const enrichedAssignments = useMemo(() => {
+    return assignments.map(a => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+  }, [assignments, userMap, courseMap]);
+
+  // ⚡ Bolt Optimization: Memoize filtered results to prevent expensive re-computations on every render (e.g., during typing)
+  const filtered = useMemo(() => {
+    return enrichedAssignments.filter(a => {
+      if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterCourse && a.courseId !== filterCourse) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      return true;
+    });
+  }, [enrichedAssignments, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
@@ -109,12 +130,16 @@ const AssignmentManagement: React.FC = () => {
     }
   };
 
-  const stats = {
-    total: assignments.length,
-    pending: assignments.filter(a => a.status === 'pending').length,
-    inProgress: assignments.filter(a => a.status === 'in_progress').length,
-    completed: assignments.filter(a => a.status === 'completed').length,
-  };
+  // ⚡ Bolt Optimization: Calculate stats in a single O(N) pass using reduce, instead of multiple O(N) filters
+  const stats = useMemo(() => {
+    return assignments.reduce((acc, a) => {
+      acc.total++;
+      if (a.status === 'pending') acc.pending++;
+      else if (a.status === 'in_progress') acc.inProgress++;
+      else if (a.status === 'completed') acc.completed++;
+      return acc;
+    }, { total: 0, pending: 0, inProgress: 0, completed: 0 });
+  }, [assignments]);
 
   return (
     <MainLayout title="Asignaciones" subtitle="Gestiona las asignaciones de cursos" isAdmin>
