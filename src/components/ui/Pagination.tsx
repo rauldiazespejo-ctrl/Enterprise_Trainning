@@ -61,10 +61,10 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className={`flex items-center justify-between ${className}`}>
+    <nav className={`flex items-center justify-between ${className}`} aria-label="Navegación de páginas">
       {/* Info de paginación */}
       {totalItems !== undefined && pageSize !== undefined && (
-        <div className="text-sm text-slate-400">
+        <div className="text-sm text-slate-400" aria-live="polite" aria-atomic="true">
           Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalItems)} de {totalItems}
         </div>
       )}
@@ -78,7 +78,7 @@ const Pagination: React.FC<PaginationProps> = ({
           className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Página anterior"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
         </button>
 
         {/* Números de página */}
@@ -92,11 +92,13 @@ const Pagination: React.FC<PaginationProps> = ({
                   ? 'bg-brand text-white'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
               }`}
+              aria-label={`Página ${page}`}
+              aria-current={currentPage === page ? 'page' : undefined}
             >
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
               {page}
             </span>
           )
@@ -109,10 +111,10 @@ const Pagination: React.FC<PaginationProps> = ({
           className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           aria-label="Página siguiente"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </nav>
   );
 };
 
