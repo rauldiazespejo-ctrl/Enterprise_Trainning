@@ -1,0 +1,3 @@
+## 2024-08-05 - Optimize Employee Stats calculation in Employee Management
+**Learning:** Abstracting array filtering into helper functions (like `employeeStats()`) inside map/reduce loops creates hidden O(N*M) bottlenecks during React renders, especially when dealing with related entities like assignments and certificates for multiple users.
+**Action:** Replace nested `.filter()` helper calls with a single `useMemo` that iterates over the related collections once to build a `Map` of pre-calculated stats. This ensures O(1) lookups during render and prevents blocking the main thread when lists grow large.
