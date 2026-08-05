@@ -24,6 +24,51 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+
+const isSafeUrl = (urlString: string): boolean => {
+  try {
+    const parsedUrl = new URL(urlString);
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Block local / internal
+    if (hostname === 'localhost' || hostname.endsWith('.local')) {
+      return false;
+    }
+
+    // Cloud metadata
+    if (hostname === '169.254.169.254') return false;
+    // IPv6 localhost
+    if (hostname === '[::1]' || hostname === '::1') return false;
+
+    // IPv4 checks
+    const ipv4Match = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipv4Match) {
+      const p1 = parseInt(ipv4Match[1], 10);
+      const p2 = parseInt(ipv4Match[2], 10);
+
+      // Loopback
+      if (p1 === 127) return false;
+      // Private 10.0.0.0/8
+      if (p1 === 10) return false;
+      // Private 192.168.0.0/16
+      if (p1 === 192 && p2 === 168) return false;
+      // Private 172.16.0.0/12
+      if (p1 === 172 && p2 >= 16 && p2 <= 31) return false;
+      // Current network
+      if (p1 === 0) return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -50,6 +95,10 @@ serve(async (req) => {
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isSafeUrl(url)) {
+      throw new Error("URL no permitida por políticas de seguridad");
     }
 
     console.log(`Buscando contenido de: ${url}`);
