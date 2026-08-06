@@ -24,6 +24,47 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+
+// Helper to prevent SSRF by blocking internal/private IP ranges and hostnames
+const isPrivateOrLocalHost = (hostname: string): boolean => {
+  // Convert to lowercase for consistent checking
+  const lowerHost = hostname.toLowerCase();
+
+  // Check common local/internal hostnames
+  if (lowerHost === 'localhost' || lowerHost.endsWith('.local')) {
+    return true;
+  }
+
+  // Check IPv6 loopback and unspecified
+  if (lowerHost === '[::1]' || lowerHost === '[::]' || lowerHost === '::1' || lowerHost === '::') {
+    return true;
+  }
+
+  // Check Cloud Metadata (AWS, GCP, Azure)
+  if (lowerHost === '169.254.169.254') {
+    return true;
+  }
+
+  // IPv4 Address parsing
+  const ipv4Match = lowerHost.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4Match) {
+    const parts = ipv4Match.slice(1).map(Number);
+    // 0.0.0.0/8 (Current network)
+    if (parts[0] === 0) return true;
+    // 10.0.0.0/8 (Private network)
+    if (parts[0] === 10) return true;
+    // 127.0.0.0/8 (Loopback)
+    if (parts[0] === 127) return true;
+    // 169.254.0.0/16 (Link-local)
+    if (parts[0] === 169 && parts[1] === 254) return true;
+    // 172.16.0.0/12 (Private network)
+    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+    // 192.168.0.0/16 (Private network)
+    if (parts[0] === 192 && parts[1] === 168) return true;
+  }
+
+  return false;
+};
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -46,22 +87,39 @@ serve(async (req) => {
   }
 
   try {
-    const { url } = await req.json();
+const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
     }
 
-    console.log(`Buscando contenido de: ${url}`);
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch (e) {
+      throw new Error("URL malformada");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Solo se permite http y https.");
+    }
+
+    if (isPrivateOrLocalHost(parsedUrl.hostname)) {
+      throw new Error("El acceso a esta dirección IP o dominio no está permitido.");
+    }
+
+    const safeUrl = parsedUrl.toString();
+    console.log(`Buscando contenido de: ${safeUrl}`);
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
+
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(safeUrl, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
@@ -92,7 +150,7 @@ serve(async (req) => {
       JSON.stringify({
         success: true,
         text: cleanText,
-        title: url
+        title: safeUrl
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
