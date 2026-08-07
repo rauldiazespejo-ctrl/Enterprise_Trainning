@@ -219,11 +219,13 @@ const VisualSlide: React.FC<{ slide: Slide }> = ({ slide }) => {
 
       {/* Thumbnails row — only when multiple images */}
       {images.length > 1 && (
-        <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto shrink-0">
+        <div className="flex items-center gap-2 px-4 pb-3 overflow-x-auto shrink-0" role="group" aria-label="Miniaturas de imágenes">
           {images.map((img, idx) => (
             <button
               key={idx}
               onClick={() => setActiveImg(idx)}
+              aria-label={`Imagen ${idx + 1}`}
+              aria-current={idx === activeImg ? 'step' : undefined}
               className={`shrink-0 w-16 h-11 rounded-lg border-2 overflow-hidden transition-all ${
                 idx === activeImg
                   ? 'border-brand opacity-100'
