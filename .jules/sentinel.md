@@ -1,0 +1,4 @@
+## 2024-05-15 - [CRITICAL] Fix Server-Side Request Forgery (SSRF) in scrape-url
+**Vulnerability:** The `scrape-url` Supabase Edge Function directly fetched any URL provided by the user without validating the protocol or destination, allowing Server-Side Request Forgery (SSRF). This could be used to scan internal networks, access cloud metadata endpoints, or hit loopback addresses.
+**Learning:** The URL string was passed directly to the `fetch()` API. While CORS origins were validated for the *caller*, the *destination* URL inside the payload was completely unvalidated.
+**Prevention:** Always parse untrusted URLs using `new URL()` to properly normalize and analyze them. Restrict protocols to `http:`/`https:`. Block requests to local (`localhost`, `.local`, `::1`), private (`10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`), and metadata IP addresses (`169.254.169.254`) by parsing and validating the hostname.
