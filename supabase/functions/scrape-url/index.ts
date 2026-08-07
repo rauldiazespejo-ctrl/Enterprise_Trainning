@@ -52,7 +52,45 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
-    console.log(`Buscando contenido de: ${url}`);
+    // SSRF Protection
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL con formato inválido");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Solo HTTP y HTTPS");
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    if (hostname === 'localhost' || hostname === '[::1]' || hostname.endsWith('.local')) {
+      throw new Error("Destino no permitido");
+    }
+
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const match = hostname.match(ipv4Regex);
+    if (match) {
+      const p1 = parseInt(match[1], 10);
+      const p2 = parseInt(match[2], 10);
+
+      // 127.0.0.0/8 (Loopback)
+      if (p1 === 127) throw new Error("Destino no permitido");
+      // 10.0.0.0/8 (Private)
+      if (p1 === 10) throw new Error("Destino no permitido");
+      // 172.16.0.0/12 (Private)
+      if (p1 === 172 && p2 >= 16 && p2 <= 31) throw new Error("Destino no permitido");
+      // 192.168.0.0/16 (Private)
+      if (p1 === 192 && p2 === 168) throw new Error("Destino no permitido");
+      // 169.254.0.0/16 (Link-local/AWS metadata)
+      if (p1 === 169 && p2 === 254) throw new Error("Destino no permitido");
+      // 0.0.0.0/8 (Current network)
+      if (p1 === 0) throw new Error("Destino no permitido");
+    }
+
+    console.log(`Buscando contenido de: ${parsedUrl.href}`);
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
@@ -61,7 +99,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(parsedUrl.href, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
