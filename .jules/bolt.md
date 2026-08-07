@@ -1,0 +1,3 @@
+## 2024-08-07 - Convert O(N*M) Array Lookups to O(1) Maps in React Rendering
+**Learning:** During rendering, transforming an array with `.map()` that includes `.find()` calls to lookup related objects creates an O(N*M) time complexity bottleneck. This can significantly slow down performance when lists of assignments, users, and courses grow.
+**Action:** Always convert O(N) `.find()` lookups nested within rendering loops into O(1) Map lookups by pre-computing Maps for the related entities and memoizing them using `useMemo()`. Retrieve the values directly from the Map inside the callback to ensure fast lookups and maintain stable references.

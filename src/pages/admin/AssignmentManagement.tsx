@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -30,11 +30,30 @@ const AssignmentManagement: React.FC = () => {
   const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
   const publishedCourses = courses.filter(c => c.status === 'published');
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // ⚡ Bolt: Convert O(N) array lookups to O(1) Map lookups for performance when enriching assignments.
+  // This avoids O(N*M) complexity when filtering and rendering large assignment lists.
+  const usersMap = useMemo(() => {
+    const map = new Map();
+    users.forEach(u => map.set(u.id, u));
+    return map;
+  }, [users]);
+
+  // ⚡ Bolt: Cache course lookups in a Map to quickly resolve course names for assignments.
+  const coursesMap = useMemo(() => {
+    const map = new Map();
+    courses.forEach(c => map.set(c.id, c));
+    return map;
+  }, [courses]);
+
+  // ⚡ Bolt: Enrich assignments using O(1) Map lookups.
+  // This drastically reduces re-render time compared to nested `.find()` loops over the full arrays.
+  const enrichedAssignments = useMemo(() => {
+    return assignments.map(a => {
+      const emp = usersMap.get(a.userId);
+      const course = coursesMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+  }, [assignments, usersMap, coursesMap]);
 
   const filtered = enrichedAssignments.filter(a => {
     if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
