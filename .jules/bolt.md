@@ -1,0 +1,3 @@
+## 2024-05-15 - Abstraction Helpers Causing O(N*M) Render Bottlenecks
+**Learning:** Abstracting O(N) operations (like `.filter()`) into helper functions (e.g., `getUserAssignments(employeeId)`) within React components causes severe O(N*M) performance degradation when called iteratively (e.g., inside `.reduce()`, `.map()`, or `.filter()` over a list of M employees), especially during re-renders.
+**Action:** Replace inline abstraction helpers with a single O(N) grouping pass using a `Map` within a `useMemo` hook to pre-compute necessary values, achieving O(1) lookups during rendering without breaking referential equality. Retrieve values directly from the Map (e.g., `statsMap.get(id) || defaultStats`) to avoid excessive dependency chains.
