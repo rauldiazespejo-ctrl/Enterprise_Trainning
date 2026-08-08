@@ -777,8 +777,9 @@ const QuizModal: React.FC<QuizModalProps> = ({ quiz, onClose, onComplete, isFina
             <button
               onClick={onClose}
               className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-xl transition-all"
+              aria-label="Cerrar modal"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5" aria-hidden="true" />
             </button>
           </div>
           {/* Progress */}
