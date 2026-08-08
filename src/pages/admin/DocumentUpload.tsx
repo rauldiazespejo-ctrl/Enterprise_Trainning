@@ -428,7 +428,7 @@ const DocumentUpload: React.FC = () => {
               </div>
               {isParsing
                 ? <Loader2 className="w-5 h-5 text-brand animate-spin shrink-0" />
-                : <button onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" /></button>
+                : <button aria-label="Eliminar archivo" onClick={removeFile} className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"><X className="w-5 h-5" aria-hidden="true" /></button>
               }
             </div>
           )}
@@ -511,8 +511,9 @@ const DocumentUpload: React.FC = () => {
                     <button
                       onClick={removeSourceDoc}
                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors shrink-0"
+                      aria-label="Eliminar documento fuente"
                     >
-                      <X className="w-5 h-5" />
+                      <X className="w-5 h-5" aria-hidden="true" />
                     </button>
                   </>
                 )}

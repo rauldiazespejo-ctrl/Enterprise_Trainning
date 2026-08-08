@@ -175,8 +175,9 @@ const SuperAdminPanel: React.FC = () => {
           <button
             onClick={loadUsers}
             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Recargar usuarios"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
 
