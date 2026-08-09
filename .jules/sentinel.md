@@ -1,0 +1,4 @@
+## 2023-10-24 - SSRF in external URL scraping
+**Vulnerability:** The Supabase edge function `scrape-url` accepted unvalidated URLs from clients and passed them directly to `fetch()`, introducing a Server-Side Request Forgery (SSRF) vulnerability. This allowed external actors to force the server to make HTTP requests to internal IP ranges (10.x, 192.168.x, 172.16.x), localhost, and cloud metadata endpoints (169.254.169.254).
+**Learning:** `fetch()` in edge functions (Deno/Node) will resolve and request internal or local network IP addresses unless explicitly prevented. Without using `new URL()` validation, the function acts as an unauthenticated proxy.
+**Prevention:** Always validate and sanitize URLs before fetching them in edge functions. Ensure that the protocol is HTTP/HTTPS, parse the hostname, and explicitly block local, private, and metadata IP addresses.
