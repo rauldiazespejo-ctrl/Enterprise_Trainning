@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -67,14 +67,35 @@ const EmployeeManagement: React.FC = () => {
 
   const employees = users.filter(u => u.role === 'employee');
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  const statsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+
+    // Initialize with all employee IDs
+    users.forEach(user => {
+      if (user.role === 'employee') {
+        map.set(user.id, { completed: 0, inProgress: 0, certificates: 0 });
+      }
+    });
+
+    // Count assignments
+    assignments.forEach(a => {
+      const stat = map.get(a.userId);
+      if (stat) {
+        if (a.status === 'completed') stat.completed++;
+        else if (a.status === 'in_progress') stat.inProgress++;
+      }
+    });
+
+    // Count certificates
+    certificates.forEach(c => {
+      const stat = map.get(c.userId);
+      if (stat) stat.certificates++;
+    });
+
+    return map;
+  }, [users, assignments, certificates]);
+
+  const getStats = (employeeId: string) => statsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +282,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = employees.reduce((sum, e) => sum + getStats(e.id).completed, 0);
+  const totalInTraining = employees.filter(e => getStats(e.id).inProgress > 0).length;
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +404,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = getStats(employee.id);
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
