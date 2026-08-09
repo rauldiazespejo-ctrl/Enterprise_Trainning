@@ -15,6 +15,43 @@ const isOriginAllowed = (origin: string | null): boolean => {
   return allowed.includes(origin);
 };
 
+
+const isValidSafeUrl = (urlString: string): boolean => {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Bloquear hostnames locales/internos
+    if (hostname === 'localhost' || hostname.endsWith('.local')) return false;
+    if (hostname === '169.254.169.254' || hostname === '[::1]') return false;
+
+    // Bloquear IPs privadas (IPv4)
+    const ipv4Regex = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+    const match = hostname.match(ipv4Regex);
+    if (match) {
+      const octet1 = parseInt(match[1], 10);
+      const octet2 = parseInt(match[2], 10);
+
+      // 127.0.0.0/8 (Loopback)
+      if (octet1 === 127) return false;
+      // 10.0.0.0/8 (Private)
+      if (octet1 === 10) return false;
+      // 172.16.0.0/12 (Private)
+      if (octet1 === 172 && octet2 >= 16 && octet2 <= 31) return false;
+      // 192.168.0.0/16 (Private)
+      if (octet1 === 192 && octet2 === 168) return false;
+      // 169.254.0.0/16 (Link-local)
+      if (octet1 === 169 && octet2 === 254) return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   const allowedOrigin = isOriginAllowed(origin) ? origin : '';
   return {
@@ -50,6 +87,10 @@ serve(async (req) => {
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isValidSafeUrl(url)) {
+      throw new Error("URL inválida o no permitida");
     }
 
     console.log(`Buscando contenido de: ${url}`);
