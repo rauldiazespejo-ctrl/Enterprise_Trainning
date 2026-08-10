@@ -1,0 +1,3 @@
+## 2025-03-24 - Optimize O(N*M) Map/Find React Renders
+**Learning:** Found a performance bottleneck in `AssignmentManagement.tsx` where `.map()` and `.find()` were nested to enrich data on every render (O(N*M) complexity). Multiple `.filter()` passes on the same array were also used for simple aggregation. These naive array operations cause major lag as the dataset grows and triggers expensive component re-renders (e.g. on every keystroke in search inputs).
+**Action:** When deriving state or transforming arrays in React, aggressively use `useMemo`. Precompute lookup Maps (O(1)) instead of `.find()` for relation matching. Consolidate multiple O(N) array traversals (like `.filter()`) into a single O(N) traversal using `.reduce()`.
