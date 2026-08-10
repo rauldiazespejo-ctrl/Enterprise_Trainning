@@ -52,6 +52,31 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL con formato inválido");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Use http o https");
+    }
+
+    const host = parsedUrl.hostname.toLowerCase();
+    if (
+      host === 'localhost' ||
+      host.endsWith('.local') ||
+      host === '[::1]' ||
+      host === '169.254.169.254' ||
+      host.startsWith('127.') ||
+      host.startsWith('10.') ||
+      host.startsWith('192.168.') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(host)
+    ) {
+      throw new Error("Acceso a host interno no permitido");
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
