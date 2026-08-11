@@ -52,6 +52,38 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL inválida");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("El protocolo de la URL debe ser HTTP o HTTPS");
+    }
+
+    const isInternalIpOrHost = (hostname: string): boolean => {
+      if (hostname === 'localhost' || hostname === '[::1]' || hostname.endsWith('.local') || hostname.startsWith('localhost.')) return true;
+
+      const parts = hostname.split('.');
+      if (parts.length === 4 && parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+        if (p1 === 127) return true;
+        if (p1 === 10) return true;
+        if (p1 === 172 && p2 >= 16 && p2 <= 31) return true;
+        if (p1 === 192 && p2 === 168) return true;
+        if (p1 === 169 && p2 === 254) return true;
+        if (p1 === 0) return true;
+      }
+      return false;
+    };
+
+    if (isInternalIpOrHost(parsedUrl.hostname)) {
+      throw new Error("El acceso a direcciones internas o privadas no está permitido por razones de seguridad.");
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
