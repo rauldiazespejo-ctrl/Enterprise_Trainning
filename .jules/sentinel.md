@@ -1,0 +1,4 @@
+## 2024-05-27 - SSRF Vulnerability in Edge Function
+**Vulnerability:** The `scrape-url` Supabase Edge function fetched arbitrary URLs provided by the user without any validation, enabling Server-Side Request Forgery (SSRF). This could allow an attacker to probe internal networks, cloud metadata services, or other restricted IP addresses from the perspective of the server.
+**Learning:** Functions that accept user-provided URLs and perform backend requests must explicitly restrict the target destination. The lack of restriction allowed the function to fetch from `localhost` or private IP ranges.
+**Prevention:** Implement a strict `isUrlAllowed` check that parses the URL, restricts protocols to `http:` and `https:`, explicitly denies known internal hostnames (`localhost`, `*.local`), and strictly validates and blocks private, loopback, and cloud metadata IPv4 ranges. Ensure the IPv4 validation prevents string-based bypasses by parsing the octets as integers.
