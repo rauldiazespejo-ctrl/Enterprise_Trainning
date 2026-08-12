@@ -1,0 +1,3 @@
+## 2024-08-12 - Accessible Pagination Patterns
+**Learning:** React component libraries often implement pagination using generic `div` wrappers and interactive buttons containing raw numbers or decorative SVG icons, which screen readers interpret poorly (e.g., announcing just "1", "2", or failing to distinguish the current page).
+**Action:** When working on pagination in this app, ensure the root container is a semantic `<nav>` with `aria-label`, decorative icons/ellipses are explicitly hidden with `aria-hidden="true"`, page numbers have specific context via `aria-label`, and the active page is clearly indicated with `aria-current="page"`.
