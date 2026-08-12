@@ -55,20 +55,67 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const {
+    totalCourses,
+    completedCourses,
+    inProgressCourses,
+    nextCourse,
+    inProgressList,
+    pendingCourses
+  } = React.useMemo(() => {
+    if (!user) {
+      return {
+        totalCourses: 0,
+        completedCourses: 0,
+        inProgressCourses: 0,
+        nextCourse: undefined,
+        inProgressList: [],
+        pendingCourses: []
+      };
+    }
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    let completed = 0;
+    let inProgress = 0;
+    let next: any = undefined;
+    const inProgressArr: any[] = [];
+    const pendingArr: any[] = [];
+    let total = 0;
+
+    for (const a of assignments) {
+      if (a.userId !== user.id) continue;
+
+      const course = courseMap.get(a.courseId);
+      if (!course) continue;
+
+      total++;
+      const assignedCourse = { ...course, assignment: a };
+
+      if (a.status === 'completed') {
+        completed++;
+      } else if (a.status === 'in_progress') {
+        inProgress++;
+        inProgressArr.push(assignedCourse);
+        if (!next) next = assignedCourse;
+      } else if (a.status === 'pending') {
+        pendingArr.push(assignedCourse);
+      }
+    }
+
+    return {
+      totalCourses: total,
+      completedCourses: completed,
+      inProgressCourses: inProgress,
+      nextCourse: next,
+      inProgressList: inProgressArr,
+      pendingCourses: pendingArr
+    };
+  }, [user, assignments, courses]);
+
+  const certificates = React.useMemo(() =>
+    user ? getUserCertificates(user.id) : [],
+  [user, getUserCertificates]);
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
