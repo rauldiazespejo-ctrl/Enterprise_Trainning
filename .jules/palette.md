@@ -1,0 +1,3 @@
+## 2024-08-13 - Semantic Pagination and Accessible Dynamic Lists
+**Learning:** Proper pagination accessibility requires defining the region with `<nav aria-label="...">` to communicate structure. Dynamic summary texts (e.g., "Showing X of Y") need `aria-live="polite"` and `aria-atomic="true"` to announce changes to screen readers without interrupting flow. Decorative elements like ellipsis must be explicitly hidden with `aria-hidden="true"`, and individual page buttons require accurate `aria-label` and `aria-current="page"` attributes to communicate their state effectively.
+**Action:** When implementing or refining custom pagination components, always ensure these core ARIA attributes are present to provide a seamless navigation experience for assistive technologies.
