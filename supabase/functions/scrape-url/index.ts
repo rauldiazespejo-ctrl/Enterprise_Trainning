@@ -45,11 +45,64 @@ serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+function isSafeUrl(urlString: string): boolean {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // Block common internal names
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+      return false;
+    }
+
+    // Validate IP addresses (IPv4 and IPv6)
+    // new URL() handles hex/octal normalization for IPs
+    const ipMatch = hostname.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+    if (ipMatch) {
+      const parts = hostname.split('.');
+      if (!parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+         return false; // Invalid format
+      }
+
+      const octets = parts.map(p => parseInt(p, 10));
+      const [a, b] = octets;
+
+      if (
+        a === 127 || // Loopback
+        a === 10 || // RFC 1918 10.x.x.x
+        (a === 172 && b >= 16 && b <= 31) || // RFC 1918 172.16.x.x - 172.31.x.x
+        (a === 192 && b === 168) || // RFC 1918 192.168.x.x
+        (a === 169 && b === 254) || // Link-local (Cloud metadata)
+        a === 0 // Current network
+      ) {
+        return false;
+      }
+    }
+
+    // Block IPv6 loopback and private
+    if (hostname === '[::1]' || hostname === '::1' || hostname.startsWith('[fd') || hostname.startsWith('[fc') || hostname.startsWith('[fe80')) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
   try {
     const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isSafeUrl(url)) {
+      throw new Error("La URL proporcionada no está permitida (posible riesgo de SSRF)");
     }
 
     console.log(`Buscando contenido de: ${url}`);
