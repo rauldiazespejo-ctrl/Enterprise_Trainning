@@ -1,0 +1,5 @@
+
+## 2024-05-24 - Fix SSRF Vulnerability in URL Scraper
+**Vulnerability:** The `scrape-url` Supabase Edge Function lacked input validation on the `url` parameter before calling `fetch(url)`. This permitted Server-Side Request Forgery (SSRF), allowing an attacker to request internal network resources, loopback addresses (127.0.0.1), or cloud metadata services (169.254.169.254) from the Edge Function's environment.
+**Learning:** External URLs provided by users must be explicitly validated before being fetched on the server. `new URL()` natively normalizes IP addresses (e.g., converting octal/hex to decimal), which is critical for checking if the resulting IP falls into forbidden private/local ranges.
+**Prevention:** Always implement robust URL validation that restricts allowed protocols (e.g., HTTP/HTTPS) and blocks resolution to private, internal, or loopback hostnames and IP addresses. For edge/serverless functions, blocking RFC 1918 addresses and the link-local metadata address (169.254.169.254) is essential.
