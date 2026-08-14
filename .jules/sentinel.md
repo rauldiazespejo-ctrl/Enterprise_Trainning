@@ -1,0 +1,4 @@
+## 2024-08-14 - Missing Auth on Deepseek Wrapper
+**Vulnerability:** The `generate-course` Supabase Edge Function lacked explicit authentication validation (`auth.getUser()`), leaving the external Deepseek API wrapper exposed to unauthorized, unauthenticated public access.
+**Learning:** In Supabase Edge Functions, authentication is not automatically enforced by the platform even if the client includes an `Authorization` header. Developers must explicitly parse the header, instantiate the Supabase client, and call `auth.getUser()` to validate the session.
+**Prevention:** Always follow the "Fail Closed" security principle for internal/proxy Edge Functions. Manually enforce `auth.getUser()` checks as the first step of execution, throwing an explicit error (like a custom `AuthError` resulting in a 401 HTTP response) if validation fails or environment variables are missing.
