@@ -1,0 +1,4 @@
+
+## 2024-08-14 - Pagination Accessibility Pattern
+**Learning:** Pagination components often rely on non-semantic markup (divs) and lack structural context. The `<nav>` element with an `aria-label` provides this context. Decorative ellipsis indicators need `aria-hidden="true"`, and the current page needs `aria-current="page"` to fully describe the state and avoid redundant screen reader announcements. Also, appending `aria-live="polite"` and `aria-atomic="true"` to summary information text (e.g., "Showing 1-10 of 50") provides vital context to non-visual users as they interact with the control.
+**Action:** Always wrap pagination in a semantic `<nav>` region, explicitly hide non-interactive decorative elements from screen readers, and announce active states and result summaries appropriately using `aria-current` and `aria-live`.
