@@ -1,0 +1,3 @@
+## 2024-08-15 - Pagination Accessibility
+**Learning:** Reusable pagination components must be wrapped in a `<nav>` element with an appropriate `aria-label`, use `aria-live="polite"` for their summary elements, and explicitly identify the current page using `aria-current="page"`. Decorative ellipsis and inner icons should be hidden using `aria-hidden="true"` to prevent redundant screen reader announcements.
+**Action:** Always include semantic navigation landmarks (`<nav>`) and active state indicators (`aria-current="page"`) alongside `aria-live` regions when building or refactoring pagination controls.
