@@ -1,0 +1,5 @@
+
+## 2024-05-24 - [Fix SSRF and Missing Auth in scrape-url Edge Function]
+**Vulnerability:** The `scrape-url` Supabase edge function was missing authentication controls entirely, allowing anyone to fetch arbitrary URLs, including local or cloud metadata endpoints, exposing the system to Server-Side Request Forgery (SSRF) and Unauthorized Access.
+**Learning:** Edge functions are intentionally separate from typical Supabase auth restrictions. If authentication isn't enforced manually, anyone can call them. For SSRF, string-based IP validation is complex to get right due to multiple formats (octal, hex). Relying solely on `new URL` properties without explicit IP parsing is insufficient.
+**Prevention:** Always enforce `@supabase/supabase-js` authentication using headers at the very start of every Edge Function. Implement a custom `AuthError` to safely fail closed with a 401. To prevent SSRF, use strict IP splitting validation after host normalization and reject any local, private, or internal network requests.
