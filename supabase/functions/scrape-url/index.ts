@@ -1,5 +1,13 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -46,10 +54,39 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) throw new AuthError("Sesión requerida");
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) throw new AuthError("Configuración de autenticación faltante");
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    const { data: { user } } = await supabaseClient.auth.getUser();
+    if (!user) throw new AuthError("No autorizado");
+
     const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido");
+    }
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname === '[::1]') {
+      throw new Error("Hostname no permitido");
+    }
+    const parts = hostname.split('.');
+    if (parts.length === 4 && parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+      const [a, b] = parts.map(Number);
+      if (a === 127 || a === 10 || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || (a === 169 && b === 254) || a === 0) {
+        throw new Error("IP no permitida");
+      }
     }
 
     console.log(`Buscando contenido de: ${url}`);
@@ -99,12 +136,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error en scrape-url:", error.message);
+    console.error("Error en scrape-url:", error instanceof Error ? error.message : error);
+    const isAuthError = error instanceof AuthError;
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: error instanceof Error ? error.message : "Error inesperado" }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: isAuthError ? 401 : 400,
       }
     );
   }
