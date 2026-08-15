@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoid filtering arrays repeatedly in rendering loops
+**Learning:** In React, placing an O(N) array `.filter()` inside a component function called for every item in a list results in O(N*M) time complexity. Using abstract context helpers like `getUserAssignments` hides this iteration but still causes performance degradation when the list of items (e.g. employees) scales.
+**Action:** When calculating derived statistics for list items based on global arrays, bypass individual lookup helpers. Instead, group the flat arrays into a Map with a single `useMemo` O(N) pass, and use O(1) Map lookups when rendering the items.
