@@ -1,0 +1,3 @@
+## 2024-05-24 - Accessible Pagination Pattern
+**Learning:** Pagination controls often lack semantic structure and context for screen readers. Using just `div`s and unlabelled buttons makes it hard for non-visual users to understand the current page context or notice when the list updates dynamically.
+**Action:** When implementing pagination or dynamically updating lists, wrap the page controls in a `<nav aria-label="Navegación de páginas">`. Apply `aria-live="polite"` and `aria-atomic="true"` to the summary information element (e.g., "Mostrando 1 - 10 de 50"). For page buttons, add `aria-label` (e.g. "Página 1") and `aria-current="page"` for the active step. Finally, ensure decorative elements like ellipsis spans have `aria-hidden="true"`.
