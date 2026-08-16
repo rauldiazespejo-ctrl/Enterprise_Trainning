@@ -1,0 +1,3 @@
+## 2024-08-16 - O(N*M) calculation to O(1) Map lookup in EmployeeManagement
+**Learning:** Found a performance bottleneck where `employeeStats` was recalculated for every employee while rendering the dashboard and calculating overall stats. This was an O(N*M) operation because it iterated over assignments inside the employee mapping.
+**Action:** Implemented `employeeStatsMap` using `useMemo` to group assignments and certificates into a map by `userId` and then querying the map in O(1) time. This efficiently precomputes the required statistics for all employees in a single sweep. Next time, always check if multiple O(N) queries within another loop can be transformed into a precomputed Map lookup using `useMemo`.
