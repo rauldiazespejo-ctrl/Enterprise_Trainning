@@ -24,6 +24,41 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isValidExternalUrl = (urlStr: string): boolean => {
+  try {
+    const parsedUrl = new URL(urlStr);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) return false;
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname === '[::1]') return false;
+
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+    if (isIP) {
+      const parts = hostname.split('.');
+      if (parts.length === 4 && parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+
+        if (
+          p1 === 127 ||
+          p1 === 10 ||
+          (p1 === 172 && p2 >= 16 && p2 <= 31) ||
+          (p1 === 192 && p2 === 168) ||
+          (p1 === 169 && p2 === 254) ||
+          p1 === 0
+        ) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -50,6 +85,11 @@ serve(async (req) => {
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isValidExternalUrl(url)) {
+      console.log(`SSRF attempt blocked for URL: ${url}`);
+      throw new Error("URL no permitida. Solo se permiten URLs externas válidas vía HTTP/HTTPS.");
     }
 
     console.log(`Buscando contenido de: ${url}`);
