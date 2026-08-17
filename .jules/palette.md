@@ -1,0 +1,3 @@
+## 2024-08-17 - Robust Form Accessibility with useId
+**Learning:** Developers often forget to pass unique `id` props to reusable custom form components (like Input or Select), which breaks the association between the `<label>` (`htmlFor`) and the input, and between error messages (`aria-describedby`) and the input. This negatively impacts screen reader users.
+**Action:** Always use React`s `useId()` hook within custom form components to automatically generate unique fallback IDs when an explicit `id` prop is not provided. This ensures that form controls are always robustly associated with their labels and error states by default without developer overhead.
