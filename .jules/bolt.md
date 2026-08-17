@@ -1,0 +1,4 @@
+
+## 2024-05-20 - [O(N*M) Stats Calculation Bottleneck in React Render]
+**Learning:** In `EmployeeManagement.tsx`, `employeeStats` was performing nested $O(N \times M)$ array `.filter()` passes across `assignments` and `certificates` on every render for every employee. Furthermore, extracting this to a single O(1) map required ensuring the default stats object (`DEFAULT_STATS`) was defined outside the component to preserve referential equality and prevent unnecessary re-renders in child components receiving these stats.
+**Action:** When calculating aggregations across multiple collections for a list of entities in React, consolidate the iteration into a single `useMemo` pass that builds a `Map` for O(1) lookups, and ensure any default fallback objects are declared statically outside the component scope.
