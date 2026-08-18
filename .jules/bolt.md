@@ -1,0 +1,3 @@
+## 2025-03-09 - [Optimizing O(N*M) components via Maps]
+**Learning:** When calculating stats or derived data from multiple large collections (like `assignments` and `certificates`) for each employee in a table, relying on per-item function calls that perform their own `.filter()` or iteration results in an O(N*M) performance bottleneck. This pattern occurs commonly with abstractions like `getUserAssignments`.
+**Action:** Bypass these O(N) context helpers and directly map the underlying collections to the entities via a single `useMemo` pass. Initializing a `Map` (with O(1) lookups) over the arrays explicitly reduces complexity to O(N+M) and avoids unnecessary re-renders when paired with a static default object (`DEFAULT_STATS`).
