@@ -1,0 +1,3 @@
+## 2024-06-12 - O(N*M) React Array Filtering Bottlenecks
+**Learning:** Calling complex O(N) array filtering functions like `getUserAssignments` repeatedly inside `.reduce()`, `.map()`, or `.filter()` during component render loops creates O(N*M) performance bottlenecks (where N is the size of the array and M is the number of times the function is called, often the number of rows/employees).
+**Action:** When deriving multiple statistics across multiple entities, bypass O(N) context helpers. Instead, group the underlying flat array using a Map in a single `useMemo` pass (O(N) total) to achieve O(1) lookups for all child components and sequential iterations. Retrieve the values directly from the Map inside the callback to avoid excessive dependency chains.
