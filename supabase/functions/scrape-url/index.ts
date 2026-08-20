@@ -1,5 +1,50 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
+const isAllowedUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = url.hostname;
+    const parts = hostname.split('.');
+
+    // Block common internal/local hostnames and IPs
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]' || hostname.endsWith('.local');
+    const isLinkLocal = hostname === '169.254.169.254';
+
+    let isPrivateIp = false;
+    if (parts.length === 4 && parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+      const p1 = parseInt(parts[0], 10);
+      const p2 = parseInt(parts[1], 10);
+      if (
+        p1 === 10 ||
+        (p1 === 172 && p2 >= 16 && p2 <= 31) ||
+        (p1 === 192 && p2 === 168) ||
+        p1 === 127
+      ) {
+        isPrivateIp = true;
+      }
+    }
+
+    if (isLocalhost || isLinkLocal || isPrivateIp) {
+      return false;
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -46,10 +91,34 @@ serve(async (req) => {
   }
 
   try {
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new AuthError('Missing Authorization header');
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new AuthError('Server configuration error');
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabaseClient.auth.getUser();
+    if (authError || !user) {
+      throw new AuthError('Invalid or expired token');
+    }
+
     const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
+    }
+
+    if (!isAllowedUrl(url)) {
+      throw new Error("URL no permitida");
     }
 
     console.log(`Buscando contenido de: ${url}`);
@@ -99,12 +168,13 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Error en scrape-url:", error.message);
+    const isAuthError = error instanceof AuthError;
+    console.error(`Error en scrape-url${isAuthError ? ' (Auth)' : ''}:`, error.message);
     return new Response(
-      JSON.stringify({ success: false, error: error.message }),
+      JSON.stringify({ success: false, error: isAuthError ? 'Acceso denegado' : error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status: isAuthError ? 401 : 400,
       }
     );
   }
