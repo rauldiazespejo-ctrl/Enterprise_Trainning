@@ -52,6 +52,39 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection
+    const parsedUrl = new URL(url);
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error("Protocolo no permitido. Solo se permiten http y https.");
+    }
+
+    const hostname = parsedUrl.hostname.toLowerCase();
+
+    // Check for explicit blocked domains or IPs
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.local') ||
+      hostname.includes('169.254.169.254') ||
+      hostname === '[::1]'
+    ) {
+      throw new Error("Acceso a host local o metadatos bloqueado.");
+    }
+
+    // If it's an IPv4 address, check for private ranges
+    // Split by dot and ensure all parts are strictly numbers to avoid bypasses like 127.0.0.1.nip.io handled as IP
+    const ipv4Parts = hostname.split('.');
+    if (ipv4Parts.length === 4 && ipv4Parts.every(p => !isNaN(parseInt(p, 10)) && String(parseInt(p, 10)) === p)) {
+      const parts = ipv4Parts.map(p => parseInt(p, 10));
+      if (
+        parts[0] === 127 || // 127.0.0.0/8
+        parts[0] === 10 ||  // 10.0.0.0/8
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) || // 172.16.0.0/12
+        (parts[0] === 192 && parts[1] === 168) // 192.168.0.0/16
+      ) {
+        throw new Error("Acceso a red privada bloqueado.");
+      }
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
