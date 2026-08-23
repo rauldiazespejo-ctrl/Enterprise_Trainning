@@ -52,6 +52,105 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection using Deno.resolveDns
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error("Solo se permiten URLs HTTP/HTTPS");
+      }
+
+      const hostname = parsedUrl.hostname;
+      if (
+        hostname === 'localhost' ||
+        hostname.endsWith('.local') ||
+        hostname.endsWith('.nip.io') ||
+        hostname.endsWith('.sslip.io')
+      ) {
+        throw new Error("URL no permitida");
+      }
+
+      let ipv4Addresses: string[] = [];
+      let ipv6Addresses: string[] = [];
+
+      try {
+        // En Deno, Deno.resolveDns es la forma nativa de resolver.
+        // Si el hostname ya es una IP (ej: 127.0.0.1, 2130706433, 0x7f.0.0.1), Deno fetch fallará si es inválida,
+        // pero necesitamos bloquear las IPs directamente en caso de bypasses.
+
+        // Es un IP directo?
+        const isIp = /^([0-9a-fA-F:.]+)$/.test(hostname) || /^[0-9]+$/.test(hostname);
+
+        try {
+          ipv4Addresses = await Deno.resolveDns(hostname, "A");
+        } catch {
+          // ignore
+        }
+        try {
+          ipv6Addresses = await Deno.resolveDns(hostname, "AAAA");
+        } catch {
+          // ignore
+        }
+
+        // Si es una IP que no se resuelve por DNS, parsearla manualmente
+        if (ipv4Addresses.length === 0 && ipv6Addresses.length === 0 && isIp) {
+             // For string IPs that don't resolve, fallback to string inspection or block to be safe.
+             // If we can't resolve it, and it looks like an IP, it might be a bypass.
+             // To be secure, we can try fetching it locally and catching network errors, but we can't reliably block all.
+             // Deno URL parsing already normalizes many IPs to hostname.
+             ipv4Addresses = [hostname]; // Try treating it as IPv4 string
+        }
+
+      } catch (e) {
+        throw new Error("Error resolviendo dominio");
+      }
+
+      const allIps = [...ipv4Addresses, ...ipv6Addresses];
+
+      if (allIps.length === 0) {
+        throw new Error("No se pudo resolver el dominio");
+      }
+
+      for (const ip of allIps) {
+        // IPv4 check
+        if (ip.includes('.')) {
+          const parts = ip.split('.');
+          if (parts.length === 4) {
+            const a = parseInt(parts[0], 10);
+            const b = parseInt(parts[1], 10);
+
+            if (
+              a === 127 || // Loopback
+              a === 10 || // Private
+              (a === 172 && b >= 16 && b <= 31) || // Private
+              (a === 192 && b === 168) || // Private
+              (a === 169 && b === 254) || // Link-local
+              a === 0 || // 0.0.0.0
+              a === 255 // Broadcast
+            ) {
+              throw new Error("Resolución a IP no permitida");
+            }
+          }
+        }
+        // IPv6 check
+        if (ip.includes(':')) {
+          const lowerIp = ip.toLowerCase();
+          if (
+            lowerIp === '::1' || // Loopback
+            lowerIp === '::' || // Unspecified
+            lowerIp.startsWith('fe80:') || // Link-local
+            lowerIp.startsWith('fc00:') || // Unique local
+            lowerIp.startsWith('fd00:') || // Unique local
+            lowerIp.startsWith('::ffff:127.') // IPv4-mapped loopback
+          ) {
+            throw new Error("Resolución a IP no permitida");
+          }
+        }
+      }
+
+    } catch (e) {
+      throw new Error(e instanceof Error ? e.message : "URL no válida");
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
