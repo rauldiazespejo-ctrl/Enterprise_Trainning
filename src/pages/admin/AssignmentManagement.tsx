@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -27,21 +27,31 @@ const AssignmentManagement: React.FC = () => {
   const [assignResult, setAssignResult] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
-  const publishedCourses = courses.filter(c => c.status === 'published');
+  // ⚡ Bolt: Memoized array filtering to prevent O(N) recalculations on every render
+  const employees = useMemo(() => users.filter(u => u.role === 'employee' && u.status !== 'inactive'), [users]);
+  const publishedCourses = useMemo(() => courses.filter(c => c.status === 'published'), [courses]);
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // ⚡ Bolt: Consolidated mapping and filtering into a single useMemo pass.
+  // Converted O(N*M) nested .find() lookups into O(1) Map retrievals,
+  // reducing time complexity to O(N+M) and improving search input responsiveness.
+  const filtered = useMemo(() => {
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+    return assignments.reduce((acc, a) => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      const employeeName = emp?.name || 'Empleado';
+      const courseTitle = course?.title || 'Curso';
+
+      if (searchTerm && !employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return acc;
+      if (filterCourse && a.courseId !== filterCourse) return acc;
+      if (filterStatus && a.status !== filterStatus) return acc;
+
+      acc.push({ ...a, employeeName, courseTitle });
+      return acc;
+    }, [] as (typeof assignments[0] & { employeeName: string; courseTitle: string })[]);
+  }, [assignments, users, courses, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
