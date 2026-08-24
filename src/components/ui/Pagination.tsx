@@ -64,13 +64,13 @@ const Pagination: React.FC<PaginationProps> = ({
     <div className={`flex items-center justify-between ${className}`}>
       {/* Info de paginación */}
       {totalItems !== undefined && pageSize !== undefined && (
-        <div className="text-sm text-slate-400">
+        <div className="text-sm text-slate-400" aria-live="polite" aria-atomic="true">
           Mostrando {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, totalItems)} de {totalItems}
         </div>
       )}
 
       {/* Navegación de páginas */}
-      <div className="flex items-center gap-1">
+      <nav aria-label="Navegación de páginas" className="flex items-center gap-1">
         {/* Botón anterior */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -87,6 +87,8 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               key={page}
               onClick={() => onPageChange(page)}
+              aria-label={`Página ${page}`}
+              aria-current={currentPage === page ? 'page' : undefined}
               className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors ${
                 currentPage === page
                   ? 'bg-brand text-white'
@@ -96,7 +98,7 @@ const Pagination: React.FC<PaginationProps> = ({
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
               {page}
             </span>
           )
@@ -111,7 +113,7 @@ const Pagination: React.FC<PaginationProps> = ({
         >
           <ChevronRight className="w-5 h-5" />
         </button>
-      </div>
+      </nav>
     </div>
   );
 };
