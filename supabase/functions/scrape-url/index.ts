@@ -52,6 +52,44 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL inválida");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Solo HTTP y HTTPS son soportados.");
+    }
+
+    const isPrivateIP = (ip: string): boolean => {
+      return /^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(ip) ||
+             ip === '::1' || ip === '[::1]' || ip === 'localhost' ||
+             ip.endsWith('.local') ||
+             /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+    };
+
+    if (isPrivateIP(parsedUrl.hostname)) {
+      throw new Error("Destino no permitido.");
+    }
+
+    // Resolve DNS to catch DNS rebinding/CNAME tricks to private IPs
+    for (const recordType of ['A', 'AAAA'] as const) {
+      try {
+        const ips = await Deno.resolveDns(parsedUrl.hostname, recordType);
+        if (ips.some(isPrivateIP)) {
+          throw new Error("Destino no permitido.");
+        }
+      } catch (err) {
+        if (err instanceof Error && err.message === "Destino no permitido.") {
+          throw err;
+        }
+        // Ignore DNS resolution errors here (e.g. if AAAA record doesn't exist)
+      }
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
@@ -61,7 +99,11 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(url, { headers: fetchHeaders, redirect: 'manual' });
+
+    if (response.type === 'opaqueredirect' || [301, 302, 303, 307, 308].includes(response.status)) {
+      throw new Error("Redirecciones no están permitidas por seguridad.");
+    }
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
