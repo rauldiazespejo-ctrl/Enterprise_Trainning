@@ -1,5 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { validateUrlForSsrf } from "./ssrf_check.ts";
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -24,6 +26,13 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -46,11 +55,35 @@ serve(async (req) => {
   }
 
   try {
+    // Authentication Validation
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      throw new AuthError("Missing Authorization header");
+    }
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    if (!supabaseUrl || !supabaseAnonKey) {
+       throw new Error("Missing Supabase configuration");
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authErrorResult } = await supabase.auth.getUser();
+    if (authErrorResult || !user) {
+      throw new AuthError("Invalid or expired token");
+    }
+
     const { url } = await req.json();
 
     if (!url) {
       throw new Error("Se requiere una URL válida");
     }
+
+    // SSRF Validation
+    await validateUrlForSsrf(url);
 
     console.log(`Buscando contenido de: ${url}`);
     
@@ -61,8 +94,12 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await fetch(url, { headers: fetchHeaders, redirect: 'manual' });
     
+    if (response.type === 'opaqueredirect' || [301, 302, 303, 307, 308].includes(response.status)) {
+      throw new Error("Redirecciones no permitidas por seguridad");
+    }
+
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
     }
@@ -100,11 +137,14 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error en scrape-url:", error.message);
+
+    const status = error instanceof AuthError ? 401 : 400;
+
     return new Response(
       JSON.stringify({ success: false, error: error.message }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
+        status,
       }
     );
   }
