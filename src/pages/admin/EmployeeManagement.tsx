@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
