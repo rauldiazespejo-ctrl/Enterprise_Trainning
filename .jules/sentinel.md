@@ -1,0 +1,4 @@
+## 2024-05-24 - [Supabase SSRF vulnerability in scrape-url]
+**Vulnerability:** Found a Server-Side Request Forgery (SSRF) vulnerability in the `scrape-url` Supabase Edge Function where user-provided URLs were fetched without validation or redirect protection.
+**Learning:** The function allowed arbitrary hostnames, protocols, and automatically followed redirects, which could be abused to access internal metadata services, local network addresses, or bypass DNS-based filters via DNS rebinding.
+**Prevention:** Implement strict SSRF protections when using `fetch` with external URLs: parse URLs to normalize them, validate protocols (HTTP/HTTPS), resolve DNS records to block internal IPs, and enforce `{ redirect: 'manual' }` while checking `response.type === 'opaqueredirect'` to prevent malicious redirects.
