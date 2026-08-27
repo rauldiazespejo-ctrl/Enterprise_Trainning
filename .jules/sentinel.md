@@ -1,0 +1,4 @@
+## 2024-05-27 - SSRF Protection via DNS Rebinding Mitigation
+**Vulnerability:** The `scrape-url` Supabase Edge Function fetched user-supplied URLs without verifying them, making it vulnerable to Server-Side Request Forgery (SSRF). Attackers could scrape internal network resources or cloud metadata endpoints. Furthermore, standard IP blocking can be bypassed via DNS rebinding or redirect chaining.
+**Learning:** `fetch` auto-follows redirects. An attacker can supply a safe URL that redirects to an internal one. By changing `redirect: 'manual'`, we can intercept redirects. Also, Deno/Node's `new URL()` automatically normalizes obfuscated IP addresses, making it a reliable parser for blocklist regexes.
+**Prevention:** Always validate external URLs in Edge Functions. Use `new URL()` to parse strings, block private IP ranges explicitly, and use `{ redirect: 'manual' }` to recursively validate `Location` headers before following them.
