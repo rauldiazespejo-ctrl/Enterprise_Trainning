@@ -1,0 +1,3 @@
+## 2024-05-24 - Pagination Accessibility Pattern
+**Learning:** Pagination components often rely on generic `div`s and lack crucial screen reader context for non-sequential jumps and total items counts. The active page state is frequently only communicated via visual CSS classes, and decorative ellipsis elements are unnecessarily announced.
+**Action:** When implementing pagination, always wrap the container in `<nav aria-label="Navegación de páginas">`. Apply `aria-live="polite"` and `aria-atomic="true"` to summary statistics (e.g., "Showing 1-10"). Ensure page buttons have `aria-label="Página X"` and the active button uses `aria-current="page"`. Add `aria-hidden="true"` to decorative spacing elements like `<span>...</span>`.
