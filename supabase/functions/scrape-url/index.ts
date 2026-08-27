@@ -24,6 +24,30 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isBlockedUrl = (urlString: string): boolean => {
+  try {
+    const parsed = new URL(urlString);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return true;
+
+    const host = parsed.hostname.toLowerCase();
+
+    // Explicitly block local, private, and internal addresses
+    if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '[::]') return true;
+    if (host.endsWith('.local') || host.endsWith('.internal')) return true;
+
+    // Cloud metadata & reserved IPs
+    if (host === '169.254.169.254') return true;
+
+    // Quick regex for private IP blocks (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 0.0.0.0/8)
+    const ipRegex = /^(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|127\.\d{1,3}\.\d{1,3}\.\d{1,3}|0\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
+    if (ipRegex.test(host)) return true;
+
+    return false;
+  } catch (error) {
+    return true; // Block invalid URLs
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -54,6 +78,10 @@ serve(async (req) => {
 
     console.log(`Buscando contenido de: ${url}`);
     
+    if (isBlockedUrl(url)) {
+      throw new Error("URL no permitida por razones de seguridad");
+    }
+
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
@@ -61,10 +89,40 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    let currentUrl = url;
+    let response;
+    let redirectCount = 0;
+    const MAX_REDIRECTS = 5;
+
+    while (redirectCount < MAX_REDIRECTS) {
+      response = await fetch(currentUrl, {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        redirectCount++;
+        const location = response.headers.get('location')!;
+        try {
+          const nextUrl = new URL(location, currentUrl).toString();
+          if (isBlockedUrl(nextUrl)) {
+            throw new Error("Redirección a URL no permitida por razones de seguridad");
+          }
+          currentUrl = nextUrl;
+        } catch {
+          throw new Error("URL de redirección inválida");
+        }
+      } else {
+        break; // No redirect
+      }
+    }
+
+    if (redirectCount >= MAX_REDIRECTS) {
+      throw new Error("Demasiadas redirecciones");
+    }
     
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    if (!response || !response.ok) {
+      throw new Error(`Error al acceder a la URL: ${response?.statusText || 'Desconocido'}`);
     }
 
     const html = await response.text();
