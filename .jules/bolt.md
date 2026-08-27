@@ -1,0 +1,3 @@
+## 2024-06-25 - Optimize array lookups in lists
+**Learning:** In list/management React components, aggregating properties using helper functions that perform O(N) filtering inside `.map()` loops can lead to significant UI lag (O(N^2) or O(N*M) complexity). It is a valid pattern to bypass context helpers that abstract array filtering, grouping the underlying flat array into a `Map` within a single `useMemo` pass.
+**Action:** When calculating derived statistics from arrays inside loops, build a Map for O(1) retrieval inside a `useMemo` block outside the loop. Extract values directly using `.get(id)` in the render instead of calling O(N) helpers. Consolidate sequentially derived `.filter()` and `.reduce()` passes into a single pass where possible.
