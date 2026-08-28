@@ -1,0 +1,3 @@
+## 2024-05-24 - Array lookup optimization
+**Learning:** When calculating stats derived from multiple arrays (like checking status from assignments and certificates for multiple users on a management screen), abstracting the lookup into a helper function (like `getUserAssignments`) and running `.filter()` inside the render loop for each user creates an O(N*M) performance bottleneck.
+**Action:** Instead, build a `Map` within a single `useMemo` block that iterates through the raw arrays exactly once. Pre-seed the Map with the base list (e.g. employees) and populate it with stats. Then use O(1) Map lookups directly in the render step and within other `useMemo` blocks (like for global header stats).

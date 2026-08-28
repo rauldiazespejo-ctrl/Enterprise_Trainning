@@ -65,22 +65,44 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  const statsMap = React.useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    // Initialize map for all employees to ensure they all have a default state
+    employees.forEach(emp => {
+      map.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    });
+
+    // Process assignments in one pass O(N) instead of O(N*M)
+    assignments.forEach(a => {
+      const current = map.get(a.userId);
+      if (current) {
+        if (a.status === 'completed') current.completed++;
+        else if (a.status === 'in_progress') current.inProgress++;
+      }
+    });
+
+    // Process certificates in one pass O(N)
+    certificates.forEach(c => {
+      const current = map.get(c.userId);
+      if (current) {
+        current.certificates++;
+      }
+    });
+
+    return map;
+  }, [employees, assignments, certificates]);
+
+  const filteredEmployees = React.useMemo(() =>
+    employees.filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+    [employees, searchTerm]
   );
 
   // Reset page when search changes
@@ -261,8 +283,15 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = React.useMemo(() =>
+    employees.reduce((sum, e) => sum + (statsMap.get(e.id)?.completed || 0), 0),
+    [employees, statsMap]
+  );
+
+  const totalInTraining = React.useMemo(() =>
+    employees.filter(e => (statsMap.get(e.id)?.inProgress || 0) > 0).length,
+    [employees, statsMap]
+  );
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +412,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = statsMap.get(employee.id) || { completed: 0, inProgress: 0, certificates: 0 };
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
