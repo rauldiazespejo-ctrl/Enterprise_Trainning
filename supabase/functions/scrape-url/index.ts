@@ -24,6 +24,82 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isSafeUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return false;
+    }
+    const hostname = url.hostname.toLowerCase();
+
+    // Bloquear IPs locales, privadas, internas y metadatos cloud
+    if (
+      hostname === 'localhost' ||
+      hostname.endsWith('.local') ||
+      hostname === '[::1]' ||
+      hostname === '[::]' ||
+      /^127\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^10\.\d+\.\d+\.\d+$/.test(hostname) ||
+      /^192\.168\.\d+\.\d+$/.test(hostname) ||
+      /^169\.254\.\d+\.\d+$/.test(hostname) ||
+      /^0\.\d+\.\d+\.\d+$/.test(hostname)
+    ) {
+      return false;
+    }
+
+    if (/^172\./.test(hostname) && /^172\.\d+\.\d+\.\d+$/.test(hostname)) {
+      const secondOctet = parseInt(hostname.split('.')[1], 10);
+      if (secondOctet >= 16 && secondOctet <= 31) {
+        return false;
+      }
+    }
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const secureFetch = async (url: string, options: RequestInit = {}, maxRedirects = 5): Promise<Response> => {
+  let currentUrl = url;
+  const currentOptions = { ...options, redirect: 'manual' as RequestRedirect };
+
+  for (let i = 0; i <= maxRedirects; i++) {
+    if (!isSafeUrl(currentUrl)) {
+      throw new Error("URL no permitida por políticas de seguridad (SSRF protection).");
+    }
+
+    const response = await fetch(currentUrl, currentOptions);
+
+    // Check if it's a redirect
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location');
+      if (!location) {
+        return response; // No location header, just return
+      }
+
+      // Resolve relative URL
+      currentUrl = new URL(location, currentUrl).href;
+
+      // Handle method change for 303 or 301/302 POST->GET
+      if (
+        response.status === 303 ||
+        ((response.status === 301 || response.status === 302) && currentOptions.method === 'POST')
+      ) {
+        currentOptions.method = 'GET';
+        delete currentOptions.body;
+      }
+
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error("Demasiadas redirecciones");
+};
+
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +137,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await secureFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
