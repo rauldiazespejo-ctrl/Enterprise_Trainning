@@ -24,6 +24,29 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isSafeUrl = (urlString: string): boolean => {
+  try {
+    const url = new URL(urlString);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return false;
+    const hostname = url.hostname;
+
+    // Bloquear localhost, dominios .local, IPv6 loopback/unspecified
+    if (hostname === 'localhost' || hostname.endsWith('.local') || hostname === '[::1]' || hostname === '[::]') return false;
+
+    // Bloquear direcciones IPv4 privadas, locales y metadata cloud
+    if (/^127\.\d+\.\d+\.\d+$/.test(hostname)) return false; // 127.0.0.0/8
+    if (/^10\.\d+\.\d+\.\d+$/.test(hostname)) return false; // 10.0.0.0/8
+    if (/^192\.168\.\d+\.\d+$/.test(hostname)) return false; // 192.168.0.0/16
+    if (/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(hostname)) return false; // 172.16.0.0/12
+    if (/^169\.254\.169\.254$/.test(hostname)) return false; // Cloud metadata
+    if (/^0\.\d+\.\d+\.\d+$/.test(hostname)) return false; // 0.0.0.0/8
+
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +84,38 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    let currentUrl = url;
+    let redirects = 0;
+    const maxRedirects = 5;
+    let response: Response | null = null;
+
+    while (redirects < maxRedirects) {
+      if (!isSafeUrl(currentUrl)) {
+        throw new Error("URL no permitida o insegura (SSRF detectado)");
+      }
+
+      response = await fetch(currentUrl, {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const location = response.headers.get('location');
+        if (!location) break;
+        currentUrl = new URL(location, currentUrl).toString();
+        redirects++;
+        continue;
+      }
+      break;
+    }
+
+    if (!response) {
+      throw new Error("No se pudo obtener una respuesta válida");
+    }
+
+    if (redirects >= maxRedirects) {
+      throw new Error("Demasiadas redirecciones");
+    }
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
