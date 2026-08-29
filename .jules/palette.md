@@ -1,0 +1,3 @@
+## 2024-10-18 - Improve Pagination Accessibility
+**Learning:** Pagination components often lack essential structural semantics (`<nav aria-label="...">`), contextual current-page state (`aria-current="page"`), screen reader friendliness for static indicators (`aria-live="polite"` and `aria-atomic="true"` on result summaries), and skip unnecessary announcements (`aria-hidden="true"` on ellipsis).
+**Action:** When creating or improving pagination components, ensure the container uses a semantic `<nav>`, individual page links properly label themselves with `aria-label` and `aria-current="page"` respectively, result count summaries have `aria-live="polite"` and `aria-atomic="true"`, and decorative elements have `aria-hidden="true"`.
