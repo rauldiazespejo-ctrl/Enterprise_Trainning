@@ -1,0 +1,4 @@
+## 2024-05-24 - SSRF in fetch without DNS resolution
+**Vulnerability:** The `scrape-url` function was vulnerable to Server-Side Request Forgery (SSRF) because it fetched arbitrary user-provided URLs without validating if they resolved to internal network IPs.
+**Learning:** Even if a developer adds a hostname check (e.g., blocking `localhost`), it is trivial to bypass using custom DNS records (e.g., `127.0.0.1.nip.io`) or DNS rebinding unless the actual resolved IP address is validated. Furthermore, the standard `fetch` API transparently follows redirects, making it difficult to fully protect against redirect-based SSRF without a custom HTTP client.
+**Prevention:** Always validate the *resolved IP address* against a blocklist of internal networks (RFC 1918, loopback, link-local) before making the request. In Deno, this can be done using `Deno.resolveDns()`. Acknowledge that standard `fetch` still poses a risk via malicious HTTP redirects.
