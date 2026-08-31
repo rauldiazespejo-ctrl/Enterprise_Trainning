@@ -55,20 +55,36 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const {
+    assignedCourses,
+    completedCourses,
+    inProgressCourses,
+    nextCourse,
+    inProgressList,
+    pendingCourses
+  } = React.useMemo(() => {
+    const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+    // O(N) map for course lookups instead of O(N*M) via find()
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    const assigned = userAssignments.map(a => {
+      const course = courseMap.get(a.courseId);
+      return course ? { ...course, assignment: a } : null;
+    }).filter(Boolean);
+
+    return {
+      assignedCourses: assigned,
+      completedCourses: assigned.filter(c => c?.assignment.status === 'completed').length,
+      inProgressCourses: assigned.filter(c => c?.assignment.status === 'in_progress').length,
+      nextCourse: assigned.find(c => c?.assignment.status === 'in_progress'),
+      inProgressList: assigned.filter(c => c?.assignment.status === 'in_progress'),
+      pendingCourses: assigned.filter(c => c?.assignment.status === 'pending')
+    };
+  }, [user, assignments, courses]);
 
   const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
   const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
