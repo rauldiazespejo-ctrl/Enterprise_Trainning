@@ -1,0 +1,4 @@
+## 2024-05-15 - [SSRF vulnerability in scrape-url Supabase Edge Function]
+**Vulnerability:** The `scrape-url` Supabase edge function accepted user-provided URLs and passed them directly to the `fetch` API without validation. This allowed an attacker to perform Server-Side Request Forgery (SSRF), enabling them to access internal cloud metadata (e.g., `169.254.169.254`), private IP addresses (e.g., `10.0.0.0/8`), or local services (`localhost`).
+**Learning:** URL fetching functionality must strictly validate endpoints before initiating requests. In Deno/Supabase environments, `new URL()` implicitly resolves some octal/hex formatting, but developers must explicitly reject internal/private networks and non-HTTP(S) protocols.
+**Prevention:** Always implement SSRF validation before using user input in `fetch`. Use `new URL()` to parse the endpoint, verify the protocol (HTTP/HTTPS), and strictly block private/internal IPv4/IPv6 networks and common local hostnames.

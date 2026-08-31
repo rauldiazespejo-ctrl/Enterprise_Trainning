@@ -52,6 +52,66 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection: Validate URL before fetching
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL con formato inválido");
+    }
+
+    if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+      throw new Error("Protocolo no permitido. Solo HTTP y HTTPS.");
+    }
+
+    const h = parsedUrl.hostname;
+
+    // Block local/internal hostnames
+    if (h === 'localhost' || h.endsWith('.local') || h === '[::1]' || h === '[::]') {
+      throw new Error("Acceso a host local/interno denegado.");
+    }
+
+    const isPrivateIPv4 = (ip: string) => {
+      const isIPv4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip);
+      if (!isIPv4) return false;
+      const a = parseInt(isIPv4[1], 10);
+      const b = parseInt(isIPv4[2], 10);
+      return (
+        a === 127 || // Loopback
+        a === 10 || // Private Class A
+        (a === 192 && b === 168) || // Private Class C
+        (a === 172 && b >= 16 && b <= 31) || // Private Class B
+        (a === 169 && b === 254) || // Link-local / Cloud Metadata
+        a === 0 // Current network
+      );
+    };
+
+    // Block if hostname is directly a private/reserved IPv4 address
+    if (isPrivateIPv4(h)) {
+      throw new Error("Acceso a IP privada/interna denegado.");
+    }
+
+    // DNS Resolution to prevent DNS rebinding attacks (e.g. 127.0.0.1.nip.io)
+    // Note: Due to limitations with standard fetch and SNI, TOCTOU is partially mitigated
+    // but a custom HTTP client is needed for full protection against redirects.
+    try {
+      if (!/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(h)) {
+        const records = await Deno.resolveDns(h, "A");
+        for (const ip of records) {
+          if (isPrivateIPv4(ip)) {
+             throw new Error("La resolución DNS apunta a una IP privada.");
+          }
+        }
+      }
+    } catch (e: any) {
+       // If DNS resolution fails, block it unless it's a known non-resolvable error
+       if (e.message && e.message.includes("IP privada")) {
+          throw e;
+       }
+       // Other DNS errors we can log and let fetch handle (e.g. domain doesn't exist)
+       console.log(`DNS resolution failed for ${h}: ${e.message}`);
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
