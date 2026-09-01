@@ -52,6 +52,51 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Mitigation: Validate URL and check against private/local networks
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no permitido. Solo se permite HTTP y HTTPS.");
+    }
+
+    const isPrivateIpOrHost = (host: string): boolean => {
+      if (host === 'localhost' || host === '[::1]' || host === '[::]' || /\.local$/.test(host)) return true;
+      const ipv4Match = host.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+      if (ipv4Match) {
+        const octet1 = parseInt(ipv4Match[1], 10);
+        const octet2 = parseInt(ipv4Match[2], 10);
+        if (octet1 === 127) return true; // 127.0.0.0/8
+        if (octet1 === 10) return true;  // 10.0.0.0/8
+        if (octet1 === 192 && octet2 === 168) return true; // 192.168.0.0/16
+        if (octet1 === 172 && octet2 >= 16 && octet2 <= 31) return true; // 172.16.0.0/12
+        if (octet1 === 169 && octet2 === 254) return true; // 169.254.0.0/16
+        if (octet1 === 0) return true; // 0.0.0.0/8
+      }
+      return false;
+    };
+
+    if (isPrivateIpOrHost(parsedUrl.hostname)) {
+      throw new Error("URL no permitida.");
+    }
+
+    // Note: TOCTOU vulnerability mitigation via DNS pre-resolution
+    try {
+      // Validate IP(s) resolved from hostname (only for A records in this simple check)
+      const ips = await Deno.resolveDns(parsedUrl.hostname, 'A');
+      for (const ip of ips) {
+        if (isPrivateIpOrHost(ip)) {
+          throw new Error("Resolución a IP privada detectada.");
+        }
+      }
+    } catch (e) {
+      // Deno.resolveDns throws if not found, let it proceed or handle specifically if needed.
+      // But if it fails, the fetch might fail anyway, or it might be an IPv6 only domain.
+      // For strictness, if we can't resolve A, we still proceed, but it limits strict DNS rebinding.
+      // We will re-throw the error if it's our own error.
+      if (e instanceof Error && e.message === "Resolución a IP privada detectada.") {
+        throw e;
+      }
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
