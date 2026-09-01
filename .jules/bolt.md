@@ -1,0 +1,3 @@
+## 2024-10-27 - UseMemo optimizations on Context array helpers
+**Learning:** Functions like `getUserAssignments` or `getUserCertificates` exported from context map their array inputs inside the function, hiding the $O(N)$ lookup. If used inside component bodies for derived state (like in `EmployeeDashboard`), it silently executes O(N) queries on every render multiplied by the component's internal calculations.
+**Action:** Extract the flattened context arrays directly into the component, instantiate Map objects to cache lookups ($O(1)$) and enclose all grouping and derived data calculation in a single pass within `useMemo`.
