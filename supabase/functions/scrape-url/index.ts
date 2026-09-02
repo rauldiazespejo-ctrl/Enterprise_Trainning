@@ -52,6 +52,31 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("Formato de URL inválido");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Solo se permiten URLs http o https");
+    }
+
+    const host = parsedUrl.hostname;
+
+    // SSRF Protection: Block private, loopback, and metadata IPs/hostnames
+    const isBlockedHost = (h: string) => {
+      if (h === 'localhost' || h.endsWith('.local') || h === '[::1]' || h === '[::]' || h === '169.254.169.254') return true;
+      if (/^0\.\d+\.\d+\.\d+$/.test(h) || /^127\.\d+\.\d+\.\d+$/.test(h) || /^10\.\d+\.\d+\.\d+$/.test(h) || /^192\.168\.\d+\.\d+$/.test(h)) return true;
+      const m = h.match(/^172\.(\d+)\.\d+\.\d+$/);
+      return m ? (parseInt(m[1], 10) >= 16 && parseInt(m[1], 10) <= 31) : false;
+    };
+
+    if (isBlockedHost(host)) {
+      throw new Error("URL no permitida por políticas de seguridad");
+    }
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
@@ -61,7 +86,11 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    // Prevent redirect-based SSRF bypasses
+    const response = await fetch(url, {
+      headers: fetchHeaders,
+      redirect: 'error'
+    });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
