@@ -1,0 +1,4 @@
+## 2025-03-03 - SSRF Vulnerability in URL Scraper
+**Vulnerability:** Server-Side Request Forgery (SSRF) in `scrape-url` Supabase Edge Function where user-provided URLs were fetched directly without validation.
+**Learning:** Functions that accept arbitrary URLs for scraping or processing (like downloading documents) are prime targets for SSRF. Attackers can use them to scan internal networks, access cloud metadata services (169.254.169.254), or exploit internal APIs.
+**Prevention:** Always validate external URLs before passing them to `fetch`. Check protocols, block private/loopback IP address ranges, prevent localhost resolution, implement DNS pre-flight checks (`Deno.resolveDns`) to block rebinding attacks, and explicitly disable automatic redirects (`redirect: 'error'`) to stop redirect-based bypasses.
