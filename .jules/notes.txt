@@ -1,0 +1,1 @@
+There are missing aria-labels on icon-only buttons in SuperAdminPanel.
