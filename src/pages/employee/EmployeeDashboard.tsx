@@ -55,20 +55,54 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  // ⚡ Bolt: Optimize derived statistics
+  // Consolidated 6 iterations (find/filter) and O(N*M) lookups into a single O(N+M) pass using useMemo and Map
+  const certificates = React.useMemo(() => user ? getUserCertificates(user.id) : [], [user, getUserCertificates]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  const {
+    assignedCourses,
+    totalCourses,
+    completedCourses,
+    inProgressCourses,
+    inProgressList,
+    pendingCourses,
+    nextCourse
+  } = React.useMemo(() => {
+    if (!user) return { assignedCourses: [], totalCourses: 0, completedCourses: 0, inProgressCourses: 0, inProgressList: [], pendingCourses: [], nextCourse: undefined };
 
-  const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    const coursesMap = new Map(courses.map(c => [c.id, c]));
+
+    return assignments.reduce((acc, a) => {
+      if (a.userId !== user.id) return acc;
+
+      const course = coursesMap.get(a.courseId);
+      if (!course) return acc;
+
+      const fullCourse = { ...course, assignment: a };
+      acc.assignedCourses.push(fullCourse);
+      acc.totalCourses++;
+
+      if (a.status === 'completed') {
+        acc.completedCourses++;
+      } else if (a.status === 'in_progress') {
+        acc.inProgressCourses++;
+        acc.inProgressList.push(fullCourse);
+        if (!acc.nextCourse) acc.nextCourse = fullCourse;
+      } else if (a.status === 'pending') {
+        acc.pendingCourses.push(fullCourse);
+      }
+
+      return acc;
+    }, {
+      assignedCourses: [] as any[],
+      totalCourses: 0,
+      completedCourses: 0,
+      inProgressCourses: 0,
+      inProgressList: [] as any[],
+      pendingCourses: [] as any[],
+      nextCourse: undefined as any | undefined
+    });
+  }, [user, assignments, courses]);
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
