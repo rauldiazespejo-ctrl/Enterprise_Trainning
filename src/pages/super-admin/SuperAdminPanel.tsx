@@ -174,7 +174,8 @@ const SuperAdminPanel: React.FC = () => {
           </div>
           <button
             onClick={loadUsers}
-            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Recargar usuarios"
+            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all focus-ring tap-target-min"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -226,11 +227,12 @@ const SuperAdminPanel: React.FC = () => {
                                   onClick={() => handlePromote(u)}
                                   disabled={actionLoading === u.id}
                                   title="Promover a Admin"
-                                  className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all disabled:opacity-40"
+                                  aria-label={`Promover a ${u.name} a Admin`}
+                                  className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all disabled:opacity-40 focus-ring tap-target-min"
                                 >
                                   {actionLoading === u.id
-                                    ? <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                    : <Shield className="w-4 h-4" />}
+                                    ? <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                                    : <Shield className="w-4 h-4" aria-hidden="true" />}
                                 </button>
                               )}
                               {u.role === 'admin' && (
@@ -238,19 +240,21 @@ const SuperAdminPanel: React.FC = () => {
                                   onClick={() => handleDemote(u)}
                                   disabled={actionLoading === u.id}
                                   title="Degradar a Empleado"
-                                  className="p-1.5 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all disabled:opacity-40"
+                                  aria-label={`Degradar a ${u.name} a Empleado`}
+                                  className="p-1.5 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all disabled:opacity-40 focus-ring tap-target-min"
                                 >
                                   {actionLoading === u.id
-                                    ? <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
-                                    : <UserX className="w-4 h-4" />}
+                                    ? <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" aria-hidden="true" />
+                                    : <UserX className="w-4 h-4" aria-hidden="true" />}
                                 </button>
                               )}
                               <button
                                 onClick={() => { setPwModal({ userId: u.id, userName: u.name }); setNewPw(''); }}
                                 title="Resetear contraseña"
-                                className="p-1.5 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-all"
+                                aria-label={`Resetear contraseña de ${u.name}`}
+                                className="p-1.5 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-all focus-ring tap-target-min"
                               >
-                                <KeyRound className="w-4 h-4" />
+                                <KeyRound className="w-4 h-4" aria-hidden="true" />
                               </button>
                             </>
                           )}
@@ -303,9 +307,10 @@ const SuperAdminPanel: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+                aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-white focus-ring rounded-lg p-1"
               >
-                {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPw ? <EyeOff className="w-4 h-4" aria-hidden="true" /> : <Eye className="w-4 h-4" aria-hidden="true" />}
               </button>
             </div>
             <div className="flex gap-3">
