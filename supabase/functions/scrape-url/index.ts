@@ -24,6 +24,54 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+// SSRF Protection Utilities
+const isPrivateIP = (ip: string): boolean => {
+  if (/^127\.\d+\.\d+\.\d+$/.test(ip)) return true;
+  if (/^10\.\d+\.\d+\.\d+$/.test(ip)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(ip)) return true;
+  if (/^169\.254\.\d+\.\d+$/.test(ip)) return true;
+  if (/^0\.\d+\.\d+\.\d+$/.test(ip)) return true;
+
+  const parts = ip.split('.');
+  if (parts.length === 4 && parts[0] === '172') {
+    const second = parseInt(parts[1], 10);
+    if (second >= 16 && second <= 31) return true;
+  }
+
+  if (ip === '[::1]' || ip === '[::]' || ip === '::1' || ip === '::') return true;
+  return false;
+};
+
+const validateUrlForSSRF = async (urlStr: string) => {
+  const parsed = new URL(urlStr);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Protocolo no permitido (solo HTTP/HTTPS)');
+  }
+  const host = parsed.hostname.toLowerCase();
+  if (host === 'localhost' || host.endsWith('.local')) {
+    throw new Error('Host interno no permitido');
+  }
+  if (isPrivateIP(host)) {
+    throw new Error('IP privada/reservada no permitida');
+  }
+
+  try {
+    // Note: This pre-fetch DNS resolution mitigates simple DNS rebinding,
+    // but leaves a Time-of-Check to Time-of-Use (TOCTOU) vulnerability because
+    // we fetch the original hostname later. A perfect fix requires a custom HTTP client
+    // that injects the resolved IP and overrides the SNI header, which standard fetch lacks.
+    const ips = await Deno.resolveDns(host, 'A');
+    if (ips.some(isPrivateIP)) {
+      throw new Error('Resolución DNS a IP privada no permitida');
+    }
+  } catch (e) {
+    if (e instanceof Error && e.message.includes('Resolución DNS')) {
+      throw e;
+    }
+    // Si falla la resolución (ej: no hay A record), dejamos que fetch falle naturalmente o se maneje en otro lado
+  }
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -52,6 +100,8 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    await validateUrlForSSRF(url);
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
@@ -61,7 +111,8 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    // redirect: 'error' prevents redirect-based SSRF bypasses
+    const response = await fetch(url, { headers: fetchHeaders, redirect: 'error' });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
