@@ -1,0 +1,3 @@
+## 2026-09-04 - O(N*M) Array Lookups in Mapping
+**Learning:** When performing nested array lookups inside a `.map()` operation (e.g. using `.find()` on `users` and `courses` arrays for each item in an `assignments` array), it creates an O(N*M) performance bottleneck that blocks the main thread on large datasets. The `.filter()` operation on strings can also trigger repeated identical conversions.
+**Action:** Use a `Map` constructed outside the mapping loop to convert lookups to O(N+M) with O(1) retrieval time, hoist repetitive string operations (like `.toLowerCase()`) outside the loop, and wrap the entire expensive transformation in a `useMemo`.
