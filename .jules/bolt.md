@@ -1,0 +1,3 @@
+## 2024-09-05 - Optimize Employee Dashboard derived state calculation
+**Learning:** In dashboards like `EmployeeDashboard`, performing multiple sequential `.filter()` and `.find()` passes on unmemoized arrays creates an O(N*M) calculation that runs on every single render. Since this is the main entry point for employees, it's a common bottleneck.
+**Action:** Consolidate multiple array filtering and finding passes into a single iteration using `.forEach()` or `.reduce()` combined with a pre-built `Map` for O(1) lookups, and always wrap the entire derivation block in a `useMemo` to prevent recalculation on unrelated state changes.
