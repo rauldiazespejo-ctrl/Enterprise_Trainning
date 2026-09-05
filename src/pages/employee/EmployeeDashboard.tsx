@@ -1,5 +1,5 @@
 // EmployeeDashboard — tarjetas premium, hero animado y progreso circular
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Badge, ProgressBar, Button, Skeleton, EmptyState } from '@/components/ui/Card';
@@ -55,20 +55,59 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  // ⚡ BOLT OPTIMIZATION: Memoize filtered assignments
+  const userAssignments = useMemo(() => {
+    return user ? assignments.filter(a => a.userId === user.id) : [];
+  }, [user, assignments]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  // ⚡ BOLT OPTIMIZATION: Memoize course lookup with Map for O(1) performance and single reduce pass
+  const {
+    assignedCourses,
+    completedCourses,
+    inProgressCourses,
+    nextCourse,
+    inProgressList,
+    pendingCourses
+  } = useMemo(() => {
+    const courseMap = new Map(courses.map(c => [c.id, c]));
+
+    // Default values
+    const result = {
+      assignedCourses: [] as any[],
+      completedCourses: 0,
+      inProgressCourses: 0,
+      nextCourse: null as any,
+      inProgressList: [] as any[],
+      pendingCourses: [] as any[]
+    };
+
+    userAssignments.forEach(a => {
+      const course = courseMap.get(a.courseId);
+      if (course) {
+        const enriched = { ...course, assignment: a };
+        result.assignedCourses.push(enriched);
+
+        if (a.status === 'completed') {
+          result.completedCourses++;
+        } else if (a.status === 'in_progress') {
+          result.inProgressCourses++;
+          result.inProgressList.push(enriched);
+          if (!result.nextCourse) result.nextCourse = enriched;
+        } else if (a.status === 'pending') {
+          result.pendingCourses.push(enriched);
+        }
+      }
+    });
+
+    return result;
+  }, [userAssignments, courses]);
 
   const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+
+  // ⚡ BOLT OPTIMIZATION: Memoize certificates
+  const certificates = useMemo(() => {
+    return user ? getUserCertificates(user.id) : [];
+  }, [user, getUserCertificates]);
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
