@@ -1,0 +1,3 @@
+## 2024-09-06 - Employee Stats O(N*M) to O(1) Lookup Optimization
+**Learning:** Found an O(N*M) bottleneck in `EmployeeManagement.tsx` where an `employeeStats` helper function was repeatedly called in list rendering and reduce functions, invoking `getUserAssignments` (which iterated over the entire `assignments` array) and then doing additional filtering over `certificates`.
+**Action:** Replaced the helper with a single `React.useMemo` Map computation that traverses `assignments` and `certificates` once, generating O(1) lookups for employee stats (O(N+M) time). Bypassed helper methods that encapsulate O(N) filters if they are called inside loops.
