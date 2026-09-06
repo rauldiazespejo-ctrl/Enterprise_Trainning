@@ -72,11 +72,17 @@ const SlideViewer: React.FC<SlideViewerProps> = ({ slides, onComplete, courseNam
         </button>
 
         {/* Dot indicators */}
-        <div className="flex items-center gap-1.5">
+        <div
+          className="flex items-center gap-1.5"
+          role="group"
+          aria-label="Indicadores de diapositiva"
+        >
           {slides.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setCurrent(idx)}
+              aria-label={`Ir a la diapositiva ${idx + 1}`}
+              aria-current={idx === current ? "true" : undefined}
               className={`rounded-full transition-all ${
                 idx === current
                   ? 'w-6 h-2 bg-brand'
