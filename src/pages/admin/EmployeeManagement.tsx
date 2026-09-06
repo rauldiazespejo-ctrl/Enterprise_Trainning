@@ -65,16 +65,38 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // ⚡ Bolt Optimization: Replace O(N*M) helper with O(N+M) single-pass Map computation
+  const userStatsMap = React.useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+
+    // Initialize map for all employees
+    for (const emp of employees) {
+      map.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    }
+
+    for (const a of assignments) {
+      const stats = map.get(a.userId);
+      if (stats) {
+        if (a.status === 'completed') stats.completed++;
+        else if (a.status === 'in_progress') stats.inProgress++;
+      }
+    }
+
+    for (const c of certificates) {
+      const stats = map.get(c.userId);
+      if (stats) {
+        stats.certificates++;
+      }
+    }
+
+    return map;
+  }, [employees, assignments, certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return userStatsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
+  }, [userStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
