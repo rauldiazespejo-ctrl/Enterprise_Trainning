@@ -24,6 +24,108 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isPrivateIp = (ip: string): boolean => {
+  const ipv4Match = ip.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)$/);
+  if (ipv4Match) {
+    const [_, p1, p2, p3, p4] = ipv4Match.map(Number);
+    if (
+      p1 === 10 ||
+      (p1 === 172 && p2 >= 16 && p2 <= 31) ||
+      (p1 === 192 && p2 === 168) ||
+      p1 === 127 ||
+      p1 === 0 ||
+      (p1 === 169 && p2 === 254)
+    ) {
+      return true;
+    }
+  }
+
+  if (ip.includes(':')) {
+    const cleanIpv6 = ip.replace(/^\[|\]$/g, '').toLowerCase();
+    if (
+      cleanIpv6 === '::1' ||
+      cleanIpv6 === '::' ||
+      cleanIpv6.startsWith('fc') ||
+      cleanIpv6.startsWith('fd') ||
+      cleanIpv6.startsWith('fe80') ||
+      cleanIpv6.startsWith('::ffff:')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+};
+
+const validateUrl = async (urlStr: string): Promise<void> => {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(urlStr);
+  } catch (e) {
+    throw new Error('Invalid URL format');
+  }
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error('Solo se permiten protocolos HTTP/HTTPS');
+  }
+
+  const hostname = parsedUrl.hostname;
+
+  if (hostname === 'localhost' || isPrivateIp(hostname)) {
+    throw new Error('Buscando contenido en redes privadas no está permitido (SSRF prevention)');
+  }
+
+  const ips: string[] = [];
+  try {
+    const aRecords = await Deno.resolveDns(hostname, 'A');
+    ips.push(...aRecords);
+  } catch (e) {
+    // Ignore, might not have A records
+  }
+  try {
+    const aaaaRecords = await Deno.resolveDns(hostname, 'AAAA');
+    ips.push(...aaaaRecords);
+  } catch (e) {
+    // Ignore, might not have AAAA records
+  }
+
+  if (ips.length === 0 && !isPrivateIp(hostname)) {
+    // If we can't resolve it and it's not a raw IP, it's safer to block or let fetch fail.
+    // We let fetch fail natively if DNS is totally unresolvable.
+  }
+
+  for (const ip of ips) {
+    if (isPrivateIp(ip)) {
+      throw new Error(`Hostname resuelve a IP privada: ${ip} (SSRF prevention)`);
+    }
+  }
+};
+
+const safeFetch = async (urlStr: string, options?: RequestInit, maxRedirects = 5): Promise<Response> => {
+  let currentUrl = urlStr;
+  let currentRedirects = 0;
+
+  while (currentRedirects < maxRedirects) {
+    await validateUrl(currentUrl);
+
+    // Document TOCTOU: We validate DNS, then fetch uses the hostname again.
+    const res = await fetch(currentUrl, {
+      ...options,
+      redirect: 'manual'
+    });
+
+    if (res.status >= 300 && res.status < 400 && res.headers.has('location')) {
+      const location = res.headers.get('location')!;
+      await res.body?.cancel();
+      currentUrl = new URL(location, currentUrl).toString();
+      currentRedirects++;
+    } else {
+      return res;
+    }
+  }
+  throw new Error('Too many redirects');
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +163,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
