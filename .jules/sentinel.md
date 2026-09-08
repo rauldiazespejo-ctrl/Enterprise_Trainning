@@ -1,0 +1,4 @@
+## 2025-03-08 - SSRF Vulnerability in URL Scraper
+**Vulnerability:** The `scrape-url` Supabase Edge Function used the standard `fetch` API on arbitrary user-provided URLs without validating if the hostname or its resolved IP address pointed to internal, private, or loopback network ranges (e.g., `127.0.0.1`, AWS Metadata, etc.).
+**Learning:** `fetch` inside cloud environments natively allows reaching local resources (e.g., internal metadata endpoints or local dev servers on the same instance) if not explicitly prevented. Because the URL provided to `scrape-url` comes from untrusted user input, this constituted a classic SSRF attack vector.
+**Prevention:** Always implement a custom fetching wrapper that parses the URL, validates the protocol (HTTP/HTTPS), resolves the DNS (both A and AAAA) to check against a blocklist of local/private IPs, handles redirects manually to validate hop targets, and prevents resource leaks by cleaning up intermediate response bodies.
