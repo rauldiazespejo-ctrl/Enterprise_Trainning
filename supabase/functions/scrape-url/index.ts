@@ -24,6 +24,76 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isBlockedIP = (ip: string): boolean => {
+  const cleanIp = ip.replace(/^\[|\]$/g, '').toLowerCase();
+  if (cleanIp === 'localhost' || cleanIp === '::1' || cleanIp === '::') return true;
+  if (/^(127|10|0)\.\d+\.\d+\.\d+$/.test(cleanIp)) return true;
+  if (/^192\.168\.\d+\.\d+$/.test(cleanIp) || /^169\.254\.\d+\.\d+$/.test(cleanIp)) return true;
+  if (/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(cleanIp)) return true;
+  if (cleanIp.includes(':') && (cleanIp.startsWith('::ffff:') || /^(fc|fd|fe8|fe9|fea|feb)/.test(cleanIp))) return true;
+  return false;
+};
+
+const safeFetch = async (urlStr: string, options: RequestInit = {}, maxRedirects = 5): Promise<Response> => {
+  let currentUrlStr = urlStr;
+  let redirects = 0;
+
+  while (redirects <= maxRedirects) {
+    const url = new URL(currentUrlStr);
+
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      throw new Error(`Protocolo no permitido: ${url.protocol}`);
+    }
+
+    if (isBlockedIP(url.hostname)) {
+      throw new Error(`Acceso denegado al host: ${url.hostname}`);
+    }
+
+    // DNS Rebinding mitigation (TOCTOU limitation acknowledged: a specialized proxy/client is required for robust protection)
+    try {
+      const aRecords = await Deno.resolveDns(url.hostname, 'A');
+      for (const ip of aRecords) {
+        if (isBlockedIP(ip)) throw new Error(`IP resuelta bloqueada: ${ip}`);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('bloqueada')) throw e;
+    }
+
+    try {
+      const aaaaRecords = await Deno.resolveDns(url.hostname, 'AAAA');
+      for (const ip of aaaaRecords) {
+        if (isBlockedIP(ip)) throw new Error(`IP resuelta bloqueada: ${ip}`);
+      }
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('bloqueada')) throw e;
+    }
+
+    const response = await fetch(currentUrlStr, { ...options, redirect: 'manual' });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (!location) {
+        return response;
+      }
+
+      // Cleanup previous response body to avoid leaks
+      try {
+        await response.body?.cancel();
+      } catch (e) {
+        // Ignore
+      }
+
+      currentUrlStr = new URL(location, currentUrlStr).toString();
+      redirects++;
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error('Demasiados redireccionamientos');
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +131,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
