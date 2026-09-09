@@ -1,3 +1,12 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+class AuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'AuthError';
+  }
+}
+
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
 const getAllowedOrigins = (): string[] => {
@@ -270,6 +279,26 @@ Deno.serve(async (request) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new AuthError('Missing Supabase environment variables.');
+    }
+
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) {
+      throw new AuthError('Missing Authorization header.');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      throw new AuthError('Invalid or expired token.');
+    }
+
     const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
     if (!apiKey) throw new Error('DEEPSEEK_API_KEY no está configurada.');
 
@@ -521,6 +550,12 @@ Deno.serve(async (request) => {
       { headers: rateLimitHeaders }
     );
   } catch (error) {
+    if (error instanceof AuthError) {
+      return Response.json(
+        { error: error.message },
+        { status: 401, headers: rateLimitHeaders }
+      );
+    }
     return Response.json(
       { error: error instanceof Error ? error.message : 'Error inesperado.' },
       { status: 500, headers: rateLimitHeaders }
