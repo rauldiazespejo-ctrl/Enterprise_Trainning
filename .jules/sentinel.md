@@ -1,0 +1,4 @@
+## 2025-02-27 - Unauthenticated Supabase Edge Function (generate-course)
+**Vulnerability:** The `generate-course` Edge Function lacked any authentication checks before utilizing external APIs (`DEEPSEEK_API_KEY`).
+**Learning:** Supabase Edge Functions do not enforce authentication by default. Without explicitly checking the `Authorization` header and calling `auth.getUser()`, functions are completely public, posing a high risk for resource abuse and unauthorized data access.
+**Prevention:** Always follow the "Fail Closed" principle in Edge Functions. Explicitly retrieve environment variables (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) and the `Authorization` header. Initialize the client using `createClient` and validate the token with `auth.getUser()`. Throw a custom error (e.g., `AuthError`) if any step fails, and handle it gracefully by returning a 401 status.
