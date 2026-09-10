@@ -24,6 +24,17 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isInternalIP = (host: string): boolean => {
+  if (host.includes(':')) {
+    const v6 = host.replace(/^\[|\]$/g, '').toLowerCase();
+    return v6 === '::1' || v6 === '::' || v6.startsWith('fc') || v6.startsWith('fd') || v6.startsWith('fe80') || v6.startsWith('::ffff:');
+  }
+  return /^127\.\d+\.\d+\.\d+$/.test(host) || /^10\.\d+\.\d+\.\d+$/.test(host) ||
+         /^192\.168\.\d+\.\d+$/.test(host) || /^169\.254\.\d+\.\d+$/.test(host) ||
+         /^0\.\d+\.\d+\.\d+$/.test(host) || /^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(host) ||
+         host.toLowerCase() === 'localhost';
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,13 +72,65 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    const validateAndResolve = async (urlString: string): Promise<URL> => {
+      const parsedUrl = new URL(urlString);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error("Protocolo no permitido");
+      }
+
+      // Bloquear hostnames que son directamente IPs internas o localhost
+      if (isInternalIP(parsedUrl.hostname)) {
+        throw new Error("Acceso a IP interna denegado");
+      }
+
+      // DNS Resolution (Note: This still has a TOCTOU limitation with standard fetch)
+      const aRecords = await Deno.resolveDns(parsedUrl.hostname, 'A').catch(() => []);
+      for (const ip of aRecords) {
+        if (isInternalIP(ip)) throw new Error("Acceso a IP interna denegado (A)");
+      }
+
+      const aaaaRecords = await Deno.resolveDns(parsedUrl.hostname, 'AAAA').catch(() => []);
+      for (const ip of aaaaRecords) {
+        if (isInternalIP(ip)) throw new Error("Acceso a IP interna denegado (AAAA)");
+      }
+
+      return parsedUrl;
+    };
+
+    let currentUrl = url;
+    let redirectCount = 0;
+    const MAX_REDIRECTS = 5;
+    let finalResponse: Response | null = null;
+
+    while (redirectCount <= MAX_REDIRECTS) {
+      const urlObj = await validateAndResolve(currentUrl);
+
+      const response = await fetch(urlObj.toString(), {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      const status = response.status;
+      if (status >= 300 && status < 400 && response.headers.has('location')) {
+        await response.body?.cancel(); // Important to avoid resource leaks
+        const location = response.headers.get('location')!;
+        currentUrl = new URL(location, currentUrl).toString();
+        redirectCount++;
+      } else {
+        finalResponse = response;
+        break;
+      }
     }
 
-    const html = await response.text();
+    if (!finalResponse) {
+      throw new Error("Demasiados redireccionamientos");
+    }
+
+    if (!finalResponse.ok) {
+      throw new Error(`Error al acceder a la URL: ${finalResponse.statusText}`);
+    }
+
+    const html = await finalResponse.text();
 
     // 1. Eliminar scripts y styles
     let cleanText = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, ' ');
