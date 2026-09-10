@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,23 +65,49 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
+
+  // Optimize O(N*M) lookup by bypassing context helper and grouping in a Map
+  const employeeStatsMap = useMemo(() => {
+    const statsMap = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+
+    // Initialize map
+    employees.forEach(emp => {
+      statsMap.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    });
+
+    // Group assignments O(N)
+    assignments.forEach(a => {
+      const stats = statsMap.get(a.userId);
+      if (stats) {
+        if (a.status === 'completed') stats.completed++;
+        if (a.status === 'in_progress') stats.inProgress++;
+      }
+    });
+
+    // Group certificates O(N)
+    certificates.forEach(c => {
+      const stats = statsMap.get(c.userId);
+      if (stats) {
+        stats.certificates++;
+      }
+    });
+
+    return statsMap;
+  }, [employees, assignments, certificates]);
 
   const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
+    return employeeStatsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() =>
+    employees.filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    ),
+  [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +287,13 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = useMemo(() =>
+    employees.reduce((sum, e) => sum + (employeeStatsMap.get(e.id)?.completed || 0), 0),
+  [employees, employeeStatsMap]);
+
+  const totalInTraining = useMemo(() =>
+    employees.filter(e => (employeeStatsMap.get(e.id)?.inProgress || 0) > 0).length,
+  [employees, employeeStatsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>

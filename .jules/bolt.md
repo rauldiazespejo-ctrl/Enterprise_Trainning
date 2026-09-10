@@ -1,0 +1,3 @@
+## 2026-09-10 - Optimize Context Helpers with Direct Array Maps
+**Learning:** In React list views (like admin panels), relying on context helper functions (e.g., `getUserAssignments`) that internally filter an array causes severe O(N*M) performance issues when called per-item. Bypassing the helper and building a Map from the underlying flat array in a single `useMemo` pass reduces time complexity to O(N+M).
+**Action:** When a helper function does O(N) work (like `.filter()`), never use it inside a component's `.map()` or for every item in a list. Instead, access the raw context array, pre-group it using a Map in a `useMemo` hook, and use O(1) lookups.
