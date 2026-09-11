@@ -52,6 +52,78 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    // SSRF Protection: Parse URL and validate protocol
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch {
+      throw new Error("URL malformada");
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      throw new Error("Protocolo no soportado");
+    }
+
+    const hostname = parsedUrl.hostname;
+
+    // Strict IP range checking logic
+    const isIpBlocked = (ip: string): boolean => {
+      // IPv4 exact matching to avoid matching false positives like 10.example.com
+      if (/^127\.\d+\.\d+\.\d+$/.test(ip)) return true;
+      if (/^10\.\d+\.\d+\.\d+$/.test(ip)) return true;
+      if (/^169\.254\.\d+\.\d+$/.test(ip)) return true;
+      if (/^0\.\d+\.\d+\.\d+$/.test(ip)) return true;
+      if (/^192\.168\.\d+\.\d+$/.test(ip)) return true;
+      if (/^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(ip)) return true;
+
+      // IPv6 blocks
+      if (ip === '::1' || ip === '::' || ip.includes('::ffff:')) return true;
+      if (ip.includes(':')) {
+        const lowerIp = ip.toLowerCase();
+        if (lowerIp.startsWith('fc') || lowerIp.startsWith('fd') ||
+            lowerIp.startsWith('fe8') || lowerIp.startsWith('fe9') ||
+            lowerIp.startsWith('fea') || lowerIp.startsWith('feb')) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    // Protect against DNS rebinding via Deno.resolveDns (Note: TOCTOU vulnerability remains with standard fetch)
+    const validateHostname = async (host: string): Promise<void> => {
+      let resolvedIps: string[] = [];
+
+      try {
+        const v4 = await Deno.resolveDns(host, "A");
+        resolvedIps = resolvedIps.concat(v4);
+      } catch (e) {
+        if (e instanceof Error && e.name !== "NotFound" && e.name !== "NotSupported" && e.name !== "TypeError") throw e;
+      }
+
+      try {
+        const v6 = await Deno.resolveDns(host, "AAAA");
+        resolvedIps = resolvedIps.concat(v6);
+      } catch (e) {
+        if (e instanceof Error && e.name !== "NotFound" && e.name !== "NotSupported" && e.name !== "TypeError") throw e;
+      }
+
+      // If it's a raw IP and no DNS records, still check the raw IP string (new URL() normalizes formatting)
+      if (resolvedIps.length === 0) {
+         // Some hostnames might just be IPs or localhost
+         if (host === 'localhost' || isIpBlocked(host) || host.replace(/\[|\]/g, '') !== host && isIpBlocked(host.replace(/\[|\]/g, ''))) {
+            throw new Error("Acceso a host interno denegado");
+         }
+      }
+
+      for (const ip of resolvedIps) {
+        if (isIpBlocked(ip)) {
+           throw new Error("La resolución DNS apunta a una IP interna protegida");
+        }
+      }
+    };
+
+    await validateHostname(hostname);
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador

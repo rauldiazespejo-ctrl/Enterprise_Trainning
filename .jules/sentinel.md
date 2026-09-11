@@ -1,0 +1,4 @@
+## 2024-05-18 - SSRF Vulnerability in URL Scraper
+**Vulnerability:** The `scrape-url` Supabase Edge Function performed a `fetch()` on an unvalidated, user-supplied URL. This allowed an attacker to bypass firewalls and make the server send requests to internal resources, localhost, and AWS metadata endpoints.
+**Learning:** In Deno edge functions, standard `fetch` lacks the ability to override socket connections to bind an IP directly. Using `Deno.resolveDns` provides defense-in-depth against DNS rebinding, but a TOCTOU vulnerability remains. Validation must strictly parse the URL structure to prevent obfuscation (e.g., octal IPs).
+**Prevention:** Always parse untrusted URLs using the `new URL()` constructor to normalize them. Validate the protocol is `http:` or `https:`. Proactively resolve DNS with `Deno.resolveDns` and strictly match IPs against reserved IPv4/IPv6 CIDRs before proceeding.
