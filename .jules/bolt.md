@@ -1,0 +1,3 @@
+## 2024-06-12 - [O(N^2) Array Filter inside List Rendering]
+**Learning:** Calling `.filter()` over a large array (like `assignments` or `certificates`) inside a function that gets called for every item in a list (e.g. `employeeStats` inside a `.map` for pagination or a `.reduce` for totals) creates a severe O(N*M) performance bottleneck, as the array is re-iterated for every list item on every render.
+**Action:** Use `useMemo` to construct a lookup `Map` with a single O(N+M) pass over the data, pre-calculating the stats. Then, retrieve the pre-calculated stats from the Map in O(1) time during list rendering.
