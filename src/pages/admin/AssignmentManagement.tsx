@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -27,21 +27,39 @@ const AssignmentManagement: React.FC = () => {
   const [assignResult, setAssignResult] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
-  const publishedCourses = courses.filter(c => c.status === 'published');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee' && u.status !== 'inactive'), [users]);
+  const publishedCourses = useMemo(() => courses.filter(c => c.status === 'published'), [courses]);
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  const filtered = useMemo(() => {
+    // Build O(1) lookup maps
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+    // Single pass to enrich and filter
+    return assignments.reduce((acc, a) => {
+      // 1. Check direct filters first to fail fast before enriching strings
+      if (filterCourse && a.courseId !== filterCourse) return acc;
+      if (filterStatus && a.status !== filterStatus) return acc;
+
+      // 2. Enrich with O(1) lookups
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      const employeeName = emp?.name || 'Empleado';
+      const courseTitle = course?.title || 'Curso';
+
+      // 3. Check search term
+      if (searchTerm) {
+        const term = searchTerm.toLowerCase();
+        if (!employeeName.toLowerCase().includes(term) && !courseTitle.toLowerCase().includes(term)) {
+          return acc;
+        }
+      }
+
+      // 4. Add to result if it passed all filters
+      acc.push({ ...a, employeeName, courseTitle });
+      return acc;
+    }, [] as (typeof assignments[0] & { employeeName: string, courseTitle: string })[]);
+  }, [assignments, users, courses, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
@@ -109,12 +127,18 @@ const AssignmentManagement: React.FC = () => {
     }
   };
 
-  const stats = {
-    total: assignments.length,
-    pending: assignments.filter(a => a.status === 'pending').length,
-    inProgress: assignments.filter(a => a.status === 'in_progress').length,
-    completed: assignments.filter(a => a.status === 'completed').length,
-  };
+  const stats = useMemo(() => {
+    return assignments.reduce(
+      (acc, a) => {
+        acc.total++;
+        if (a.status === 'pending') acc.pending++;
+        else if (a.status === 'in_progress') acc.inProgress++;
+        else if (a.status === 'completed') acc.completed++;
+        return acc;
+      },
+      { total: 0, pending: 0, inProgress: 0, completed: 0 }
+    );
+  }, [assignments]);
 
   return (
     <MainLayout title="Asignaciones" subtitle="Gestiona las asignaciones de cursos" isAdmin>
