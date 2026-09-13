@@ -1,0 +1,3 @@
+## 2024-05-24 - [O(1) Employee Stats Lookup Pattern]
+**Learning:** [In heavily interactive list views (like EmployeeManagement), performing O(N) array filtering (e.g. `assignments.filter()`) inside an item-level stats function causes massive O(N*M) performance degradation, especially when typing in a search filter triggers full re-renders.]
+**Action:** [Use the `useMemo` hook to pre-calculate a lookup `Map` of aggregated stats in a single O(N+M) pass. Ensure to properly inject dependencies (like `getUserAssignments`) and handle fallback/default values safely to prevent edge-case errors during retrieval.]
