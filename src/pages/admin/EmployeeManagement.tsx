@@ -65,23 +65,52 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // ⚡ Bolt Performance: O(N+M) pass to pre-calculate stats for O(1) lookup
+  const employeeStatsMap = React.useMemo(() => {
+    const stats = new Map<string, { completed: number; inProgress: number; certificates: number }>();
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    // Initialize stats map
+    for (const emp of employees) {
+      stats.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    }
+
+    // Process assignments safely via the context getter, avoiding logic bypass.
+    // Instead of looping all assignments, we look them up per employee
+    for (const emp of employees) {
+      const userAssignments = getUserAssignments(emp.id);
+      const userStat = stats.get(emp.id)!;
+      for (const a of userAssignments) {
+        if (a.status === 'completed') userStat.completed++;
+        else if (a.status === 'in_progress') userStat.inProgress++;
+      }
+    }
+
+    // Process certificates
+    for (const c of certificates) {
+      const userStat = stats.get(c.userId);
+      if (userStat) {
+        userStat.certificates++;
+      }
+    }
+
+    return stats;
+  }, [employees, getUserAssignments, certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return employeeStatsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
+  }, [employeeStatsMap]);
+
+  const filteredEmployees = React.useMemo(() => {
+    const search = searchTerm.toLowerCase();
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(search) ||
+      emp.email.toLowerCase().includes(search) ||
+      (emp.rut || '').toLowerCase().includes(search) ||
+      (emp.department || '').toLowerCase().includes(search)
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +290,12 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = React.useMemo(() =>
+    employees.reduce((sum, e) => sum + (employeeStatsMap.get(e.id)?.completed || 0), 0),
+  [employees, employeeStatsMap]);
+  const totalInTraining = React.useMemo(() =>
+    employees.filter(e => (employeeStatsMap.get(e.id)?.inProgress || 0) > 0).length,
+  [employees, employeeStatsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
