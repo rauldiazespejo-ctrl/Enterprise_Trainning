@@ -61,7 +61,70 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    // ── SSRF Protection ───────────────────────────────────────────────────────
+    const isSafeIp = (ip: string): boolean => {
+      if (/^(127\.|10\.|192\.168\.|169\.254\.|0\.)/.test(ip)) return false;
+      if (/^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip)) return false;
+      if (ip.includes(':')) {
+        const v6 = ip.toLowerCase();
+        if (v6 === '::1' || v6 === '::' || /^f[cd]/.test(v6) || /^fe80/.test(v6) || /^::ffff:/.test(v6)) return false;
+      }
+      return true;
+    };
+
+    const resolveSafe = async (hostname: string, recordType: 'A' | 'AAAA'): Promise<string[]> => {
+      try {
+        return await Deno.resolveDns(hostname, recordType);
+      } catch (err: any) {
+        if (err.name === 'NotFound' || err.name === 'NotSupported') return [];
+        throw err; // Fail closed on other DNS errors
+      }
+    };
+
+    const safeFetch = async (targetUrl: string, init: RequestInit, maxRedirects = 3): Promise<Response> => {
+      let currentUrl = targetUrl;
+      let redirects = 0;
+
+      while (redirects <= maxRedirects) {
+        const parsed = new URL(currentUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          throw new Error('Solo se permiten URLs HTTP/HTTPS.');
+        }
+
+        const hostname = parsed.hostname.replace(/[[\]]/g, '');
+        if (hostname === 'localhost' || hostname.endsWith('.local') || hostname.endsWith('.internal')) {
+          throw new Error('Acceso denegado a host local.');
+        }
+
+        if (/^[\d.]+$/.test(hostname) || hostname.includes(':')) {
+          if (!isSafeIp(hostname)) throw new Error('IP no permitida.');
+        } else {
+          // Pre-fetch DNS resolution to check for private IPs (Note: Inherits TOCTOU limitation)
+          const [ips4, ips6] = await Promise.all([
+            resolveSafe(hostname, 'A'),
+            resolveSafe(hostname, 'AAAA')
+          ]);
+          const allIps = [...ips4, ...ips6];
+          if (allIps.length === 0) throw new Error('No se pudo resolver el host.');
+          if (!allIps.every(isSafeIp)) throw new Error('El host resuelve a una IP no permitida (SSRF).');
+        }
+
+        const response = await fetch(currentUrl, { ...init, redirect: 'manual' });
+
+        if (response.status >= 300 && response.status < 400) {
+          const location = response.headers.get('location');
+          if (!location) return response; // Let caller handle weird redirect
+          response.body?.cancel(); // Prevent resource leaks
+          currentUrl = new URL(location, currentUrl).href;
+          redirects++;
+        } else {
+          return response;
+        }
+      }
+      throw new Error('Demasiadas redirecciones.');
+    };
+
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
