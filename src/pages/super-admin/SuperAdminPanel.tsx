@@ -161,7 +161,7 @@ const SuperAdminPanel: React.FC = () => {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                className={`px-3 py-2 rounded-xl text-xs font-medium transition-all focus-ring ${
                   filter === f
                     ? 'bg-yellow-500 text-black'
                     : 'bg-white/5 text-gray-400 hover:bg-white/10'
@@ -174,7 +174,8 @@ const SuperAdminPanel: React.FC = () => {
           </div>
           <button
             onClick={loadUsers}
-            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+            aria-label="Actualizar lista de usuarios"
+            className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all focus-ring"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -226,7 +227,8 @@ const SuperAdminPanel: React.FC = () => {
                                   onClick={() => handlePromote(u)}
                                   disabled={actionLoading === u.id}
                                   title="Promover a Admin"
-                                  className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all disabled:opacity-40"
+                                  aria-label="Promover a Admin"
+                                  className="p-1.5 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 rounded-lg transition-all disabled:opacity-40 focus-ring"
                                 >
                                   {actionLoading === u.id
                                     ? <div className="w-4 h-4 border-2 border-blue-400 border-t-transparent rounded-full animate-spin" />
@@ -238,7 +240,8 @@ const SuperAdminPanel: React.FC = () => {
                                   onClick={() => handleDemote(u)}
                                   disabled={actionLoading === u.id}
                                   title="Degradar a Empleado"
-                                  className="p-1.5 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all disabled:opacity-40"
+                                  aria-label="Degradar a Empleado"
+                                  className="p-1.5 bg-orange-500/10 text-orange-400 hover:bg-orange-500/20 rounded-lg transition-all disabled:opacity-40 focus-ring"
                                 >
                                   {actionLoading === u.id
                                     ? <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
@@ -248,7 +251,8 @@ const SuperAdminPanel: React.FC = () => {
                               <button
                                 onClick={() => { setPwModal({ userId: u.id, userName: u.name }); setNewPw(''); }}
                                 title="Resetear contraseña"
-                                className="p-1.5 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-all"
+                                aria-label="Resetear contraseña"
+                                className="p-1.5 bg-yellow-500/10 text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-all focus-ring"
                               >
                                 <KeyRound className="w-4 h-4" />
                               </button>
@@ -303,7 +307,8 @@ const SuperAdminPanel: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowPw(v => !v)}
-                className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
+                aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                className="absolute right-3 top-2.5 text-gray-400 hover:text-white focus-ring rounded-lg p-1"
               >
                 {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -311,14 +316,14 @@ const SuperAdminPanel: React.FC = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => { setPwModal(null); setNewPw(''); }}
-                className="flex-1 px-4 py-2.5 bg-white/5 text-gray-400 hover:text-white rounded-xl text-sm font-medium transition-all"
+                className="flex-1 px-4 py-2.5 bg-white/5 text-gray-400 hover:text-white rounded-xl text-sm font-medium transition-all focus-ring"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleResetPw}
                 disabled={!newPw.trim() || actionLoading === pwModal.userId}
-                className="flex-1 px-4 py-2.5 bg-yellow-500 text-black rounded-xl text-sm font-bold hover:bg-yellow-400 transition-all disabled:opacity-40"
+                className="flex-1 px-4 py-2.5 bg-yellow-500 text-black rounded-xl text-sm font-bold hover:bg-yellow-400 transition-all disabled:opacity-40 focus-ring"
               >
                 {actionLoading === pwModal.userId
                   ? <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin mx-auto" />
