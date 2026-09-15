@@ -61,10 +61,63 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const isInternalIp = (ip: string): boolean => {
+      if (/^(\d{1,3}\.){3}\d{1,3}$/.test(ip)) {
+        return /^127\./.test(ip) || /^10\./.test(ip) || /^192\.168\./.test(ip) || /^169\.254\./.test(ip) || /^0\./.test(ip) || /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip);
+      }
+      if (ip.includes(':')) {
+        const cleanIp = ip.replace(/^\[|\]$/g, '').toLowerCase();
+        return cleanIp === '::1' || cleanIp === '::' || cleanIp.startsWith('fc') || cleanIp.startsWith('fd') || cleanIp.startsWith('fe8') || cleanIp.startsWith('::ffff:');
+      }
+      return ip.toLowerCase() === 'localhost';
+    };
+
+    let currentUrl = url;
+    let response: Response | null = null;
+
+    // Follow redirects manually to mitigate SSRF bypasses via redirects
+    for (let i = 0; i < 5; i++) {
+      const parsedUrl = new URL(currentUrl);
+
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error("Protocolo no permitido (solo http/https).");
+      }
+
+      if (isInternalIp(parsedUrl.hostname)) {
+        throw new Error("URL apunta a una dirección IP o host interno no permitido.");
+      }
+
+      // DNS Rebinding check (Note: inherent TOCTOU limitation when not using specialized clients)
+      let resolvedIps: string[] = [];
+      const isHostnameIp = /^(\d{1,3}\.){3}\d{1,3}$/.test(parsedUrl.hostname) || parsedUrl.hostname.includes(':');
+
+      if (!isHostnameIp) {
+        try { resolvedIps = [...resolvedIps, ...(await Deno.resolveDns(parsedUrl.hostname, 'A'))]; }
+        catch (e) { if (!(e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported || e instanceof TypeError)) throw e; }
+
+        try { resolvedIps = [...resolvedIps, ...(await Deno.resolveDns(parsedUrl.hostname, 'AAAA'))]; }
+        catch (e) { if (!(e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported || e instanceof TypeError)) throw e; }
+
+        if (resolvedIps.some(isInternalIp)) {
+           throw new Error("El dominio se resuelve a una dirección IP interna no permitida.");
+        }
+      }
+
+      response = await fetch(currentUrl, { headers: fetchHeaders, redirect: 'manual' });
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location');
+        response.body?.cancel(); // Prevent resource leaks
+        if (!location) throw new Error("Redirección sin cabecera Location.");
+        currentUrl = new URL(location, currentUrl).toString();
+        continue;
+      }
+
+      break;
+    }
     
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    if (!response || !response.ok) {
+      throw new Error(`Error al acceder a la URL: ${response?.statusText || 'Max redirects reached'}`);
     }
 
     const html = await response.text();
