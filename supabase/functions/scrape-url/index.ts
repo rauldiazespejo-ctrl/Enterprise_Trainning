@@ -52,7 +52,72 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
-    console.log(`Buscando contenido de: ${url}`);
+    // SSRF Protection Function
+    const validateUrl = async (targetUrl: string, redirectCount: number = 0): Promise<string> => {
+      if (redirectCount > 5) throw new Error("Too many redirects");
+
+      let parsed: URL;
+      try {
+        parsed = new URL(targetUrl);
+      } catch {
+        throw new Error("URL inválida");
+      }
+
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        throw new Error("Protocolo no permitido");
+      }
+
+      // Check if hostname is an IP (v4 or v6)
+      const hostname = parsed.hostname;
+      const isIpHostname = hostname.includes(':') || /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+
+      const isPrivateIP = (ip: string) => {
+        const v = ip.replace(/^(\[)|(\])$/g, '').toLowerCase();
+        if (v.includes(':')) return v === '::1' || v === '::' || /^(fc|fd|fe80|::ffff:)/.test(v);
+        if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(v)) return v === 'localhost';
+        return /^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2[0-9]|3[0-1])\.|^169\.254\.|^0\./.test(v);
+      };
+
+      if (isPrivateIP(hostname) || hostname.endsWith('.local') || hostname === 'localhost') {
+        throw new Error("Acceso a red interna no permitido");
+      }
+
+      // Prevent DNS rebinding by resolving DNS if it's not already an IP
+      // Note: fetching the hostname later leaves a TOCTOU vulnerability but standard fetch doesn't support custom SNI over IP.
+      if (!isIpHostname) {
+        // Resolve IPv4
+        try {
+          const recordsA = await Deno.resolveDns(hostname, 'A');
+          for (const ip of recordsA) {
+            if (isPrivateIP(ip)) throw new Error("Resolves to private IP");
+          }
+        } catch (e: unknown) {
+           const err = e as Error;
+           if (err.message?.includes("Resolves to private IP")) throw e;
+           if (err.name !== "NotFound" && err.name !== "NotSupported") {
+               throw new Error("Error de resolución DNS IPv4"); // Fail closed
+           }
+        }
+        // Resolve IPv6
+        try {
+           const recordsAAAA = await Deno.resolveDns(hostname, 'AAAA');
+           for (const ip of recordsAAAA) {
+             if (isPrivateIP(ip)) throw new Error("Resolves to private IP");
+           }
+        } catch (e: unknown) {
+           const err = e as Error;
+           if (err.message?.includes("Resolves to private IP")) throw e;
+           if (err.name !== "NotFound" && err.name !== "NotSupported") {
+               throw new Error("Error de resolución DNS IPv6"); // Fail closed
+           }
+        }
+      }
+      return parsed.toString();
+    };
+
+    let currentUrl = await validateUrl(url);
+
+    console.log(`Buscando contenido de: ${currentUrl}`);
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
@@ -61,9 +126,31 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    let response;
+    let redirectCount = 0;
+
+    // Manual redirect tracking to prevent SSRF bypass via redirects
+    while (true) {
+      if (redirectCount > 5) throw new Error("Too many redirects");
+
+      response = await fetch(currentUrl, {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const location = response.headers.get('location');
+        if (!location) break;
+        response.body?.cancel(); // Important to release resources
+        currentUrl = await validateUrl(new URL(location, currentUrl).toString(), redirectCount + 1);
+        redirectCount++;
+      } else {
+        break;
+      }
+    }
     
     if (!response.ok) {
+      response.body?.cancel();
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
     }
 
