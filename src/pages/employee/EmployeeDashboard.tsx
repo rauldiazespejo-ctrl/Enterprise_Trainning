@@ -55,20 +55,40 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const certificates = React.useMemo(() => user ? getUserCertificates(user.id) : [], [user, getUserCertificates]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  // ⚡ Bolt: O(1) Map lookup and single-pass array aggregation to prevent O(N*M) + multi-pass filtering overhead
+  const { totalCourses, completedCourses, inProgressCourses, nextCourse, inProgressList, pendingCourses } = React.useMemo(() => {
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const totalCourses = assignedCourses.length;
-  const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;
-  const inProgressCourses = assignedCourses.filter(c => c?.assignment.status === 'in_progress').length;
-  const certificates = user ? getUserCertificates(user.id) : [];
-  const nextCourse = assignedCourses.find(c => c?.assignment.status === 'in_progress');
-  const inProgressList = assignedCourses.filter(c => c?.assignment.status === 'in_progress');
-  const pendingCourses = assignedCourses.filter(c => c?.assignment.status === 'pending');
+    return assignments.reduce((acc, a) => {
+      if (!user || a.userId !== user.id) return acc;
+
+      const course = courseMap.get(a.courseId);
+      if (course) {
+        const assignedCourse = { ...course, assignment: a };
+        acc.totalCourses++;
+
+        if (a.status === 'completed') {
+          acc.completedCourses++;
+        } else if (a.status === 'in_progress') {
+          acc.inProgressCourses++;
+          acc.inProgressList.push(assignedCourse);
+          if (!acc.nextCourse) acc.nextCourse = assignedCourse;
+        } else if (a.status === 'pending') {
+          acc.pendingCourses.push(assignedCourse);
+        }
+      }
+      return acc;
+    }, {
+      totalCourses: 0,
+      completedCourses: 0,
+      inProgressCourses: 0,
+      nextCourse: null as any,
+      inProgressList: [] as any[],
+      pendingCourses: [] as any[]
+    });
+  }, [assignments, courses, user]);
 
   const completionPct = totalCourses > 0 ? Math.round((completedCourses / totalCourses) * 100) : 0;
 
