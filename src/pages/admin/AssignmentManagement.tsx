@@ -30,18 +30,26 @@ const AssignmentManagement: React.FC = () => {
   const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
   const publishedCourses = courses.filter(c => c.status === 'published');
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // ⚡ Bolt: O(1) Map lookups for courses and users to prevent O(N*M) nested iterations during enrichment
+  const { enrichedAssignments, filtered } = React.useMemo(() => {
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+    const enriched = assignments.map(a => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+
+    const filterResult = enriched.filter(a => {
+      if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterCourse && a.courseId !== filterCourse) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      return true;
+    });
+
+    return { enrichedAssignments: enriched, filtered: filterResult };
+  }, [assignments, users, courses, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
