@@ -1,5 +1,6 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { safeFetch } from "./ssrf.ts";
 
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
@@ -61,7 +62,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
