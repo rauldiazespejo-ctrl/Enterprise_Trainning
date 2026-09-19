@@ -1,0 +1,3 @@
+## 2024-05-24 - Do not bypass encapsulation for optimization
+**Learning:** When attempting to flatten an O(N*M) calculation in React by building a lookup Map, bypassing existing context getter functions (like `getUserAssignments`) and iterating directly over raw arrays risks breaking business logic and encapsulation, and might cause crashes if the raw array isn't exposed.
+**Action:** When optimizing loop bottlenecks, maintain encapsulation by building frequency maps for the raw arrays that *are* exposed (like `certificates`), and use those alongside the existing context helper functions to achieve an O(N+M) reduction without regressions.
