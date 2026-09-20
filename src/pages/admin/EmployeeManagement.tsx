@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,23 +65,43 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // ⚡ Bolt: Memoize employee array to prevent recalculations on search
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
+  // ⚡ Bolt: Build O(1) lookup map for certificates to prevent O(N*C) scan on every row render
+  const certCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const cert of certificates) {
+      counts.set(cert.userId, (counts.get(cert.userId) || 0) + 1);
+    }
+    return counts;
+  }, [certificates]);
+
+  // Evaluated lazily per rendered row to avoid eager computation overhead on hidden pages
   const employeeStats = (employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
+    let completed = 0;
+    let inProgress = 0;
+    for (const a of userAssignments) {
+      if (a.status === 'completed') completed++;
+      if (a.status === 'in_progress') inProgress++;
+    }
     return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+      completed,
+      inProgress,
+      certificates: certCounts.get(employeeId) || 0
     };
   };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredEmployees = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(term) ||
+      emp.email.toLowerCase().includes(term) ||
+      (emp.rut || '').toLowerCase().includes(term) ||
+      (emp.department || '').toLowerCase().includes(term)
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
