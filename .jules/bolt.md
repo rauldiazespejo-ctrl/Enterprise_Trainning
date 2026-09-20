@@ -1,0 +1,3 @@
+## 2024-05-20 - Avoid eager computation of derived stats for paginated lists
+**Learning:** In list components with pagination, eager computation of derived stats (like `getUserAssignments`) using a global `useMemo` for all items (including non-rendered pages) causes performance regressions on every filter change, defeating the purpose of O(1) map optimizations.
+**Action:** Compute derived stats lazily/on-demand only for the rendered/paginated rows, while restricting global `useMemo` optimizations strictly to building raw O(1) data lookup Maps (like `certCounts`) that don't require expensive context queries.
