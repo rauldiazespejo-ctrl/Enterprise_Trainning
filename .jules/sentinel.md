@@ -1,4 +1,0 @@
-## 2024-05-24 - [IDOR / Auth Bypass in Audit Log Function]
-**Vulnerability:** The `audit-log` Supabase Edge Function accepted unauthenticated requests and trusted the `user_id` provided in the payload, allowing anyone to spoof audit logs for any user since the backend used the `SUPABASE_SERVICE_ROLE_KEY` to insert the rows.
-**Learning:** Functions that insert administrative data using the service role key to bypass RLS must still manually enforce their own authentication checks and validate that the caller's identity matches the resources they are operating on.
-**Prevention:** Explicitly extract the `Authorization` header, verify it against the standard `SUPABASE_ANON_KEY` client to get the trusted `user.id`, and enforce its presence for all actions except explicit unauthenticated whitelisted ones (like `login`). Use the trusted `user.id` instead of payload data.

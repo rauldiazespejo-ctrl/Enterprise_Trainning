@@ -43,7 +43,6 @@ Deno.serve(async request => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
@@ -57,28 +56,6 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
-    // Verificar autenticación
-    let authenticatedUserId: string | null = null;
-    const authorization = request.headers.get('Authorization');
-
-    if (authorization) {
-      const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
-      const { data: { user } } = await callerClient.auth.getUser();
-      if (user) {
-        authenticatedUserId = user.id;
-      }
-    }
-
-    const unauthenticatedActions = ['login', 'login_failed', 'signup', 'reset_password_request'];
-    const isUnauthenticatedAction = typeof action === 'string' && unauthenticatedActions.includes(action);
-
-    if (!authenticatedUserId && !isUnauthenticatedAction) {
-      throw new Error('Sesión requerida para esta acción.');
-    }
-
-    // Si está autenticado, usar su ID. Si no, permitir el body (para actions como login_failed con un user particular)
-    const finalUserId = authenticatedUserId || user_id || null;
-
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -87,7 +64,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: finalUserId,
+      user_id: user_id || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
