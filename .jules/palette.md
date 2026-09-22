@@ -1,0 +1,3 @@
+## 2024-05-15 - Pagination Component Accessibility
+**Learning:** The generic Pagination component (src/components/ui/Pagination.tsx) used standard divs and lacked critical ARIA indicators, which meant screen reader users were not provided necessary structural context, had redundant announcements (ellipsis/icons), and lacked state information about the currently active page.
+**Action:** Replaced the generic wrapper with a `<nav aria-label="Navegación de páginas">`. Hidden decorative icons (`ChevronLeft`/`ChevronRight`) and the ellipsis span using `aria-hidden="true"`. Applied `aria-current="page"` dynamically to the active page button. Applied the custom `.focus-ring` utility class to all interactive pagination elements to ensure visible keyboard focus.
