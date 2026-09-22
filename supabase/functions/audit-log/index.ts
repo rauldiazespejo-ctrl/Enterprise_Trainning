@@ -44,17 +44,39 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    // Cliente admin para insertar sin restricciones de RLS
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
-
     const { action, resource_type, resource_id, details, user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
     }
+
+    // 🛡️ Security: Enforce authentication using Authorization header
+    const authorization = request.headers.get('Authorization');
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    let actualUserId = user_id || null;
+
+    if (!unauthenticatedActions.includes(action)) {
+      if (!authorization) {
+        throw new Error('Sesión requerida.');
+      }
+
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authorization } }
+      });
+
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sesión inválida.');
+      }
+      // Overwrite any potentially spoofed user_id with the actual authenticated user's ID
+      actualUserId = user.id;
+    }
+
+    // Cliente admin para insertar sin restricciones de RLS
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -64,7 +86,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: actualUserId,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
