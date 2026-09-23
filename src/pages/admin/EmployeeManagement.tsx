@@ -65,23 +65,34 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // Memoize employee list to prevent recalculation on every render
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // Memoize certificate counts for O(1) lookups per employee
+  const certificateCounts = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of certificates) {
+      counts.set(c.userId, (counts.get(c.userId) || 0) + 1);
+    }
+    return counts;
+  }, [certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+      certificates: certificateCounts.get(employeeId) || 0
     };
-  };
+  }, [getUserAssignments, certificateCounts]);
 
-  const filteredEmployees = employees.filter(emp =>
+  // Memoize filtered results to improve search performance
+  const filteredEmployees = React.useMemo(() => employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +272,30 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Calculate aggregate stats in O(N+M) single pass using assignments directly
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    let completedCount = 0;
+    const inTrainingUsers = new Set<string>();
+
+    // First, map valid employee IDs for fast lookup
+    const employeeIds = new Set(employees.map(e => e.id));
+
+    // Then iterate assignments once
+    for (const a of assignments) {
+      if (employeeIds.has(a.userId)) {
+        if (a.status === 'completed') {
+          completedCount++;
+        } else if (a.status === 'in_progress') {
+          inTrainingUsers.add(a.userId);
+        }
+      }
+    }
+
+    return {
+      totalCompleted: completedCount,
+      totalInTraining: inTrainingUsers.size
+    };
+  }, [assignments, employees]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
