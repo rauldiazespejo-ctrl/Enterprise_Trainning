@@ -1,0 +1,4 @@
+## 2025-02-23 - Prevent IDOR in Audit Log Edge Function
+**Vulnerability:** The `audit-log` edge function was susceptible to Insecure Direct Object Reference (IDOR) because it trusted the `user_id` provided directly in the request payload to record the origin of the action, allowing any user to spoof audit logs as someone else.
+**Learning:** Even though the function requires a Service Role Key to bypass Row Level Security for logging, the identity of the actor must still be independently verified via their session rather than trusting the client payload. Unauthenticated actions (like `login_failed`) were properly bypassing auth, but authenticated ones had no check.
+**Prevention:** To prevent IDOR in serverless functions managing system logs or actions on behalf of users, always derive the actor's identity securely from the `Authorization` header (`supabase.auth.getUser()`) and overwrite any provided `user_id` in the request body with the verified ID.
