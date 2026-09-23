@@ -1,0 +1,3 @@
+## 2024-05-24 - Accessible Pagination Controls
+**Learning:** Generic pagination component was lacking proper navigation semantics (`<nav>` wrapper), missing `aria-current="page"` to indicate the active page, and exposing decorative icons and structural elements (like ellipsis) to screen readers unnecessarily.
+**Action:** Always wrap pagination components in a `<nav aria-label="...">`. Ensure the active page button has `aria-current="page"`. Add `aria-hidden="true"` to structural/decorative text like `...` and SVG icons to reduce screen reader noise. Use `focus-ring` and `tap-target-min` custom classes for keyboard/mobile accessibility.
