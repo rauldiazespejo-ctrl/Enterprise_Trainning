@@ -1,0 +1,3 @@
+## 2024-05-18 - Semantic Pagination Wrapper
+**Learning:** Pagination blocks implemented purely with `<div>` elements lack the necessary structural context for screen readers to identify them as navigation regions, despite having individual ARIA labels on child buttons. Furthermore, indicating the current active page is critical for usability.
+**Action:** Always wrap pagination controls in a semantic `<nav aria-label="...">` element. Enforce the use of `aria-current="page"` on the currently active page button, and hide decorative structural elements like ellipsis `<span>` tags using `aria-hidden="true"`.

@@ -61,7 +61,7 @@ const Pagination: React.FC<PaginationProps> = ({
   const pageNumbers = getPageNumbers();
 
   return (
-    <div className={`flex items-center justify-between ${className}`}>
+    <nav aria-label="Navegación de páginas" className={`flex items-center justify-between ${className}`}>
       {/* Info de paginación */}
       {totalItems !== undefined && pageSize !== undefined && (
         <div className="text-sm text-slate-400">
@@ -75,10 +75,10 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring tap-target-min"
           aria-label="Página anterior"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
         </button>
 
         {/* Números de página */}
@@ -87,7 +87,9 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               key={page}
               onClick={() => onPageChange(page)}
-              className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors ${
+              aria-label={`Página ${page}`}
+              aria-current={currentPage === page ? "page" : undefined}
+              className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors focus-ring tap-target-min ${
                 currentPage === page
                   ? 'bg-brand text-white'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
@@ -96,7 +98,7 @@ const Pagination: React.FC<PaginationProps> = ({
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} aria-hidden="true" className="px-2 text-slate-500">
               {page}
             </span>
           )
@@ -106,13 +108,13 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-ring tap-target-min"
           aria-label="Página siguiente"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5" aria-hidden="true" />
         </button>
       </div>
-    </div>
+    </nav>
   );
 };
 
