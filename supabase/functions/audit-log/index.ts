@@ -45,15 +45,39 @@ Deno.serve(async request => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+
+    // Cliente auth para verificar el usuario real
+    const authHeader = request.headers.get('Authorization') || '';
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let finalUserId = body.user_id || null;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Unauthenticated actions allowed
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+
+    if (!unauthenticatedActions.includes(action)) {
+      if (!authHeader) {
+         throw new Error('Missing authorization header for authenticated action.');
+      }
+      const { data: { user }, error: authError } = await authClient.auth.getUser();
+      if (authError || !user) {
+         throw new Error('Unauthorized.');
+      }
+      // Force the user ID to the authenticated user's ID
+      finalUserId = user.id;
     }
 
     // Obtener información del cliente
@@ -64,7 +88,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: finalUserId,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
