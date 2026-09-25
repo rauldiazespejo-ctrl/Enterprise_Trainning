@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,15 +65,38 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
+
+  const userStatsMap = useMemo(() => {
+    const map = new Map<string, { completed: number; inProgress: number; certificates: number }>();
+
+    // Initialize map for all employees
+    employees.forEach(emp => {
+      map.set(emp.id, { completed: 0, inProgress: 0, certificates: 0 });
+    });
+
+    // Single pass through assignments
+    assignments.forEach(assignment => {
+      const stats = map.get(assignment.userId);
+      if (stats) {
+        if (assignment.status === 'completed') stats.completed++;
+        if (assignment.status === 'in_progress') stats.inProgress++;
+      }
+    });
+
+    // Single pass through certificates
+    certificates.forEach(cert => {
+      const stats = map.get(cert.userId);
+      if (stats) {
+        stats.certificates++;
+      }
+    });
+
+    return map;
+  }, [employees, assignments, certificates]);
 
   const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
+    return userStatsMap.get(employeeId) || { completed: 0, inProgress: 0, certificates: 0 };
   };
 
   const filteredEmployees = employees.filter(emp =>
