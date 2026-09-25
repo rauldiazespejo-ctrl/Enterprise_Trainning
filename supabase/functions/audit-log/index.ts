@@ -56,6 +56,28 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
+    // Seguridad: Prevenir IDOR obteniendo el user_id del token de autorización
+    // a menos que sea una acción no autenticada explícitamente permitida
+    let secureUserId = user_id;
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+
+    if (!unauthenticatedActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Sesión requerida para esta acción de auditoría.');
+      }
+
+      const callerClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') || '', {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sesión inválida.');
+      }
+      secureUserId = user.id;
+    }
+
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -64,7 +86,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: secureUserId || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
