@@ -70,15 +70,15 @@ const Pagination: React.FC<PaginationProps> = ({
       )}
 
       {/* Navegación de páginas */}
-      <div className="flex items-center gap-1">
+      <nav className="flex items-center gap-1" aria-label="Navegación de páginas">
         {/* Botón anterior */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
           disabled={currentPage === 1}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors tap-target-min focus-ring"
           aria-label="Página anterior"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-5 h-5" aria-hidden="true" />
         </button>
 
         {/* Números de página */}
@@ -87,7 +87,9 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               key={page}
               onClick={() => onPageChange(page)}
-              className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors ${
+              aria-label={`Ir a la página ${page}`}
+              aria-current={currentPage === page ? 'page' : undefined}
+              className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors tap-target-min focus-ring ${
                 currentPage === page
                   ? 'bg-brand text-white'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
@@ -96,7 +98,7 @@ const Pagination: React.FC<PaginationProps> = ({
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
               {page}
             </span>
           )
@@ -106,12 +108,12 @@ const Pagination: React.FC<PaginationProps> = ({
         <button
           onClick={() => onPageChange(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors tap-target-min focus-ring"
           aria-label="Página siguiente"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-5 h-5" aria-hidden="true" />
         </button>
-      </div>
+      </nav>
     </div>
   );
 };
