@@ -52,6 +52,141 @@ serve(async (req) => {
       throw new Error("Se requiere una URL válida");
     }
 
+    let targetUrl: URL;
+    try {
+      targetUrl = new URL(url);
+    } catch {
+      throw new Error("Formato de URL inválido");
+    }
+
+    if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
+      throw new Error("Protocolo no permitido. Solo HTTP y HTTPS.");
+    }
+
+    const isReservedIP = (ip: string) => {
+      const parts = ip.split('.').map(Number);
+      if (parts.length !== 4) return false;
+      return (
+        parts[0] === 10 ||
+        parts[0] === 127 ||
+        parts[0] === 0 ||
+        (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) ||
+        (parts[0] === 192 && parts[1] === 168) ||
+        (parts[0] === 169 && parts[1] === 254)
+      );
+    };
+
+    const isReservedIPv6 = (ip: string) => {
+      if (!ip.includes(':')) return false;
+      const lower = ip.toLowerCase();
+      // Remove brackets if present
+      const cleanIp = lower.replace(/^\[/, '').replace(/\]$/, '');
+      return (
+        cleanIp === '::1' ||
+        cleanIp === '::' ||
+        cleanIp.startsWith('fc') ||
+        cleanIp.startsWith('fd') ||
+        cleanIp.startsWith('fe80') ||
+        cleanIp.startsWith('::ffff:')
+      );
+    };
+
+    const isInternalHostname = (hostname: string) => {
+      const lower = hostname.toLowerCase();
+      return (
+        lower === 'localhost' ||
+        lower.endsWith('.localhost') ||
+        lower.endsWith('.local') ||
+        lower.endsWith('.internal') ||
+        lower === 'metadata.google.internal' ||
+        lower === '169.254.169.254'
+      );
+    };
+
+    const isIP = /^(\d{1,3}\.){3}\d{1,3}$/.test(targetUrl.hostname) || targetUrl.hostname.includes(':');
+
+    if (isInternalHostname(targetUrl.hostname)) {
+      throw new Error("Host no permitido.");
+    }
+
+    if (isIP) {
+      if (isReservedIP(targetUrl.hostname) || isReservedIPv6(targetUrl.hostname)) {
+         throw new Error("Dirección IP no permitida.");
+      }
+    } else {
+      // It's a hostname, resolve it to check for DNS rebinding to internal IPs
+      try {
+        const ipv4s = await Deno.resolveDns(targetUrl.hostname, "A").catch((e) => {
+           if (e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported) return [];
+           throw e;
+        });
+        const ipv6s = await Deno.resolveDns(targetUrl.hostname, "AAAA").catch((e) => {
+           if (e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported) return [];
+           throw e;
+        });
+
+        for (const ip of ipv4s) {
+          if (isReservedIP(ip)) throw new Error("Resolución a IP no permitida.");
+        }
+        for (const ip of ipv6s) {
+          if (isReservedIPv6(ip)) throw new Error("Resolución a IP no permitida.");
+        }
+      } catch (error) {
+        if (error instanceof Error && error.message === "Resolución a IP no permitida.") throw error;
+        throw new Error("Error resolviendo el hostname.");
+      }
+    }
+
+
+    const validateUrl = async (urlStr: string): Promise<URL> => {
+      let target: URL;
+      try {
+        target = new URL(urlStr);
+      } catch {
+        throw new Error("Formato de URL de redirección inválido");
+      }
+
+      if (target.protocol !== "http:" && target.protocol !== "https:") {
+        throw new Error("Protocolo no permitido en redirección.");
+      }
+
+      const isInternal = isInternalHostname(target.hostname);
+      if (isInternal) {
+        throw new Error("Host no permitido en redirección.");
+      }
+
+      const isIPAddress = /^(\d{1,3}\.){3}\d{1,3}$/.test(target.hostname) || target.hostname.includes(':');
+
+      if (isIPAddress) {
+        if (isReservedIP(target.hostname) || isReservedIPv6(target.hostname)) {
+           throw new Error("Dirección IP no permitida en redirección.");
+        }
+      } else {
+        try {
+          const ipv4s = await Deno.resolveDns(target.hostname, "A").catch((e) => {
+             if (e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported) return [];
+             throw e;
+          });
+          const ipv6s = await Deno.resolveDns(target.hostname, "AAAA").catch((e) => {
+             if (e instanceof Deno.errors.NotFound || e instanceof Deno.errors.NotSupported) return [];
+             throw e;
+          });
+
+          for (const ip of ipv4s) {
+            if (isReservedIP(ip)) throw new Error("Resolución a IP no permitida.");
+          }
+          for (const ip of ipv6s) {
+            if (isReservedIPv6(ip)) throw new Error("Resolución a IP no permitida.");
+          }
+        } catch (error) {
+        if (error instanceof Error && error.message === "Resolución a IP no permitida.") throw error;
+          throw new Error("Error resolviendo el hostname en redirección.");
+        }
+      }
+      return target;
+    };
+
+
     console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
@@ -61,10 +196,39 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    let currentUrl = targetUrl;
+    let redirectsCount = 0;
+    const MAX_REDIRECTS = 5;
+    let response: Response | null = null;
+
+    while (redirectsCount <= MAX_REDIRECTS) {
+      response = await fetch(currentUrl.toString(), {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if (response.status >= 300 && response.status < 400) {
+        const location = response.headers.get('location');
+        response.body?.cancel();
+
+        if (!location) {
+          throw new Error("Redirección sin encabezado Location.");
+        }
+
+        redirectsCount++;
+        if (redirectsCount > MAX_REDIRECTS) {
+          throw new Error("Demasiadas redirecciones.");
+        }
+
+        currentUrl = await validateUrl(new URL(location, currentUrl).toString());
+      } else {
+        break; // Not a redirect, process this response
+      }
+    }
+
+    if (!response || !response.ok) {
+      response?.body?.cancel();
+      throw new Error(`Error al acceder a la URL: ${response?.statusText || "No response"}`);
     }
 
     const html = await response.text();
