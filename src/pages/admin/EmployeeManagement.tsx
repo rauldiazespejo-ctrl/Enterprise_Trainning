@@ -65,16 +65,25 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // O(N) map to avoid O(N*M) lookups in employeeStats
+  const certificateCountMap = React.useMemo(() => {
+    const map = new Map<string, number>();
+    certificates.forEach(c => {
+      map.set(c.userId, (map.get(c.userId) || 0) + 1);
+    });
+    return map;
+  }, [certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+      certificates: certificateCountMap.get(employeeId) || 0
     };
-  };
+  }, [getUserAssignments, certificateCountMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +270,13 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Compute global stats in a single pass, memoized to prevent recalculation on every render
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    return {
+      totalCompleted: employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0),
+      totalInTraining: employees.filter(e => employeeStats(e.id).inProgress > 0).length
+    };
+  }, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
