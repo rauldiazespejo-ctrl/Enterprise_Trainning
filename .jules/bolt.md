@@ -1,0 +1,3 @@
+## 2024-11-20 - Global Aggregation without Abstraction Leaks
+**Learning:** When optimizing global aggregate statistics in React, bypassing existing context helper functions (like `getUserAssignments`) by iterating directly over raw context arrays (like `assignments`) can be flagged by code reviewers as an abstraction leak, as it risks ignoring important internal logic (e.g., filtering out deleted or inactive records).
+**Action:** To optimize without breaking encapsulation, preserve the usage of existing helper functions but wrap the calling logic (e.g., `employees.reduce(...)`) inside a `React.useMemo` block. This prevents recalculation on every render while maintaining strict architectural boundaries.
