@@ -1,0 +1,4 @@
+## 2025-05-24 - IDOR in Audit Log
+**Vulnerability:** The `supabase/functions/audit-log/index.ts` edge function inserted audit records using an untrusted `user_id` passed in the request body, allowing any user to log events on behalf of others.
+**Learning:** Even internal tracking endpoints that use the service role key to insert records (bypassing RLS) must validate the identity of the user making the request. A client providing its own `user_id` should never be trusted for security-critical actions like audit logs. Unauthenticated actions had to be allowed conditionally to ensure valid requests (e.g. login failures) didn't break.
+**Prevention:** Always extract and verify the user's ID securely using the `Authorization` header and `supabase.auth.getUser()`, rather than trusting the JSON payload.
