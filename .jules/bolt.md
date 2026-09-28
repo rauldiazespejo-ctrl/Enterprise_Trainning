@@ -1,0 +1,3 @@
+## 2025-02-28 - Array Filter Aggregations vs useMemo
+**Learning:** In list-based React components (like `EmployeeManagement.tsx`), using `.filter()` or `.reduce()` to calculate global stats using helper functions that themselves iterate over large context arrays inside the component body creates an accidental O(N*M) render bottleneck. Every render forces the stats to recalculate across every employee.
+**Action:** Always wrap global list aggregations in a single `.reduce()` pass combined with `useMemo`, ensuring context helpers are not called redundantly during unassociated state changes (like typing in a search bar).
