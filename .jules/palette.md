@@ -1,0 +1,3 @@
+## 2024-05-24 - Semantic Pagination Navigation
+**Learning:** Using a generic `<div>` for pagination wrapper causes screen readers to announce it simply as a group, completely missing the context of navigation. Decorative text like ellipsis (`...`) are read aloud and confuse screen reader users. The active page state is only conveyed visually via colors, making it inaccessible to screen readers.
+**Action:** When building pagination components, always wrap them in a semantic `<nav aria-label="Navegación de páginas">`. Apply `aria-current="page"` to the currently active page button. Add `aria-label={"Página " + page}` to page number buttons. Explicitly hide decorative or visual-only elements like an ellipsis `<span>` using `aria-hidden="true"`.
