@@ -1,0 +1,4 @@
+## 2025-02-14 - Prevent IDOR in audit-log edge function
+**Vulnerability:** The `audit-log` edge function was vulnerable to IDOR because it blindly trusted the `user_id` provided in the request body when inserting audit logs. Using the `SUPABASE_SERVICE_ROLE_KEY` bypassed RLS, allowing attackers to spoof audit logs for any user.
+**Learning:** Edge functions that use the service role key bypass RLS completely. In such cases, if actions are associated with a user, the application must manually verify the user's identity by fetching the user using the provided token (`adminClient.auth.getUser(token)`).
+**Prevention:** Never trust client-provided user IDs in sensitive backend operations, especially when RLS is bypassed. Always overwrite the `user_id` with the authenticated `user.id` obtained securely from the `Authorization` header via `supabase.auth.getUser()`, while providing explicit bypasses for unauthenticated events like logins.

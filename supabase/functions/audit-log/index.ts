@@ -56,6 +56,25 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
+    // Unauthenticated actions allowed to bypass strict session checks
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    let authenticatedUserId: string | null = null;
+
+    if (!unauthenticatedActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Authorization header is missing.');
+      }
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await adminClient.auth.getUser(token);
+      if (userError || !user) {
+        throw new Error('No autorizado.');
+      }
+      authenticatedUserId = user.id;
+    } else {
+      authenticatedUserId = user_id || null;
+    }
+
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -64,7 +83,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: authenticatedUserId,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
