@@ -50,10 +50,35 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details, user_id: bodyUserId } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    let user_id = bodyUserId;
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+
+    // 🛡️ SECURITY: Prevent IDOR/Spoofing by verifying the user through the Authorization header.
+    // Do not trust the user_id provided in the request body for authenticated actions.
+    const authHeader = request.headers.get('Authorization');
+    let isAuthenticated = false;
+
+    if (authHeader) {
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user } } = await authClient.auth.getUser();
+      if (user) {
+        user_id = user.id; // Override with securely verified user ID
+        isAuthenticated = true;
+      }
+    }
+
+    // Fallback securely for unauthenticated actions, otherwise reject
+    if (!isAuthenticated && !unauthenticatedActions.includes(action)) {
+      throw new Error('Sesión requerida.');
     }
 
     // Obtener información del cliente

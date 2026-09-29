@@ -1,0 +1,4 @@
+## 2026-09-29 - [Fix] Insecure Direct Object Reference (IDOR) and Spoofing in audit-log
+**Vulnerability:** The `audit-log` edge function was relying on the `user_id` provided in the HTTP request payload directly rather than securely verifying the caller's identity. This allowed any unauthenticated or authenticated user to spoof audit log entries, potentially framing other users (e.g., admins) for malicious or sensitive actions.
+**Learning:** In edge functions that write directly to the database via Service Role Keys (which bypass RLS), we cannot rely on RLS to enforce identity. Trusting the client payload for identity is fundamentally unsafe.
+**Prevention:** Always require and parse the `Authorization` header using `supabase.auth.getUser()` in edge functions that log sensitive actions, and override the payload's `user_id` with the authenticated token's ID. Ensure safe fallbacks exist for actions that are legitimately unauthenticated (like `login_failed`).
