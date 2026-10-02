@@ -46,11 +46,23 @@ Deno.serve(async request => {
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
+    const { action, resource_type, resource_id, details } = body;
+    let user_id = body.user_id;
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) throw new Error('Sesión requerida.');
+      const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+      const { data: { user } } = await callerClient.auth.getUser();
+      if (!user) throw new Error('Sesión inválida.');
+      user_id = user.id;
+    }
+
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
