@@ -44,16 +44,38 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details, user_id: body_user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Verificar autenticación para evitar IDOR
+    const authHeader = request.headers.get('Authorization');
+    const callerClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader || '' } },
+    });
+
+    const { data: authData } = await callerClient.auth.getUser();
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    let finalUserId = null;
+
+    if (authData?.user) {
+      finalUserId = authData.user.id;
+    } else if (unauthenticatedActions.includes(action)) {
+      finalUserId = body_user_id || null;
+    } else {
+      return Response.json(
+        { error: 'No autorizado' },
+        { status: 401, headers: corsHeaders }
+      );
     }
 
     // Obtener información del cliente
@@ -64,7 +86,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: finalUserId,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,

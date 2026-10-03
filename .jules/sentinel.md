@@ -1,0 +1,4 @@
+## 2024-10-24 - Edge Function IDOR via Client-Provided user_id
+**Vulnerability:** The `audit-log` Edge Function suffered from an Insecure Direct Object Reference (IDOR) / Spoofing vulnerability because it trusted the `user_id` provided in the JSON body payload to log events, while simultaneously using the `SUPABASE_SERVICE_ROLE_KEY` to insert the row, bypassing Row Level Security.
+**Learning:** Using the service role key inherently trusts the backend logic over database RLS. In architectures where mixed unauthenticated/authenticated events (like `login_failed` vs `admin_action`) hit the same logging endpoint, trusting body parameters directly leads to spoofing.
+**Prevention:** Always overwrite critical identity fields with securely obtained claims. Instantiate a separate `callerClient` using the provided `Authorization` header and the Anon Key to fetch the verified `user.id`. Only fallback to the body payload for explicitly whitelisted unauthenticated actions.
