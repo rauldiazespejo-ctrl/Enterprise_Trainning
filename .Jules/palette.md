@@ -1,0 +1,3 @@
+## 2024-05-24 - Semantic Pagination and Screen Reader Focus
+**Learning:** Found that the Pagination component, a core navigation element, lacked semantic `<nav>` wrappers and `aria-current="page"` indicators. This meant screen reader users couldn't easily tell what page they were on, and decorative elements like the ellipsis "..." were being announced unnecessarily.
+**Action:** Always wrap pagination components in a `<nav aria-label="Navegación de páginas">`. Use `aria-current="page"` on the active button, use `aria-hidden="true"` on non-interactive structural elements like ellipsis, and apply explicit `aria-label`s to numeric page buttons. Added standard focus/touch targets for improved accessibility.
