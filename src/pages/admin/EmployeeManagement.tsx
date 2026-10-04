@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,23 +65,46 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // Optimize: Pre-calculate certificate counts per user in O(N) pass instead of O(N*M)
+  const userCertCounts = useMemo(() => {
+    return certificates.reduce((acc, cert) => {
+      acc.set(cert.userId, (acc.get(cert.userId) || 0) + 1);
+      return acc;
+    }, new Map<string, number>());
+  }, [certificates]);
+
+  // Optimize: Consolidate multiple filter passes into one reduce
+  const employeeStats = React.useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    const stats = userAssignments.reduce(
+      (acc, a) => {
+        if (a.status === 'completed') acc.completed++;
+        else if (a.status === 'in_progress') acc.inProgress++;
+        return acc;
+      },
+      { completed: 0, inProgress: 0 }
+    );
+
+    return {
+      completed: stats.completed,
+      inProgress: stats.inProgress,
+      certificates: userCertCounts.get(employeeId) || 0
+    };
+  }, [getUserAssignments, userCertCounts]);
+
+  // Memoize filtered employees to prevent recalculation on every render
+  const filteredEmployees = useMemo(() => {
+    const lowerSearch = searchTerm.toLowerCase();
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(lowerSearch) ||
+      emp.email.toLowerCase().includes(lowerSearch) ||
+      (emp.rut || '').toLowerCase().includes(lowerSearch) ||
+      (emp.department || '').toLowerCase().includes(lowerSearch)
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +284,22 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Optimize: Calculate total stats in a single pass instead of multiple array iterations
+  // Wraps existing employeeStats logic to preserve encapsulation
+  const globalStats = useMemo(() => {
+    return employees.reduce(
+      (acc, e) => {
+        const stats = employeeStats(e.id);
+        acc.completed += stats.completed;
+        if (stats.inProgress > 0) acc.inTraining++;
+        return acc;
+      },
+      { completed: 0, inTraining: 0 }
+    );
+  }, [employees, employeeStats]);
+
+  const totalCompleted = globalStats.completed;
+  const totalInTraining = globalStats.inTraining;
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
