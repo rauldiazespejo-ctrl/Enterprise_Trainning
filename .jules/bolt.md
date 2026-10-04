@@ -1,0 +1,3 @@
+## 2024-05-19 - React Memoization and Encapsulation
+**Learning:** When optimizing React component performance (e.g., replacing O(N*M) loops with O(1) Maps), do not bypass or inline existing context helper functions (like `getUserAssignments`) just to flatten iterations, as this violates encapsulation and risks regressions. Eager computation for non-rendered rows causes performance regressions.
+**Action:** Instead, optimize around them by building frequency/lookup maps for raw arrays (e.g., `certificates`) and use those alongside the existing helpers. Compute per-item stats lazily/on-demand for the currently paginated rows while using memoized O(1) maps for raw data lookups.
