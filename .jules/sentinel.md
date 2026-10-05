@@ -1,0 +1,4 @@
+## 2026-10-05 - Prevent IDOR in Supabase Edge Functions with Service Role
+**Vulnerability:** The `audit-log` edge function allowed anyone to insert arbitrary audit logs and spoof any `user_id` because it bypassed RLS using the `SUPABASE_SERVICE_ROLE_KEY` and blindly trusted the body payload.
+**Learning:** When using the service role key, the function assumes full responsibility for authentication and authorization. Relying on client-provided IDs in the request body is inherently insecure (IDOR).
+**Prevention:** Always instantiate a `callerClient` using `createClient` with the `SUPABASE_ANON_KEY` and the `Authorization` header. Use `callerClient.auth.getUser()` to securely retrieve the authenticated user's ID, and fall back to body parameters ONLY for explicitly whitelisted unauthenticated actions (like 'login' or 'signup').
