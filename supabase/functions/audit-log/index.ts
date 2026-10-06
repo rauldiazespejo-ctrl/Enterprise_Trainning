@@ -44,9 +44,7 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-    // Cliente admin para insertar sin restricciones de RLS
-    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
@@ -56,6 +54,36 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
+    // Verify user authentication securely to prevent IDOR
+    const authHeader = request.headers.get('Authorization');
+    let authenticatedUserId: string | null = null;
+
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    const isUnauthAction = unauthenticatedActions.includes(action);
+
+    if (authHeader) {
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (!authError && user) {
+        authenticatedUserId = user.id;
+      }
+    }
+
+    if (!authenticatedUserId && !isUnauthAction) {
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // Fallback to body user_id ONLY for unauthenticated auth events
+    const finalUserId = authenticatedUserId || (isUnauthAction ? user_id : null);
+
+    // Cliente admin para insertar sin restricciones de RLS
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -64,7 +92,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: finalUserId || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
