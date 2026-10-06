@@ -1,0 +1,3 @@
+## 2024-03-20 - Pagination Accessibility
+**Learning:** Decorative text elements in structural components (like an ellipsis `<span>` in pagination) need `aria-hidden="true"` to prevent screen readers from announcing confusing, out-of-context punctuation. Similarly, ensuring active elements properly communicate their state via `aria-current="page"` and using semantic `<nav>` wrapping provides necessary structural context.
+**Action:** Always wrap pagination controls in a `<nav aria-label="...">`, apply `aria-current="page"` to the active page button, and hide decorative elements (like ellipses) with `aria-hidden="true"`. Use the `.focus-ring` utility class to ensure keyboard navigation is visibly distinct.
