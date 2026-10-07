@@ -1,0 +1,3 @@
+## 2024-05-24 - Pagination Accessibility Pattern
+**Learning:** Purely decorative elements in navigation components (like ellipses or icon chevrons in pagination) are often read confusingly by screen readers unless explicitly hidden with `aria-hidden="true"`. Furthermore, standard list items used for pagination must be enclosed within a semantic `<nav aria-label="...">` wrapper for the region to be discoverable, and the active page needs `aria-current="page"` (not just a visual class) to be semantically correct.
+**Action:** Always wrap pagination components in an `aria-label`ed `<nav>`, use `aria-current="page"` for active indicators, and aggressively apply `aria-hidden="true"` to visual filler content like ellipses and standalone icons.
