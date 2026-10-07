@@ -44,6 +44,7 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -56,6 +57,27 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
+    // SECURITY: Prevent IDOR by verifying user session rather than trusting payload user_id
+    let verifiedUserId = user_id || null;
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+
+    if (!unauthenticatedActions.includes(action as string)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Sesión requerida para esta acción.');
+      }
+
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sesión inválida.');
+      }
+      verifiedUserId = user.id;
+    }
+
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -64,7 +86,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: verifiedUserId,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
