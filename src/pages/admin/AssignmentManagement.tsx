@@ -1,8 +1,9 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
 import { useAuth } from '@/contexts/AuthContext';
+import type { User, Course } from '@/types';
 import {
   UserCheck, Search, BookOpen, Users, Calendar,
   Plus, Filter, Download, CheckCircle, Clock, AlertCircle
@@ -27,21 +28,31 @@ const AssignmentManagement: React.FC = () => {
   const [assignResult, setAssignResult] = useState<string | null>(null);
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
-  const publishedCourses = courses.filter(c => c.status === 'published');
+  // Optimization: Memoize derived lists to prevent recalculations on every render.
+  const employees = useMemo(() => users.filter(u => u.role === 'employee' && u.status !== 'inactive'), [users]);
+  const publishedCourses = useMemo(() => courses.filter(c => c.status === 'published'), [courses]);
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  // Optimization: Replace O(N*M) nested `.find()` with O(N+M) mapping using O(1) lookups.
+  const enrichedAssignments = useMemo(() => {
+    const userMap = new Map<string, User>(users.map(u => [u.id, u as User]));
+    const courseMap = new Map<string, Course>(courses.map(c => [c.id, c as Course]));
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+    return assignments.map(a => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+  }, [assignments, users, courses]);
+
+  // Optimization: Memoize filtering to prevent lag during fast updates like search typing.
+  const filtered = useMemo(() => {
+    return enrichedAssignments.filter(a => {
+      if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterCourse && a.courseId !== filterCourse) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      return true;
+    });
+  }, [enrichedAssignments, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
