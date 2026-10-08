@@ -50,10 +50,33 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Security fix: Enforce authentication and prevent IDOR
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Unauthorized: Missing Authorization header');
+      }
+
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Unauthorized: Invalid token');
+      }
+
+      // Overwrite user_id with securely authenticated user.id
+      user_id = user.id;
     }
 
     // Obtener información del cliente
