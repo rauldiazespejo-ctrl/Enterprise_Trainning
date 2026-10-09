@@ -1,0 +1,4 @@
+## 2023-10-27 - [IDOR in Audit Log Edge Function]
+**Vulnerability:** The `audit-log` edge function used the `user_id` provided in the request body for all actions, allowing any authenticated or unauthenticated user to log events on behalf of other users (IDOR/spoofing).
+**Learning:** When using `SUPABASE_SERVICE_ROLE_KEY` to bypass RLS in an edge function handling mixed-context events (e.g., both unauthenticated auth events and authenticated application events), failing to manually verify and enforce the `Authorization` header for non-auth events leads to severe IDOR vulnerabilities, as the service key blindly trusts the provided payload.
+**Prevention:** Always overwrite critical identity fields (like `user_id`) with the securely verified `user.id` obtained from the `Authorization` header via `supabase.auth.getUser()`. Allow payload-provided `user_id` *only* for explicitly allowed unauthenticated actions (like `login_failed`, `login`, `logout`, `signup`).
