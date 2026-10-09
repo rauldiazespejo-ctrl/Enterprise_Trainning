@@ -44,16 +44,33 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Prevent IDOR: Enforce authentication for actions other than auth events
+    if (!['login_failed', 'login', 'logout', 'signup'].includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) throw new Error('Sesión requerida.');
+
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authorization } },
+      });
+      const { data: { user } } = await callerClient.auth.getUser();
+      if (!user) throw new Error('Sesión inválida.');
+
+      // Override the user_id from the body with the authenticated user's ID
+      user_id = user.id;
     }
 
     // Obtener información del cliente
