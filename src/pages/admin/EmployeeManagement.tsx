@@ -65,23 +65,36 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // OPTIMIZATION: Memoize employees array to prevent recreation on every render
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // OPTIMIZATION: Build O(1) lookup map for certificates to replace O(N*M) array filtering inside employeeStats
+  const certificateCountMap = React.useMemo(() => {
+    return certificates.reduce((acc, cert) => {
+      acc[cert.userId] = (acc[cert.userId] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [certificates]);
+
+  // OPTIMIZATION: Memoize stats function to preserve encapsulation of getUserAssignments while optimizing internal lookups
+  const employeeStats = React.useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+      certificates: certificateCountMap[employeeId] || 0
     };
-  };
+  }, [getUserAssignments, certificateCountMap]);
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // OPTIMIZATION: Memoize filtered array to prevent recalculation on unrelated state changes (like modal toggles)
+  const filteredEmployees = React.useMemo(() => {
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +274,13 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // OPTIMIZATION: Memoize global aggregate stats to avoid O(N*M) recalculation on every render
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    return {
+      totalCompleted: employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0),
+      totalInTraining: employees.filter(e => employeeStats(e.id).inProgress > 0).length
+    };
+  }, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
