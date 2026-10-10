@@ -50,10 +50,32 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body; // separate 'let' to satisfy prefer-const rule
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Sentinel Fix: Prevent IDOR vulnerabilities by enforcing the user_id matches
+    // the authenticated user making the request (unless it is an unauthenticated action).
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) {
+        throw new Error('Sesión requerida para esta acción de auditoría.');
+      }
+
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+      const { data: { user } } = await callerClient.auth.getUser();
+
+      if (!user) {
+        throw new Error('Sesión inválida.');
+      }
+
+      // Override the user_id provided by the client payload with the verified user
+      user_id = user.id;
     }
 
     // Obtener información del cliente
