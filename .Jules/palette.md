@@ -1,0 +1,3 @@
+## 2024-10-10 - Accessible Pagination Component
+**Learning:** When building pagination components, it is critical to wrap the controls in a semantic `<nav>` element with a descriptive `aria-label`. Furthermore, individual page numbers must have descriptive `aria-label`s and the currently active page must use `aria-current="page"`. Visual decorators like ellipsis should be hidden from screen readers using `aria-hidden="true"`.
+**Action:** Always wrap pagination controls in a `<nav aria-label="...">` and explicitly label each interactive element while hiding decorative elements from assistive technologies.
