@@ -1,0 +1,4 @@
+## 2024-10-24 - IDOR Vulnerability in Audit Log Endpoint
+**Vulnerability:** The audit log endpoint was previously trusting the `user_id` parameter directly from the request body payload when inserting entries with the Supabase Service Role Key (bypassing RLS). This could have allowed a user to spoof their identity and make actions appear as if they were done by someone else.
+**Learning:** Edge functions using `SUPABASE_SERVICE_ROLE_KEY` bypass all RLS policies. In mixed-context endpoints (handling both authenticated and unauthenticated actions), it's essential to enforce and verify authentication manually instead of just trusting data from the payload.
+**Prevention:** Explicitly verify the authenticated user's ID via the `Authorization` header (`supabase.auth.getUser()`) for protected actions, explicitly falling back to the body payload only for unauthenticated bypass actions (`['login_failed', 'login', 'logout', 'signup']`).
