@@ -1,0 +1,3 @@
+## 2024-06-25 - React Context Abstraction Leak Limitation
+**Learning:** When trying to optimize O(N*M) lookups in global statistics that rely on a Context provider's helper functions (e.g. `getUserAssignments`), you cannot completely inline or bypass those helpers without causing an abstraction leak that reviewers will reject. This prevents fully flattening multiple map/filter passes.
+**Action:** Always wrap the existing helper-based iteration inside a `React.useMemo` to prevent recalculation on every render instead of rewriting the Context helper internally, and build frequency/lookup maps for the parts of the iteration that *don't* require context helpers (like raw arrays).
