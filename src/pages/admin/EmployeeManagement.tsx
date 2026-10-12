@@ -65,23 +65,33 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // ⚡ Bolt: Memoize the derived array to preserve reference stability
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
+  // ⚡ Bolt: Build a memoized frequency map to reduce lookups to O(1)
+  const userCertCount = React.useMemo(() => {
+    const map = new Map<string, number>();
+    certificates.forEach(c => map.set(c.userId, (map.get(c.userId) || 0) + 1));
+    return map;
+  }, [certificates]);
+
+  // ⚡ Bolt: Wrap employeeStats in useCallback to prevent recreating on every render
+  const employeeStats = React.useCallback((employeeId: string) => {
     const userAssignments = getUserAssignments(employeeId);
     return {
       completed: userAssignments.filter(a => a.status === 'completed').length,
       inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+      certificates: userCertCount.get(employeeId) || 0
     };
-  };
+  }, [getUserAssignments, userCertCount]);
 
-  const filteredEmployees = employees.filter(emp =>
+  // ⚡ Bolt: Memoize filteredEmployees to prevent recalculations on every render
+  const filteredEmployees = React.useMemo(() => employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
     (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {
@@ -261,8 +271,18 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // ⚡ Bolt: Wrap global aggregations in a single useMemo and `.reduce()` pass to prevent recalculation on every render
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    return employees.reduce(
+      (acc, e) => {
+        const stats = employeeStats(e.id);
+        acc.totalCompleted += stats.completed;
+        if (stats.inProgress > 0) acc.totalInTraining += 1;
+        return acc;
+      },
+      { totalCompleted: 0, totalInTraining: 0 }
+    );
+  }, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>

@@ -1,0 +1,3 @@
+## 2024-10-12 - [Unmemoized local arrays breaking useMemo dependencies]
+**Learning:** Locally derived arrays or objects (like `const employees = users.filter(...)`) that are not memoized create new object references on every render. If these unmemoized derived objects are passed as dependencies to `useMemo`, `useCallback`, or `useEffect`, they silently break the dependencies, causing continuous re-execution. This was the root cause of extreme UI lag during typing in lists.
+**Action:** Always memoize derived arrays and objects (e.g. `const employees = React.useMemo(() => users.filter(...), [users]);`) before passing them as dependencies to `useMemo` or `useCallback` to preserve reference stability and prevent unnecessary recalculations.
