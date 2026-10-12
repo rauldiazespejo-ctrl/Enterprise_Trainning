@@ -43,6 +43,7 @@ Deno.serve(async request => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
@@ -50,10 +51,26 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Security Fix: Prevent IDOR/Spoofing by verifying the session for authenticated actions.
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) {
+        throw new Error('Sesión requerida para esta acción de auditoría.');
+      }
+      const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+      const { data: { user } } = await callerClient.auth.getUser();
+      if (!user) {
+        throw new Error('Sesión inválida.');
+      }
+      user_id = user.id; // Override body user_id with the securely verified authenticated user.
     }
 
     // Obtener información del cliente
