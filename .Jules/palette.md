@@ -1,0 +1,3 @@
+## 2026-10-14 - Accessible Pagination Navigation
+**Learning:** Pagination controls lacking semantic structural boundaries (`<nav>`) and active state indications (`aria-current="page"`) are difficult for screen reader users to interpret correctly. Additionally, decorative elements like ellipsis and icons can create unnecessary screen reader noise if not explicitly hidden.
+**Action:** Always wrap pagination groups in `<nav aria-label="...">`, apply `aria-current="page"` to the active page button, use unique `aria-label`s for each page number, hide decorative nodes with `aria-hidden="true"`, and apply `.focus-ring` and `.tap-target-min` for comprehensive accessibility (keyboard and mobile).
