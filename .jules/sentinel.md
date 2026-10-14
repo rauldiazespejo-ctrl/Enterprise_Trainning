@@ -1,0 +1,4 @@
+## 2024-05-24 - IDOR in audit-log via request body spoofing
+**Vulnerability:** The `audit-log` edge function was relying on the `user_id` provided directly in the request body to log events. This allowed any user (even unauthenticated ones) to potentially spoof actions as other users, leading to Insecure Direct Object Reference (IDOR) and incorrect audit logs.
+**Learning:** For actions executed within a shared Edge Function context where both authenticated and unauthenticated actions happen, relying solely on payload properties for user identification is dangerous.
+**Prevention:** Always overwrite user-provided identifiers (like `user_id`) with the securely verified `user.id` obtained directly from the `Authorization` header via `supabase.auth.getUser()`, particularly for sensitive operations. Ensure that the subset of truly unauthenticated actions is explicitly defined.
