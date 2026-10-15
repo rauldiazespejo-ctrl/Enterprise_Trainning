@@ -1,0 +1,3 @@
+## 2024-05-19 - Optimize global aggregate statistics and context helper O(1) mapping
+**Learning:** When calculating global aggregate statistics (like `totalCompleted`) in list/management React components with pagination (like admin panels), multiple O(N) array traversals can cause massive performance hits. Relying on context helpers inside those loops compounds the issue to O(N*M).
+**Action:** Consolidate multiple O(N) array traversals into a single `.reduce()` pass and wrap the result in `useMemo`. Also, build frequency/lookup maps (like O(1) mappings) for raw arrays to use alongside existing context helpers rather than bypassing them.
