@@ -1,0 +1,4 @@
+## 2025-02-14 - Prevent IDOR in Audit Log Edge Function
+**Vulnerability:** The `audit-log` Supabase Edge Function was accepting a `user_id` directly from the request body JSON to associate actions with users, without verifying if the user initiating the request actually matched that `user_id`. This allowed an attacker to spoof audit log entries by submitting an arbitrary `user_id` payload.
+**Learning:** Edge Functions that handle unauthenticated client events (like 'login_failed') often resort to accepting `user_id` from the payload because no active session exists yet. This creates a design flaw where authenticated requests inadvertently share the same unverified trust model.
+**Prevention:** Always overwrite the payload `user_id` with the verified `user.id` obtained securely from the `Authorization` header via `supabase.auth.getUser()`, except for explicitly whitelisted unauthenticated actions (e.g., 'login', 'signup', 'login_failed').
