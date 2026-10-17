@@ -1,0 +1,4 @@
+## 2025-01-22 - Fix IDOR in audit-log Edge Function
+**Vulnerability:** The `audit-log` Edge Function extracted the `user_id` directly from the request JSON body payload, without verifying it against an authenticated session. This allowed a malicious user to spoof audit log events by passing any victim's `user_id`.
+**Learning:** In Supabase Edge Functions, using `adminClient` bypasses all RLS policies. It is extremely critical to establish the caller's identity via `Authorization` header and `callerClient.auth.getUser()`, rather than trusting the body parameters, especially for security-critical actions like audit logging.
+**Prevention:** Always verify identity securely by extracting the user ID from `callerClient.auth.getUser()`. Allow unauthenticated overrides from the body payload strictly for unauthenticated actions (like `login_failed`, `logout`, `login`, etc.) and ensure appropriate fallback logic.
