@@ -261,8 +261,26 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Optimization: Calculate global stats in O(N+M) using a frequency map for assignments
+  // instead of calling employeeStats for each employee which causes O(N*M) iteration
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    const assignmentStats = assignments.reduce((acc, a) => {
+      if (!acc[a.userId]) acc[a.userId] = { completed: 0, inProgress: 0 };
+      if (a.status === 'completed') acc[a.userId].completed++;
+      if (a.status === 'in_progress') acc[a.userId].inProgress++;
+      return acc;
+    }, {} as Record<string, { completed: number; inProgress: number }>);
+
+    return employees.reduce(
+      (acc, e) => {
+        const stats = assignmentStats[e.id] || { completed: 0, inProgress: 0 };
+        acc.totalCompleted += stats.completed;
+        if (stats.inProgress > 0) acc.totalInTraining++;
+        return acc;
+      },
+      { totalCompleted: 0, totalInTraining: 0 }
+    );
+  }, [employees, assignments]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
