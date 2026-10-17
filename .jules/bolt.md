@@ -1,0 +1,3 @@
+## 2024-10-17 - O(N*M) Context Method Abuse in React Render
+**Learning:** Calling `getUserAssignments(employeeId)` inside a `reduce` loop during render is an O(N*M) anti-pattern. While React makes it easy to use Context helpers, if the helper does a `.filter()` over the entire dataset (e.g. `assignments.filter(a => a.userId === userId)`), doing this for every employee in `employees.reduce` causes exponential slowdown as the data grows.
+**Action:** When calculating aggregate stats across a collection (e.g., total completed assignments for all employees), instead of using a helper that filters an array for each item in a loop, process the full array directly in a single pass (e.g. `assignments.reduce(...)`) and memoize the result.
