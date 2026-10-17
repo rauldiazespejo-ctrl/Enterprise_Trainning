@@ -174,6 +174,7 @@ const SuperAdminPanel: React.FC = () => {
           </div>
           <button
             onClick={loadUsers}
+            aria-label="Recargar lista de usuarios"
             className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all"
           >
             <RefreshCw className="w-4 h-4" />
@@ -302,6 +303,7 @@ const SuperAdminPanel: React.FC = () => {
               />
               <button
                 type="button"
+                aria-label={showPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
                 onClick={() => setShowPw(v => !v)}
                 className="absolute right-3 top-2.5 text-gray-400 hover:text-white"
               >
