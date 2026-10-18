@@ -44,16 +44,35 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Prevención de IDOR: Verificar identidad vía JWT para acciones autenticadas
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('No se proporcionó token de autenticación.');
+      }
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: userError } = await callerClient.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Token de autenticación inválido.');
+      }
+      user_id = user.id; // Sobrescribir con el ID real del usuario
     }
 
     // Obtener información del cliente
