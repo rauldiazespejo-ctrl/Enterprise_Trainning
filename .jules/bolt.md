@@ -1,0 +1,3 @@
+## 2024-06-12 - Consolidating React Context Array Traversals
+**Learning:** Using an O(N) context helper inside a React loop or array iteration creates a massive O(N*M) performance bottleneck, especially for aggregate statistics on management pages. Recalculating filters for each loop iteration destroys performance as data grows.
+**Action:** Instead of using helpers that filter on every invocation, build a single frequency or lookup map for the raw arrays (like `assignments` and `certificates`) outside the loop using `React.useMemo`. Perform O(1) lookups inside the loop or helper function, achieving O(N+M) complexity. Ensure aggregate calculations consolidate multiple passes into a single `.reduce()` pass and wrap them in `useMemo`.
