@@ -44,13 +44,34 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
+
+    // 🛡️ SECURITY: Prevent IDOR/Spoofing by ignoring the user_id from the body
+    // and instead extracting it securely from the authorization header JWT.
+    // Unauthenticated actions (like login, signup, logout) bypass this.
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      user_id = undefined; // Do not trust the payload, fail closed
+
+      if (authHeader) {
+        const callerClient = createClient(supabaseUrl, anonKey, {
+          global: { headers: { Authorization: authHeader } }
+        });
+        const { data: { user } } = await callerClient.auth.getUser();
+        if (user) {
+          user_id = user.id;
+        }
+      }
+    }
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
