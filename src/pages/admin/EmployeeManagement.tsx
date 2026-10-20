@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,16 +65,41 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // ⚡ Bolt: Memoize the derived array to prevent recalculating on every render
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
+  // ⚡ Bolt: Consolidate O(N) context helpers into an O(1) frequency map
+  const employeeStatsMap = useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+
+    // Initialize base stats for all employees
+    employees.forEach(emp => {
+      stats[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Single pass through assignments
+    assignments.forEach(a => {
+      if (stats[a.userId]) {
+        if (a.status === 'completed') stats[a.userId].completed++;
+        if (a.status === 'in_progress') stats[a.userId].inProgress++;
+      }
+    });
+
+    // Single pass through certificates
+    certificates.forEach(c => {
+      if (stats[c.userId]) {
+        stats[c.userId].certificates++;
+      }
+    });
+
+    return stats;
+  }, [employees, assignments, certificates]);
+
+  const employeeStats = useMemo(() => {
+    return (employeeId: string) => {
+      return employeeStatsMap[employeeId] || { completed: 0, inProgress: 0, certificates: 0 };
     };
-  };
+  }, [employeeStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +286,18 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // ⚡ Bolt: Consolidate O(N) array traversals into a single pass and memoize
+  const { totalCompleted, totalInTraining } = useMemo(() => {
+    return employees.reduce(
+      (acc, e) => {
+        const stats = employeeStats(e.id);
+        acc.totalCompleted += stats.completed;
+        if (stats.inProgress > 0) acc.totalInTraining += 1;
+        return acc;
+      },
+      { totalCompleted: 0, totalInTraining: 0 }
+    );
+  }, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
