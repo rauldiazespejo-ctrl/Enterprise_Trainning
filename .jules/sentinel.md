@@ -1,0 +1,4 @@
+## 2025-02-23 - IDOR in audit-log edge function
+**Vulnerability:** The `audit-log` edge function relies on `user_id` from the request body to log events. Anyone can supply any `user_id` to forge audit log events as another user, or send unauthenticated requests since there is no JWT verification.
+**Learning:** `audit-log` needs proper authentication check via JWT token, but it must handle mixed contexts: mostly authenticated events, but also some unauthenticated actions like `login_failed`.
+**Prevention:** Always verify the JWT token via `supabase.auth.getUser(token)` and use the authenticated `user.id`. For specifically unauthenticated routes/actions, only fallback to request body `user_id` as last resort, making sure 'fail-closed' principle applies.

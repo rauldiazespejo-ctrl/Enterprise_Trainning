@@ -44,16 +44,37 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+    const authorization = request.headers.get('Authorization');
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // 🛡️ SECURITY FIX: Prevent IDOR by strictly enforcing JWT validation (fail-closed mechanism)
+    // Only exempt explicit unauthenticated actions from the JWT check.
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+    if (!unauthenticatedActions.includes(action)) {
+      if (!authorization) {
+        throw new Error('Unauthorized');
+      }
+
+      const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+      const { data: { user }, error: userError } = await callerClient.auth.getUser();
+
+      if (userError || !user) {
+        throw new Error('Unauthorized');
+      }
+
+      user_id = user.id; // Override potentially forged user_id from body
     }
 
     // Obtener información del cliente
