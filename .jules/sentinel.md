@@ -1,0 +1,4 @@
+## 2024-05-24 - [Fix IDOR vulnerability in audit-log]
+**Vulnerability:** IDOR vulnerability in audit log edge function where unauthenticated users could forge records with arbitrary user_ids.
+**Learning:** The audit log functionality lacked a robust authentication enforcement for actions not related to login. It fell back to using the `user_id` provided in the request body, creating a fail-open mechanism for critical audit events when the `Authorization` header was missing.
+**Prevention:** Strictly implement a 'fail-closed' mechanism. Explicitly throw an 'Unauthorized' error if the auth header is missing or `getUser()` fails for non-exempt actions. Use a dedicated callerClient instantiated with the `SUPABASE_ANON_KEY` and the `Authorization` header instead of defaulting to the body's `user_id` conditionally.
