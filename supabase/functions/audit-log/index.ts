@@ -43,6 +43,7 @@ Deno.serve(async request => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
@@ -50,10 +51,36 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    // Security Fix: Separate const and let to avoid prefer-const errors
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Security Concern: To prevent IDOR (Insecure Direct Object Reference) and spoofing of audit logs,
+    // we must implement a 'fail-closed' authentication check for sensitive actions.
+    // Unauthenticated events (e.g., login, logout) are allowed to pass their own user_id from the body.
+    const unauthenticatedActions = ['login_failed', 'login', 'logout', 'signup'];
+
+    if (!unauthenticatedActions.includes(action)) {
+      const authorization = request.headers.get('Authorization');
+      if (!authorization) {
+        throw new Error('Sesión requerida para esta acción.');
+      }
+
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authorization } }
+      });
+
+      const { data: { user }, error: authError } = await callerClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Sesión inválida.');
+      }
+
+      // Override the user_id with the authenticated user's ID
+      user_id = user.id;
     }
 
     // Obtener información del cliente
