@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,16 +65,35 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // Bolt: Memoize employees array to prevent unnecessary re-renders
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Bolt: Memoize employee stats map to prevent O(N*M) renders by building an O(1) frequency map with a single pass
+  const employeeStatsMap = useMemo(() => {
+    const map: Record<string, { completed: 0, inProgress: 0, certificates: 0 }> = {};
+
+    // Initialize map for all employees
+    employees.forEach(emp => {
+      map[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Populate assignments
+    assignments.forEach(a => {
+      if (map[a.userId]) {
+        if (a.status === 'completed') map[a.userId].completed++;
+        else if (a.status === 'in_progress') map[a.userId].inProgress++;
+      }
+    });
+
+    // Populate certificates
+    certificates.forEach(c => {
+      if (map[c.userId]) {
+        map[c.userId].certificates++;
+      }
+    });
+
+    return map;
+  }, [employees, assignments, certificates]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +280,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = employees.reduce((sum, e) => sum + (employeeStatsMap[e.id]?.completed || 0), 0);
+  const totalInTraining = employees.filter(e => (employeeStatsMap[e.id]?.inProgress || 0) > 0).length;
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +402,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = employeeStatsMap[employee.id] || { completed: 0, inProgress: 0, certificates: 0 };
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
