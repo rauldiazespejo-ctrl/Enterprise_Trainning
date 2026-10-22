@@ -1,0 +1,3 @@
+## 2024-10-22 - Memoize aggregate lookups to avoid O(N*M) anti-patterns
+**Learning:** Calling context helper functions that iterate over entire collections (e.g. `getUserAssignments` scanning through `assignments` and `certificates`) from within an O(N) rendering loop causes severe O(N*M) performance bottlenecks and frequent, costly recalculations in React.
+**Action:** When aggregating local statistics tied to foreign relationships from context, always use a `useMemo` block that executes a single O(N) pass over the child records (like `.reduce` or `forEach`) to pre-compute an O(1) frequency lookup map. Access the values from the map inside the render loop using safe fallbacks `(map[id]?.prop || 0)`.
