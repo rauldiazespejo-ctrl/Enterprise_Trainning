@@ -70,7 +70,7 @@ const Pagination: React.FC<PaginationProps> = ({
       )}
 
       {/* Navegación de páginas */}
-      <div className="flex items-center gap-1">
+      <nav aria-label="Navegación de páginas" className="flex items-center gap-1">
         {/* Botón anterior */}
         <button
           onClick={() => onPageChange(currentPage - 1)}
@@ -96,7 +96,7 @@ const Pagination: React.FC<PaginationProps> = ({
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
               {page}
             </span>
           )
@@ -111,7 +111,7 @@ const Pagination: React.FC<PaginationProps> = ({
         >
           <ChevronRight className="w-5 h-5" />
         </button>
-      </div>
+      </nav>
     </div>
   );
 };
