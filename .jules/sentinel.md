@@ -1,0 +1,4 @@
+## 2025-01-22 - IDOR in audit-log edge function
+**Vulnerability:** The `audit-log` edge function initialized `user_id` from the request body and used it to insert logs without validating if it matched the authenticated user's ID. This allows attackers to forge log entries as other users (Insecure Direct Object Reference).
+**Learning:** Edge functions handling mixed-context events (both authenticated and unauthenticated actions) must explicitly enforce authentication checks and extract the `user_id` directly from the validated JWT token for authenticated actions, rather than relying on unverified body parameters.
+**Prevention:** Implement a fail-closed authentication check. Ensure unauthenticated actions are allowed to bypass the check, while capturing `user_id` from the body. For authenticated actions, extract the `user_id` using `getUser()` and overwrite any provided `user_id` from the body.
