@@ -1,0 +1,3 @@
+## 2026-10-23 - O(N*M) Anti-Pattern in React Aggregates
+**Learning:** Using helper functions that filter context arrays inside component loops (or reduce methods) can accidentally create massive O(N*M) bottlenecks. For example, iterating an array of employees and calling `getUserAssignments` for each employee causes repetitive array filtering.
+**Action:** When computing global aggregates or rendering lists, consolidate multiple O(N) traversals into a single `.reduce()` pass to build a memoized frequency map object for O(1) lookup. This effectively refactors an O(N*M) iteration pattern into an O(N+M) complexity.

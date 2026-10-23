@@ -67,14 +67,34 @@ const EmployeeManagement: React.FC = () => {
 
   const employees = users.filter(u => u.role === 'employee');
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Performance optimization: Instead of calling a helper inside a loop
+  // (which filters arrays repeatedly causing O(N*M)), we build a memoized
+  // frequency map of stats for O(1) lookup to achieve O(N+M) complexity.
+  const employeeStatsMap = React.useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+
+    // Initialize base stats for all employees
+    employees.forEach(emp => {
+      stats[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Populate assignments stats in one pass
+    assignments.forEach(a => {
+      if (stats[a.userId]) {
+        if (a.status === 'completed') stats[a.userId].completed++;
+        else if (a.status === 'in_progress') stats[a.userId].inProgress++;
+      }
+    });
+
+    // Populate certificates stats in one pass
+    certificates.forEach(c => {
+      if (stats[c.userId]) {
+        stats[c.userId].certificates++;
+      }
+    });
+
+    return stats;
+  }, [employees, assignments, certificates]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +281,20 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Performance optimization: Compute global aggregates in a single reduce pass
+  // using our O(1) lookup map, wrapping in useMemo to prevent recalculation.
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    return employees.reduce(
+      (acc, e) => {
+        const stats = employeeStatsMap[e.id] || { completed: 0, inProgress: 0, certificates: 0 };
+        return {
+          totalCompleted: acc.totalCompleted + stats.completed,
+          totalInTraining: acc.totalInTraining + (stats.inProgress > 0 ? 1 : 0),
+        };
+      },
+      { totalCompleted: 0, totalInTraining: 0 }
+    );
+  }, [employees, employeeStatsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +415,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = employeeStatsMap[employee.id] || { completed: 0, inProgress: 0, certificates: 0 };
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
