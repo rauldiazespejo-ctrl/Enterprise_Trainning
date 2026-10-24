@@ -1,0 +1,3 @@
+## 2024-10-24 - Accessibility improvements for Pagination component
+**Learning:** Decorative ellipsis elements (`...`) within pagination controls were being read by screen readers. Pagination controls were also not wrapped in an appropriate semantic `<nav>` element which made navigation structurally obscure to assistive technologies.
+**Action:** Always wrap pagination controls in a `<nav>` tag equipped with a descriptive `aria-label`. For decorative visual aids like ellipsis elements representing skipping pages, ensure `aria-hidden="true"` is applied to prevent screen reader clutter. Added `aria-current="page"` to indicate the current page item actively.
