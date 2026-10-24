@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,16 +65,36 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // Memoize employees to prevent recalculation on every render
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Build a memoized frequency map for certificates and assignments in a single pass (O(N+M))
+  // to avoid O(N*M) lookups inside renders.
+  const employeeStatsMap = React.useMemo(() => {
+    const map: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+
+    // Initialize map
+    employees.forEach(emp => {
+      map[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Single pass on assignments
+    assignments.forEach(assignment => {
+      if (map[assignment.userId]) {
+        if (assignment.status === 'completed') map[assignment.userId].completed++;
+        else if (assignment.status === 'in_progress') map[assignment.userId].inProgress++;
+      }
+    });
+
+    // Single pass on certificates
+    certificates.forEach(cert => {
+      if (map[cert.userId]) {
+        map[cert.userId].certificates++;
+      }
+    });
+
+    return map;
+  }, [employees, assignments, certificates]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +281,16 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Combine multiple O(N) array traversals into a single pass to calculate global aggregate statistics
+  // using the O(1) frequency map.
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    return employees.reduce((acc, emp) => {
+      const stats = employeeStatsMap[emp.id] || { completed: 0, inProgress: 0, certificates: 0 };
+      acc.totalCompleted += stats.completed;
+      if (stats.inProgress > 0) acc.totalInTraining++;
+      return acc;
+    }, { totalCompleted: 0, totalInTraining: 0 });
+  }, [employees, employeeStatsMap]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
@@ -383,7 +411,7 @@ const EmployeeManagement: React.FC = () => {
                 </thead>
                 <tbody>
                   {paginatedEmployees.map((employee) => {
-                    const stats = employeeStats(employee.id);
+                    const stats = employeeStatsMap[employee.id] || { completed: 0, inProgress: 0, certificates: 0 };
                     return (
                       <tr key={employee.id} className="border-b border-slate-700/50 hover:bg-slate-800/50">
                         <td className="px-6 py-4">
