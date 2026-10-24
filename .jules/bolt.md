@@ -1,0 +1,3 @@
+## 2023-10-24 - O(N*M) Anti-pattern in Context Helpers
+**Learning:** Calling context helper functions (like `getUserAssignments`) inside a loop during render is an O(N*M) anti-pattern. Instead of using a helper that filters an array for each item in a loop, processing the full raw array directly in a single pass to build a frequency map, and memoizing the result achieves O(N+M) complexity.
+**Action:** When calculating global aggregate statistics or rendering lists that depend on context data, consolidate multiple O(N) array traversals into a single pass and wrap the result in `useMemo` using a frequency map for O(1) lookups.
