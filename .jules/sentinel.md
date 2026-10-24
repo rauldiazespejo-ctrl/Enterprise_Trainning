@@ -1,0 +1,4 @@
+## 2024-11-20 - Fix IDOR in audit-log edge function
+**Vulnerability:** The `audit-log` edge function was vulnerable to Insecure Direct Object Reference (IDOR). It blindly trusted the `user_id` passed in the request body from the client when inserting an audit log, allowing an attacker to insert fake audit logs impersonating other users.
+**Learning:** This existed because the edge function used an admin client with a service role key to bypass RLS, but did not properly authenticate the caller or extract their true `user_id` from the authorization header JWT.
+**Prevention:** Always verify identity by creating a `callerClient` with the `SUPABASE_ANON_KEY` and the `Authorization` header, and extract the user's ID via `getUser()` instead of trusting client input, defaulting to a fail-closed response.
