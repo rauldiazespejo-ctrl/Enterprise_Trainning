@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,16 +65,34 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  // Memoize employees to avoid creating a new array on every render
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Performance Optimization: Pre-calculate stats for all users in a single pass O(N)
+  // instead of filtering the global arrays O(M) inside the map function O(N) which results in O(N*M).
+  const employeeStatsMap = React.useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+
+    // Process all assignments
+    for (const a of assignments) {
+      if (!stats[a.userId]) stats[a.userId] = { completed: 0, inProgress: 0, certificates: 0 };
+      if (a.status === 'completed') stats[a.userId].completed++;
+      else if (a.status === 'in_progress') stats[a.userId].inProgress++;
+    }
+
+    // Process all certificates
+    for (const c of certificates) {
+      if (!stats[c.userId]) stats[c.userId] = { completed: 0, inProgress: 0, certificates: 0 };
+      stats[c.userId].certificates++;
+    }
+
+    return stats;
+  }, [assignments, certificates]);
+
+  // Safe wrapper for existing components to use
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return employeeStatsMap[employeeId] || { completed: 0, inProgress: 0, certificates: 0 };
+  }, [employeeStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +279,20 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  // Performance Optimization: Calculate aggregate statistics in a single pass O(N)
+  // instead of multiple array passes. Memoized to prevent recalculation on unrelated renders.
+  const { totalCompleted, totalInTraining } = React.useMemo(() => {
+    let completed = 0;
+    let inTraining = 0;
+
+    for (const e of employees) {
+      const stats = employeeStats(e.id);
+      completed += stats.completed;
+      if (stats.inProgress > 0) inTraining++;
+    }
+
+    return { totalCompleted: completed, totalInTraining: inTraining };
+  }, [employees, employeeStats]); // Include employeeStats per React Hooks exhaustiveness rules
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
