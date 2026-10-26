@@ -1,0 +1,3 @@
+## 2024-10-26 - Semantic Pagination Accessibility
+**Learning:** Using semantic `<nav>` elements with `aria-label`, adding `aria-current="page"` to active page controls, and hiding decorative elements like ellipsis with `aria-hidden="true"` significantly improves screen reader navigation and explicitly communicates the active state to assistive technologies.
+**Action:** Always wrap pagination controls in a `<nav>` with a descriptive label, apply `aria-current` to the active item, and hide structural non-interactive elements from screen readers.
