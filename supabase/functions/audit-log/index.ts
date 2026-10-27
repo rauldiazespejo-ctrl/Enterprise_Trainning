@@ -50,10 +50,35 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // 🛡️ Sentinel: Fix IDOR vulnerability by strictly enforcing a fail-closed mechanism.
+    // user_id is extracted from the authenticated JWT token instead of trusting the request body.
+    const authHeader = request.headers.get('Authorization');
+    const exemptActions = ['login_failed', 'logout'];
+    let user_id: string | null = null;
+
+    if (!exemptActions.includes(action)) {
+      if (!authHeader) {
+        throw new Error('Unauthorized');
+      }
+
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user }, error: userError } = await authClient.auth.getUser();
+      if (userError || !user) {
+        throw new Error('Unauthorized');
+      }
+      user_id = user.id;
+    } else {
+      // Fallback for exempt actions like logout where token might be missing or already invalid
+      user_id = body.user_id || null;
     }
 
     // Obtener información del cliente
