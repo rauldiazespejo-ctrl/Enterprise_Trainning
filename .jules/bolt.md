@@ -1,0 +1,4 @@
+## 2024-05-19 - O(N) optimizations for aggregates instead of context helpers inside render loops
+
+**Learning:** When calculating global aggregate statistics (like `totalCompleted`) in React list/management components, calling a context helper function (like `getUserAssignments`) inside a `.reduce()` or `.filter()` loop during render creates an O(N*M) time complexity bottleneck. This happens because the context helper traverses the raw list (assignments) to filter for a single item (employee) during each iteration of the outer loop.
+**Action:** Instead of using context helpers inside loops, process the raw arrays directly in a single pass to build a frequency map or calculate the totals, and memoize the result. This reduces the complexity to O(N+M) and prevents massive performance hits on every render.
