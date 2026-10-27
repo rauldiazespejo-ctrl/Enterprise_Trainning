@@ -1,0 +1,3 @@
+## 2024-10-27 - Semantic Pagination and ARIA enhancements
+**Learning:** When building pagination components, wrapping the controls in a semantic <nav> element with an aria-label provides necessary context. Additionally, applying aria-current="page" clearly communicates the active state, while hiding decorative elements (like ellipses) with aria-hidden="true" prevents confusing announcements.
+**Action:** Always wrap pagination in <nav aria-label="...">, use aria-current="page" for the active item, and hide structural icons/ellipses with aria-hidden="true".
