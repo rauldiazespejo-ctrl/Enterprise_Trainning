@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse } = useCourses();
+  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,37 +65,16 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  // ⚡ BOLT OPTIMIZATION: Memoize employees derived array
-  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
+  const employees = users.filter(u => u.role === 'employee');
 
-  // ⚡ BOLT OPTIMIZATION: Build O(1) frequency maps instead of O(N) context filtering inside loops
-  const assignmentStatsMap = React.useMemo(() => {
-    const map: Record<string, { completed: number; inProgress: number }> = {};
-    for (const a of assignments) {
-      if (!map[a.userId]) map[a.userId] = { completed: 0, inProgress: 0 };
-      if (a.status === 'completed') map[a.userId].completed++;
-      if (a.status === 'in_progress') map[a.userId].inProgress++;
-    }
-    return map;
-  }, [assignments]);
-
-  const certificateStatsMap = React.useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const c of certificates) {
-      map[c.userId] = (map[c.userId] || 0) + 1;
-    }
-    return map;
-  }, [certificates]);
-
-  const employeeStats = React.useCallback((employeeId: string) => {
-    const aStats = assignmentStatsMap[employeeId] || { completed: 0, inProgress: 0 };
-    const cStats = certificateStatsMap[employeeId] || 0;
+  const employeeStats = (employeeId: string) => {
+    const userAssignments = getUserAssignments(employeeId);
     return {
-      completed: aStats.completed,
-      inProgress: aStats.inProgress,
-      certificates: cStats
+      completed: userAssignments.filter(a => a.status === 'completed').length,
+      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
+      certificates: certificates.filter(c => c.userId === employeeId).length
     };
-  }, [assignmentStatsMap, certificateStatsMap]);
+  };
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -282,16 +261,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  // ⚡ BOLT OPTIMIZATION: Memoize aggregate calculations to avoid recalculation on re-renders
-  const totalCompleted = React.useMemo(
-    () => employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0),
-    [employees, employeeStats]
-  );
-
-  const totalInTraining = React.useMemo(
-    () => employees.filter(e => employeeStats(e.id).inProgress > 0).length,
-    [employees, employeeStats]
-  );
+  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
+  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
