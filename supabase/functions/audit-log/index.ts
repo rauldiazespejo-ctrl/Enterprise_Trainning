@@ -50,10 +50,31 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // 🛡️ SECURITY FIX: IDOR vulnerability fix - Extract user_id securely from JWT instead of trusting the request body.
+    // Implement fail-closed mechanism: throw Unauthorized for non-exempt actions if auth is missing or invalid.
+    const exemptActions = ['logout', 'login_failed', 'login'];
+    const authHeader = request.headers.get('Authorization');
+
+    if (authHeader) {
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (anonKey) {
+        const callerClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+        const { data: { user } } = await callerClient.auth.getUser();
+        if (user) {
+          user_id = user.id; // Override with secure JWT user_id
+        } else if (!exemptActions.includes(action)) {
+          throw new Error('Unauthorized'); // Fail-closed
+        }
+      }
+    } else if (!exemptActions.includes(action)) {
+      throw new Error('Unauthorized'); // Fail-closed
     }
 
     // Obtener información del cliente
