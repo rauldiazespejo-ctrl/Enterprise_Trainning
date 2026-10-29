@@ -1,0 +1,5 @@
+## 2024-10-29 - Prevent IDOR in Audit Logging
+
+**Vulnerability:** The Edge Function `audit-log` extracted the `user_id` from the HTTP request body and wrote it directly into the audit log database without verifying the caller's identity via JWT authentication, leaving it vulnerable to IDOR / spoofing attacks.
+**Learning:** For server-to-server operations or unauthenticated pathways (like logging in), it might seem sufficient to pass standard HTTP request body attributes. However, for functions called *during* authenticated context states from the client, the `user_id` can be tampered with by bad actors modifying the JSON body before it hits the backend if we blindly trust it over the Authorization header.
+**Prevention:** Implement a 'fail-closed' mechanism when extracting IDs that should be tied strictly to a user's session token. Validate the JWT, extract the ID directly from the auth verification mechanism, and enforce it over user-provided data. Only use body payloads as fallbacks for explicitly permitted edge-cases (like the login event where the session hasn't been established yet).
