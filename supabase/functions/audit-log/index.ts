@@ -48,12 +48,39 @@ Deno.serve(async request => {
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
+    // SECURITY: Get JWT for IDOR prevention
+    const authHeader = request.headers.get('Authorization');
+    let callerUserId: string | null = null;
+
+    if (authHeader) {
+      const anonClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user } } = await anonClient.auth.getUser();
+      if (user) callerUserId = user.id;
+    }
+
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details } = body;
+    let { user_id } = body; // Fallback from body
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // SECURITY: Fail-closed IDOR protection
+    // Actions allowed without a valid user token (e.g. login itself or logout)
+    const exemptActions = ['logout', 'login_failed', 'login'];
+    if (!exemptActions.includes(action)) {
+      if (!callerUserId) {
+        return Response.json({ error: 'Unauthorized' }, { status: 401, headers: corsHeaders });
+      }
+      // Force the user_id to be the one from the verified JWT token to prevent spoofing
+      user_id = callerUserId;
+    } else if (callerUserId) {
+       // Even for exempt actions, if we HAVE a valid token, prefer it.
+       user_id = callerUserId;
     }
 
     // Obtener información del cliente
