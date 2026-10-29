@@ -1,0 +1,3 @@
+## 2024-05-15 - Pagination Accessibility
+**Learning:** Pagination controls often use generic `div` containers and purely visual cues for active states. This makes navigation unclear for screen reader users who cannot distinguish the current page or the purpose of the control grouping. Decorative elements like ellipsis (`...`) can also cause confusing announcements.
+**Action:** Always wrap pagination components in a semantic `<nav>` element with an `aria-label`, explicitly mark the active page button with `aria-current="page"`, and hide structural non-interactive elements like an ellipsis using `aria-hidden="true"`.
