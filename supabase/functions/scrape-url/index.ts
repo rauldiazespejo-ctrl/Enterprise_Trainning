@@ -24,6 +24,77 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isPrivateIP = (ip: string): boolean => {
+  const cleanIp = ip.replace(/^\[/, '').replace(/\]$/, '');
+  const privateIPv4 = /^(0\.|10\.|127\.|169\.254\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|224\.|240\.|255\.255\.255\.255)/;
+  const privateIPv6 = /^(::1$|fc00:|fe80:|fd)/i;
+  return privateIPv4.test(cleanIp) || privateIPv6.test(cleanIp);
+};
+
+const resolveAndValidateUrl = async (urlString: string): Promise<string> => {
+  const parsedUrl = new URL(urlString);
+
+  if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+    throw new Error('Solo se permiten URLs http/https');
+  }
+
+  // If the hostname is already an IP, validate it immediately
+  if (isPrivateIP(parsedUrl.hostname)) {
+    throw new Error("El acceso a IPs internas no está permitido");
+  }
+
+  const checkDns = async (recordType: "A" | "AAAA") => {
+    try {
+      const records = await Deno.resolveDns(parsedUrl.hostname, recordType);
+      for (const ip of records) {
+        if (isPrivateIP(ip)) {
+          throw new Error("El acceso a IPs internas no está permitido");
+        }
+      }
+    } catch (error) {
+      // Re-throw if it's our internal IP restriction error
+      if (error instanceof Error && error.message.includes('internas')) throw error;
+      // Other DNS errors (e.g., NotFound) are swallowed so we don't crash if an AAAA record doesn't exist.
+    }
+  };
+
+  // Check both IPv4 and IPv6 resolution to block any internal routing
+  await checkDns("A");
+  await checkDns("AAAA");
+
+  return urlString;
+};
+
+const safeFetch = async (url: string, options: RequestInit, maxRedirects = 5): Promise<Response> => {
+  let currentUrl = url;
+
+  for (let i = 0; i < maxRedirects; i++) {
+    await resolveAndValidateUrl(currentUrl);
+
+    const response = await fetch(currentUrl, {
+      ...options,
+      redirect: 'manual'
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('location');
+      if (response.body) {
+        await response.body.cancel();
+      }
+
+      if (!location) {
+        throw new Error('Redirect sin location header');
+      }
+      currentUrl = new URL(location, currentUrl).toString();
+      continue;
+    }
+
+    return response;
+  }
+
+  throw new Error('Demasiados redireccionamientos');
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +132,8 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    // 🛡️ Sentinel: Fix SSRF vulnerability - use safeFetch instead of raw fetch
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);

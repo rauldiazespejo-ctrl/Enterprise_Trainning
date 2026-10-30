@@ -1,0 +1,4 @@
+## 2024-10-30 - [SSRF in Deno Edge Functions]
+**Vulnerability:** Found a Server-Side Request Forgery (SSRF) vulnerability in the `scrape-url` edge function which accepted an arbitrary URL and performed a standard `fetch()` request.
+**Learning:** Default `fetch()` implementation automatically follows redirects and lacks DNS resolution checks. This can expose internal infrastructure (e.g. localhost, private subnets, metadata endpoints) by maliciously crafting redirects or exploiting internal IPs via DNS pinning/rebinding.
+**Prevention:** Always implement SSRF protection for edge functions taking user-controlled URLs. Specifically: Set `{ redirect: 'manual' }`, handle redirects manually, apply DNS resolution checks (e.g., via `Deno.resolveDns`) for private IPs on every redirect hop, and cancel discarded response bodies to avoid resource leaks.
