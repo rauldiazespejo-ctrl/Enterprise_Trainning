@@ -61,10 +61,66 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    const isLocalOrPrivateIp = (ip: string) => {
+      if (ip === 'localhost') return true;
+      if (/^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.|0\.)[0-9.]+$/.test(ip)) return true;
+      if (ip === '::1' || /^(fc|fd|fe8)[0-9a-f:]*$/i.test(ip)) return true;
+      return false;
+    };
+
+    let currentUrl = url;
+    let redirectsCount = 0;
+    const MAX_REDIRECTS = 5;
+    let response: Response | null = null;
+
+    while (redirectsCount <= MAX_REDIRECTS) {
+      const parsedUrl = new URL(currentUrl);
+      const hostname = parsedUrl.hostname.replace(/^\[|\]$/g, '');
+
+      // Resolve DNS to prevent DNS rebinding attacks and SSRF
+      let ips: string[] = [];
+      const isIP = /^[0-9.]+$/.test(hostname) || hostname.includes(':');
+
+      if (isIP) {
+        ips = [hostname];
+      } else {
+        try {
+          const recordsA = await Deno.resolveDns(hostname, "A").catch(() => []);
+          const recordsAAAA = await Deno.resolveDns(hostname, "AAAA").catch(() => []);
+          ips = [...recordsA, ...recordsAAAA];
+        } catch (e) {
+          throw new Error("DNS resolution failed");
+        }
+
+        if (ips.length === 0) {
+           throw new Error("DNS resolution returned no records");
+        }
+      }
+
+      for (const ip of ips) {
+        if (isLocalOrPrivateIp(ip)) {
+          throw new Error("SSRF Detected: Acceso a red interna o privada denegado.");
+        }
+      }
+
+      response = await fetch(currentUrl, {
+        headers: fetchHeaders,
+        redirect: 'manual' // manual redirection handling
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const location = response.headers.get('location');
+        response.body?.cancel(); // Important: prevent resource leaks
+        if (!location) break;
+        currentUrl = new URL(location, currentUrl).toString();
+        redirectsCount++;
+      } else {
+        break;
+      }
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Error al acceder a la URL: ${response ? response.statusText : 'Demasiados redireccionamientos'}`);
     }
 
     const html = await response.text();
