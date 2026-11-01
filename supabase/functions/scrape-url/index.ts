@@ -4,13 +4,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 // Allowed origins for CORS validation
 const DEFAULT_ALLOWED_ORIGINS = 'http://localhost:5173,http://localhost:3000,https://capacita-pro.vercel.app';
 
-const isInternalIP = (ip: string) => {
-  const isLocalhost = ip === 'localhost';
-  const ipv4 = /^(127\.\d{1,3}\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|169\.254\.\d{1,3}\.\d{1,3}|0\.\d{1,3}\.\d{1,3}\.\d{1,3})$/;
-  const ipv6 = /^(::1|fd[0-9a-f]{2}:.+|fe80::.+)$/i;
-  return isLocalhost || ipv4.test(ip) || ipv6.test(ip);
-};
-
 const getAllowedOrigins = (): string[] => {
   const envOrigins = Deno.env.get('ALLOWED_ORIGINS');
   return envOrigins ? envOrigins.split(',').map(o => o.trim()) : DEFAULT_ALLOWED_ORIGINS.split(',');
@@ -53,40 +46,13 @@ serve(async (req) => {
   }
 
   try {
-    const { url: originalUrl } = await req.json();
+    const { url } = await req.json();
 
-    if (!originalUrl) {
+    if (!url) {
       throw new Error("Se requiere una URL válida");
     }
 
-    // Check original url first
-    const urlObj = new URL(originalUrl);
-    const hostnameObj = urlObj.hostname.replace(/^\[|\]$/g, '');
-    const resolvedIps: string[] = [];
-    try {
-        const ips4 = await Deno.resolveDns(hostnameObj, "A");
-        resolvedIps.push(...ips4);
-    } catch (e) {
-        // ignore A record failure
-    }
-    try {
-        const ips6 = await Deno.resolveDns(hostnameObj, "AAAA");
-        resolvedIps.push(...ips6);
-    } catch (e) {
-        // ignore AAAA record failure
-    }
-
-    if (resolvedIps.length === 0) {
-        resolvedIps.push(hostnameObj);
-    }
-
-    for (const ip of resolvedIps) {
-        if (isInternalIP(ip)) {
-            throw new Error(`URL no permitida`);
-        }
-    }
-
-    console.log(`Buscando contenido de: ${originalUrl}`);
+    console.log(`Buscando contenido de: ${url}`);
     
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
@@ -95,57 +61,10 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    let currentUrl = originalUrl;
-    let response;
-    let redirectCount = 0;
-    const MAX_REDIRECTS = 5;
+    const response = await fetch(url, { headers: fetchHeaders });
 
-    while (redirectCount < MAX_REDIRECTS) {
-        response = await fetch(currentUrl, { headers: fetchHeaders, redirect: 'manual' });
-
-        if (response.status >= 300 && response.status < 400) {
-            await response.body?.cancel();
-            const location = response.headers.get('location');
-            if (!location) {
-                break;
-            }
-
-            const nextUrl = new URL(location, currentUrl).toString();
-            const nextUrlObj = new URL(nextUrl);
-            const nextHostnameObj = nextUrlObj.hostname.replace(/^\[|\]$/g, '');
-
-            const nextResolvedIps: string[] = [];
-            try {
-                const ips4 = await Deno.resolveDns(nextHostnameObj, "A");
-                nextResolvedIps.push(...ips4);
-            } catch (e) {
-                // ignore A record failure
-            }
-            try {
-                const ips6 = await Deno.resolveDns(nextHostnameObj, "AAAA");
-                nextResolvedIps.push(...ips6);
-            } catch (e) {
-                // ignore AAAA record failure
-            }
-
-            if (nextResolvedIps.length === 0) {
-                nextResolvedIps.push(nextHostnameObj);
-            }
-
-            for (const ip of nextResolvedIps) {
-                if (isInternalIP(ip)) {
-                    throw new Error(`URL redirigida no permitida`);
-                }
-            }
-            currentUrl = nextUrl;
-            redirectCount++;
-        } else {
-            break;
-        }
-    }
-
-    if (!response || !response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response?.statusText || 'Max redirects reached'}`);
+    if (!response.ok) {
+      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
     }
 
     const html = await response.text();
