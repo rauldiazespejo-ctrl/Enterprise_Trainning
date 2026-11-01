@@ -1,0 +1,4 @@
+## 2024-03-24 - SSRF in scrape-url Edge Function
+**Vulnerability:** The `scrape-url` Supabase Edge Function takes a user-provided URL and fetches it using `fetch(url)`. It lacks Server-Side Request Forgery (SSRF) protections, allowing an attacker to request internal network resources, metadata endpoints (e.g. AWS/GCP metadata), or local addresses.
+**Learning:** `fetch` in Deno defaults to following redirects and making network requests to any IP address. Without DNS resolution checks and redirect handling, any URL-fetching functionality is vulnerable to SSRF.
+**Prevention:** Implement SSRF protection by setting `{ redirect: 'manual' }` in `fetch` options, manually handling redirects up to a maximum limit, and using a custom DNS resolution check (`Deno.resolveDns`) on every hostname to ensure it does not resolve to an internal or private IP address before making the request. Also cancel responses for discarded requests.

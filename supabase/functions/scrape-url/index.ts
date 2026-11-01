@@ -62,7 +62,7 @@ serve(async (req) => {
     });
 
     const response = await fetch(url, { headers: fetchHeaders });
-    
+
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
     }
