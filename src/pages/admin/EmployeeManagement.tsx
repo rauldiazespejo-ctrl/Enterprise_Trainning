@@ -42,8 +42,10 @@ const emptyForm: EmployeeForm = {
   status: 'active'
 };
 
+const DEFAULT_STATS = { completed: 0, inProgress: 0, certificates: 0 };
+
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,16 +67,31 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  const employeeStatsMap = React.useMemo(() => {
+    const map = assignments.reduce((acc, curr) => {
+      if (!acc[curr.userId]) {
+        acc[curr.userId] = { completed: 0, inProgress: 0, certificates: 0 };
+      }
+      if (curr.status === 'completed') acc[curr.userId].completed++;
+      if (curr.status === 'in_progress') acc[curr.userId].inProgress++;
+      return acc;
+    }, {} as Record<string, { completed: number; inProgress: number; certificates: number }>);
+
+    certificates.forEach(c => {
+      if (!map[c.userId]) {
+        map[c.userId] = { completed: 0, inProgress: 0, certificates: 0 };
+      }
+      map[c.userId].certificates++;
+    });
+
+    return map;
+  }, [assignments, certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return employeeStatsMap[employeeId] || DEFAULT_STATS;
+  }, [employeeStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,8 +278,8 @@ const EmployeeManagement: React.FC = () => {
     }
   };
 
-  const totalCompleted = employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0);
-  const totalInTraining = employees.filter(e => employeeStats(e.id).inProgress > 0).length;
+  const totalCompleted = React.useMemo(() => employees.reduce((sum, e) => sum + employeeStats(e.id).completed, 0), [employees, employeeStats]);
+  const totalInTraining = React.useMemo(() => employees.filter(e => employeeStats(e.id).inProgress > 0).length, [employees, employeeStats]);
 
   return (
     <MainLayout title="Gestión de Empleados" subtitle="Administra usuarios y asigna cursos" isAdmin>
