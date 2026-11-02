@@ -24,6 +24,21 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isPrivateIP = (ip: string): boolean => {
+  const cleanIp = ip.replace(/^\[|\]$/g, "").toLowerCase();
+
+  if (cleanIp === 'localhost') return true;
+
+  if (cleanIp.startsWith('::ffff:')) {
+    const ipv4Part = cleanIp.substring(7);
+    return isPrivateIP(ipv4Part);
+  }
+
+  return /^(10\.\d+\.\d+\.\d+|172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+|192\.168\.\d+\.\d+|127\.\d+\.\d+\.\d+|169\.254\.\d+\.\d+|0\.0\.0\.0)$/.test(cleanIp) ||
+         /^::1$/.test(cleanIp) ||
+         /^([fF][cCdD]|[fF][eE][89aAbB][0-9a-fA-F])/.test(cleanIp);
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -51,20 +66,73 @@ serve(async (req) => {
     if (!url) {
       throw new Error("Se requiere una URL válida");
     }
-
-    console.log(`Buscando contenido de: ${url}`);
     
-    // Configurar headers para parecer un navegador
+    const maxRedirects = 5;
+    let currentUrl = url;
+    let response: Response | null = null;
+
     const fetchHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    for (let i = 0; i <= maxRedirects; i++) {
+      const urlObj = new URL(currentUrl);
+
+      let resolvedIps: string[] = [];
+      const aRecords = await Deno.resolveDns(urlObj.hostname, "A").catch(() => []);
+      const aaaaRecords = await Deno.resolveDns(urlObj.hostname, "AAAA").catch(() => []);
+      resolvedIps = [...aRecords, ...aaaaRecords];
+
+      if (resolvedIps.length === 0) {
+        resolvedIps = [urlObj.hostname];
+      }
+
+      for (const ip of resolvedIps) {
+        if (isPrivateIP(ip)) {
+          throw new Error(`SSRF blocked: IP ${ip} is private/internal.`);
+        }
+      }
+
+      console.log(`Buscando contenido de: ${currentUrl}`);
+
+      // Mitigation against DNS Rebinding: We use the first resolved IP instead of hostname
+      // We also verify it's not empty and it is an IP (otherwise it fallback to original currentUrl which was tested string)
+      let fetchUrlStr = currentUrl;
+      const firstValidIp = resolvedIps[0];
+
+      if (firstValidIp && firstValidIp !== urlObj.hostname && !isPrivateIP(firstValidIp)) {
+          const fetchUrlObj = new URL(currentUrl);
+
+          // Only safe to substitute IP if protocol is http.
+          // In HTTPS, changing the hostname to an IP might result in TLS cert validation failures
+          if (fetchUrlObj.protocol === "http:") {
+              fetchUrlObj.hostname = firstValidIp.includes(":") ? `[${firstValidIp}]` : firstValidIp;
+              fetchUrlStr = fetchUrlObj.toString();
+              fetchHeaders.set("Host", urlObj.hostname);
+          }
+      }
+
+      response = await fetch(fetchUrlStr, {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const location = response.headers.get('location');
+        if (response.body) await response.body.cancel();
+        if (location) {
+          currentUrl = new URL(location, currentUrl).toString();
+          continue;
+        }
+      }
+
+      break;
+    }
+
+    if (!response || !response.ok) {
+      throw new Error(`Error al acceder a la URL: ${response ? response.statusText : 'Demasiadas redirecciones'}`);
     }
 
     const html = await response.text();
