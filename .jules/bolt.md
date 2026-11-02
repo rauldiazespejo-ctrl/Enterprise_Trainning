@@ -1,0 +1,3 @@
+## 2023-11-02 - Avoid O(N*M) Rendering Loops with Context Helpers
+**Learning:** Calling context helpers like `getUserAssignments` (which does an O(N) array filter) inside React render loops when computing global aggregate statistics leads to O(N*M) performance bottlenecks and continuous recalculations on every render.
+**Action:** Instead of using O(N) context helpers inside loop iterations (`reduce`, `filter`), build an O(1) frequency map with `useMemo` by iterating over the raw data arrays (`assignments`, `certificates`) once, and rewrite dependent helper functions (like `employeeStats`) to use that map via `useCallback`. Ensure derived arrays (like `employees`) are also memoized to keep references stable.
