@@ -24,6 +24,64 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+const isPrivateIP = (ip: string) => {
+  if (ip === 'localhost' || ip === '::1') return true;
+  const i = ip.replace(/^::ffff:/i, '');
+  return /^(10\.\d+|172\.(1[6-9]|2\d|3[0-1])|192\.168|127\.\d+|169\.254|0\.\d+)\.\d+\.\d+$/.test(i) ||
+         /^[fF][cCdD]/.test(i) || /^[fF][eE][89aAbB]/.test(i);
+};
+
+const safeFetch = async (urlStr: string, options: RequestInit = {}): Promise<Response> => {
+  let u;
+  try {
+    u = new URL(urlStr);
+  } catch {
+    throw new Error('URL inválida');
+  }
+
+  if (!['http:', 'https:'].includes(u.protocol)) {
+    throw new Error('Protocolo inválido');
+  }
+
+  const host = u.hostname.replace(/^\[|\]$/g, '');
+
+  if (isPrivateIP(host)) {
+    throw new Error('Acceso a IP interna bloqueado');
+  }
+
+  if (!/^[\d.]+$|:/.test(host) && host !== 'localhost') {
+    const a = await Deno.resolveDns(host, "A").catch(() => []);
+    const aaaa = await Deno.resolveDns(host, "AAAA").catch(() => []);
+    const resolvedIps = [...a, ...aaaa];
+
+    if (resolvedIps.length === 0) {
+      throw new Error('Fallo en la resolución DNS');
+    }
+
+    if (resolvedIps.some(isPrivateIP)) {
+      throw new Error('Acceso a IP interna bloqueado tras resolución DNS');
+    }
+  }
+
+  const fetchOptions: RequestInit = {
+    ...options,
+    redirect: 'manual'
+  };
+
+  const response = await fetch(urlStr, fetchOptions);
+
+  if ([301, 302, 303, 307, 308].includes(response.status)) {
+    const location = response.headers.get('location');
+    if (location) {
+      response.body?.cancel();
+      const newUrl = new URL(location, urlStr).toString();
+      return safeFetch(newUrl, options);
+    }
+  }
+
+  return response;
+};
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,7 +119,7 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    const response = await safeFetch(url, { headers: fetchHeaders });
     
     if (!response.ok) {
       throw new Error(`Error al acceder a la URL: ${response.statusText}`);
