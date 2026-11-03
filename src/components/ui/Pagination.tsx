@@ -92,11 +92,12 @@ const Pagination: React.FC<PaginationProps> = ({
                   ? 'bg-brand text-white'
                   : 'text-slate-400 hover:text-white hover:bg-slate-700'
               }`}
+              aria-current={currentPage === page ? "page" : undefined}
             >
               {page}
             </button>
           ) : (
-            <span key={`ellipsis-${index}`} className="px-2 text-slate-500">
+            <span key={`ellipsis-${index}`} className="px-2 text-slate-500" aria-hidden="true">
               {page}
             </span>
           )

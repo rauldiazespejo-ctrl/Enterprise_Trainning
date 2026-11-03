@@ -1,0 +1,6 @@
+## 2024-03-24 - Accessibility improvements
+**Learning:** Found several buttons missing `aria-label` or missing `aria-hidden="true"` on their child icons, leading to poor screen reader experiences. In addition, when implementing pagination components, applying the `aria-current="page"` attribute to the active page button helps communicate the active state clearly. Also discovered decorative elements missing `aria-hidden="true"` like the ellipsis `<span>` in pagination.
+**Action:** Always verify `aria-label` on icon-only buttons, add `aria-hidden="true"` to SVG icons inside buttons, and use `aria-current="page"` for active navigation elements.
+## 2024-03-24 - Missing accessibility attributes in Pagination
+**Learning:** Decorative ellipsis span elements in the Pagination component were missing `aria-hidden="true"`, causing screen readers to read confusing text like "...". Additionally, the current page button did not use `aria-current="page"`, making it harder for users to understand which page is active.
+**Action:** Always add `aria-hidden="true"` to structural or decorative elements like ellipsis that do not add semantic value, and properly apply `aria-current="page"` to active page buttons in navigation elements.
