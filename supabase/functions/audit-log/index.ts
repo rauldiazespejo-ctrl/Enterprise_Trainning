@@ -56,31 +56,6 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
-    let finalUserId = user_id || null;
-    const isExemptAction = ['login', 'logout', 'login_failed'].includes(action);
-
-    const authHeader = request.headers.get('Authorization');
-    if (authHeader) {
-      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-      const callerClient = createClient(supabaseUrl, anonKey, {
-        global: { headers: { Authorization: authHeader } }
-      });
-      const { data: { user }, error: authError } = await callerClient.auth.getUser();
-      if (!authError && user) {
-        finalUserId = user.id;
-      } else if (!isExemptAction) {
-        return Response.json(
-          { error: 'No autorizado.' },
-          { status: 401, headers: corsHeaders }
-        );
-      }
-    } else if (!isExemptAction) {
-      return Response.json(
-        { error: 'No autorizado. Se requiere token.' },
-        { status: 401, headers: corsHeaders }
-      );
-    }
-
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -89,7 +64,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: finalUserId,
+      user_id: user_id || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
