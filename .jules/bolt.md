@@ -1,0 +1,3 @@
+## 2024-03-24 - [O(N*M) Anti-pattern in React Rendering]
+**Learning:** Using context helper functions (like `getUserAssignments`) inside a loop or `.map()` function during React rendering is an O(N*M) anti-pattern. This is because it filters an array for each item in the loop, leading to massive performance hits.
+**Action:** Instead of filtering the raw array for each element in the loop, process the full raw array directly in a single pass (e.g., using `.reduce()`) to build an O(1) frequency map, and memoize the result with `React.useMemo()`. Wrap any helper functions using this map in `React.useCallback()` to satisfy ESLint dependency rules.
