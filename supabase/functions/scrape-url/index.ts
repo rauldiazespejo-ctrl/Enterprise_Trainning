@@ -54,17 +54,74 @@ serve(async (req) => {
 
     console.log(`Buscando contenido de: ${url}`);
     
-    // Configurar headers para parecer un navegador
+    const isPrivateIP = (ip: string) => {
+      let checkIp = ip;
+      if (checkIp.startsWith('::ffff:')) checkIp = checkIp.substring(7);
+      if (checkIp === 'localhost' || checkIp === '::1') return true;
+      return /^127\.\d+\.\d+\.\d+$/.test(checkIp) || /^10\.\d+\.\d+\.\d+$/.test(checkIp) ||
+             /^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(checkIp) ||
+             /^192\.168\.\d+\.\d+$/.test(checkIp) || /^169\.254\.\d+\.\d+$/.test(checkIp) || /^0\.0\.0\.0$/.test(checkIp);
+    };
+
+    let currentUrl = url;
+    let redirectCount = 0;
+    let response;
+
     const fetchHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    while (redirectCount <= 5) {
+      const parsedUrl = new URL(currentUrl);
+      if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+        throw new Error('Protocol not allowed');
+      }
+
+      let hostname = parsedUrl.hostname;
+      if (hostname.startsWith('[') && hostname.endsWith(']')) {
+        hostname = hostname.slice(1, -1);
+      }
+
+      if (isPrivateIP(hostname)) {
+        throw new Error('Private IP not allowed');
+      }
+
+      const resolvedIps: string[] = [];
+      const [aRecords, aaaaRecords] = await Promise.all([
+        Deno.resolveDns(hostname, 'A').catch(() => []),
+        Deno.resolveDns(hostname, 'AAAA').catch(() => [])
+      ]);
+      resolvedIps.push(...aRecords, ...aaaaRecords);
+
+      for (const ip of resolvedIps) {
+        if (isPrivateIP(ip)) {
+          throw new Error('URL resolves to a private IP');
+        }
+      }
+
+      response = await fetch(currentUrl, {
+        headers: fetchHeaders,
+        redirect: 'manual'
+      });
+
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        const location = response.headers.get('location');
+        if (response.body) await response.arrayBuffer(); // drain body
+        if (!location) {
+          throw new Error('Redirect without location');
+        }
+        currentUrl = new URL(location, currentUrl).toString();
+        redirectCount++;
+      } else {
+        break;
+      }
+    }
+
+    if (!response || !response.ok) {
+      if (response && response.body) await response.arrayBuffer();
+      throw new Error(`Error al acceder a la URL: ${response?.statusText || 'Max redirects reached'}`);
     }
 
     const html = await response.text();
