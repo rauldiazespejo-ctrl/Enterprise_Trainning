@@ -1,0 +1,3 @@
+## 2024-03-24 - [O(N*M) Helper Pattern in Render]
+**Learning:** Using a context helper function (like `getUserAssignments`) that filters a large array inside a loop (like `.filter()` or `.reduce()`) during render creates an O(N*M) bottleneck.
+**Action:** Replace the helper function usage in loops by building an O(1) frequency map up-front with `React.useMemo` over the raw array data (e.g., `assignments`), and then use a simple O(1) lookup inside the loop. Ensure all local arrays and lookups are properly memoized and fallback to default values to satisfy dependencies and return signatures.
