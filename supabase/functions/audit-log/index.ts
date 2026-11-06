@@ -44,17 +44,41 @@ Deno.serve(async request => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
 
     // Cliente admin para insertar sin restricciones de RLS
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
-
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details, user_id: body_user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
     }
+
+    const authHeader = request.headers.get('Authorization');
+    let validatedUserId = null;
+
+    if (authHeader) {
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authError } = await authClient.auth.getUser();
+      if (!authError && user) {
+        validatedUserId = user.id;
+      }
+    }
+
+    const isExemptAction = ['logout', 'login_failed', 'login'].includes(action);
+    if (!validatedUserId && !isExemptAction) {
+      return Response.json(
+        { error: 'Unauthorized' },
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    // For exempt actions we can fallback to body_user_id if valid JWT is missing
+    const finalUserId = validatedUserId || (isExemptAction ? body_user_id : null);
 
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
@@ -64,7 +88,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: finalUserId || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
