@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,16 +65,37 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  const employeeStatsMap = React.useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+
+    // Initialize stats for all employees
+    employees.forEach(emp => {
+      stats[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Single pass over assignments
+    assignments.forEach(a => {
+      if (stats[a.userId]) {
+        if (a.status === 'completed') stats[a.userId].completed++;
+        if (a.status === 'in_progress') stats[a.userId].inProgress++;
+      }
+    });
+
+    // Single pass over certificates
+    certificates.forEach(c => {
+      if (stats[c.userId]) {
+        stats[c.userId].certificates++;
+      }
+    });
+
+    return stats;
+  }, [employees, assignments, certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return employeeStatsMap[employeeId] || { completed: 0, inProgress: 0, certificates: 0 };
+  }, [employeeStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
