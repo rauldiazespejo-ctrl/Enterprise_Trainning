@@ -78,6 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
                 <Link
                   to="/super-admin"
                   className={`sidebar-item ${location.pathname === '/super-admin' ? 'sidebar-item-active sidebar-item-active--gold' : 'text-yellow-400/80 hover:text-yellow-300 hover:bg-yellow-500/8'}`}
+                  aria-current={location.pathname === '/super-admin' ? 'page' : undefined}
                 >
                   <span className={`sidebar-icon ${location.pathname === '/super-admin' ? 'bg-black/20' : 'bg-yellow-500/10'}`}>
                     <Shield className="w-4 h-4" />
@@ -100,6 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isAdmin = false }) => {
                   <Link
                     to={path}
                     className={`sidebar-item ${active ? 'sidebar-item-active sidebar-glow-active' : 'text-muted-foreground hover:text-foreground hover:bg-muted'}`}
+                    aria-current={active ? 'page' : undefined}
                   >
                     <span className={`sidebar-icon ${active ? 'bg-primary-foreground/20' : 'bg-foreground/[0.04] hover:bg-primary/10'}`}>
                       <Icon className="w-4 h-4" />
