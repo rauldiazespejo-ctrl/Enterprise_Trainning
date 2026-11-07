@@ -56,6 +56,25 @@ Deno.serve(async request => {
       throw new Error('action y resource_type son requeridos.');
     }
 
+    const authHeader = request.headers.get('Authorization');
+    let finalUserId = user_id;
+
+    const exemptActions = ['logout', 'login_failed', 'login'];
+    if (!exemptActions.includes(action)) {
+      if (!authHeader) {
+        throw new Error('Unauthorized');
+      }
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user }, error: authError } = await authClient.auth.getUser();
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
+      finalUserId = user.id;
+    }
+
     // Obtener información del cliente
     const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
       || request.headers.get('cf-connecting-ip')
@@ -64,7 +83,7 @@ Deno.serve(async request => {
 
     // Insertar el log de auditoría
     const { error } = await adminClient.from('audit_log').insert({
-      user_id: user_id || null,
+      user_id: finalUserId || null,
       action: action as any,
       resource_type: resource_type as any,
       resource_id: resource_id || null,
