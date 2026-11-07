@@ -1,0 +1,3 @@
+## 2024-11-07 - Pagination Accessibility Improvements
+**Learning:** Pagination components often lack explicitly defined active states and expose decorative truncation text (e.g. ellipses) to screen readers. For example, using a different background color for the current page is visually helpful but fails to announce its semantic active state to assistive technology, while decorative ellipses announce unhelpfully when reading list items.
+**Action:** When creating or modifying pagination, always apply `aria-current="page"` (using `undefined` for inactive elements) to communicate the active page to screen readers. Additionally, apply `aria-hidden="true"` to structural elements like ellipses (`...`) to prevent confusing announcements.
