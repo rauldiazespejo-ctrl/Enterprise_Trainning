@@ -1,0 +1,3 @@
+## 2024-05-18 - Avoiding O(N*M) Context Array Filtering in Render Loops
+**Learning:** Calling context helper functions that filter arrays (like `getUserAssignments`) inside a render loop over items (like an employee list) creates an O(N*M) performance anti-pattern. This causes redundant work, iterating through the full state array M times for every one of the N items rendered.
+**Action:** Instead of relying on a helper that filters an array repeatedly, process the full raw array directly in a single pass (e.g., using `reduce` or iterating once) to build an O(1) frequency map, and memoize the result. This optimizes the complexity to O(N+M) and eliminates repeated loop computations during renders.
