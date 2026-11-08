@@ -1,0 +1,4 @@
+## 2024-11-08 - Fix IDOR in audit-log
+**Vulnerability:** The `audit-log` edge function was vulnerable to Insecure Direct Object References (IDOR). It blindly trusted the `user_id` provided in the request body to associate audit logs with a specific user, without validating the authenticity of the requester.
+**Learning:** This occurred because the function bypassed standard Supabase RLS policies by using the `service_role` key to insert audit logs, but failed to implement an alternative authentication check on the client. Trusting client-provided identifiers for logging can lead to spoofing audit trails.
+**Prevention:** Always validate the user's identity by extracting the JWT from the `Authorization` header and calling `auth.getUser()` to securely retrieve the verified user ID. Only allow fallback to the body's `user_id` for strictly exempt, unauthenticated actions like `login` or `login_failed`.

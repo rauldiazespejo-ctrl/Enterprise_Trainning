@@ -49,11 +49,33 @@ Deno.serve(async request => {
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
-
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details, user_id: bodyUserId } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    // Validar JWT para evitar IDOR
+    const exemptActions = ['login', 'login_failed', 'logout'];
+    const authHeader = request.headers.get('Authorization');
+    let user_id = bodyUserId;
+
+    if (!exemptActions.includes(action)) {
+      if (!authHeader) {
+        throw new Error('Unauthorized');
+      }
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
+      if (!anonKey) throw new Error('SUPABASE_ANON_KEY no configurado');
+
+      const callerClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user } } = await callerClient.auth.getUser();
+
+      if (!user) {
+        throw new Error('Unauthorized');
+      }
+      user_id = user.id;
     }
 
     // Obtener información del cliente
