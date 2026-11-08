@@ -1,0 +1,3 @@
+## 2024-03-24 - Avoid O(N*M) Context Helpers in Render Loops
+**Learning:** Using context helper functions (like `getUserAssignments`) inside a rendering loop (e.g., computing stats for each employee) leads to O(N*M) performance bottlenecks since the helper iterates over the entire data array for each element in the list.
+**Action:** Replace the helper function usage with an O(1) memoized frequency map built in a single O(N+M) pass using `React.useMemo`. Always wrap derived arrays passed as dependencies into `useMemo` hooks, and refactor existing getter functions with `React.useCallback` referencing the map to prevent unnecessary recalculations.
