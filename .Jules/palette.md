@@ -1,0 +1,3 @@
+## 2024-11-08 - Conditional ARIA Attributes for Pagination
+**Learning:** In React components like pagination links, setting boolean attributes (e.g. `aria-current={active ? 'page' : false}`) can cause validation issues. To completely omit the attribute when falsy (complying strictly with HTML accessibility guidelines), it's important to use `undefined` instead of `false` (e.g. `active ? 'page' : undefined`).
+**Action:** Always use `undefined` rather than `false` for conditional ARIA attributes where falsy means the attribute shouldn't exist in the DOM.
