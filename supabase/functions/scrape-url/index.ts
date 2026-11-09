@@ -24,6 +24,35 @@ const buildCorsHeaders = (origin: string | null): Record<string, string> => {
   };
 };
 
+function isPrivateIP(ip: string): boolean {
+  if (ip === 'localhost') return true;
+  if (ip.startsWith('::ffff:')) {
+    ip = ip.replace('::ffff:', '');
+  }
+  const isIPv4 = ip.includes('.');
+  if (isIPv4) {
+    return (
+      /^10\.\d+\.\d+\.\d+$/.test(ip) ||
+      /^172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+$/.test(ip) ||
+      /^192\.168\.\d+\.\d+$/.test(ip) ||
+      /^127\.\d+\.\d+\.\d+$/.test(ip) ||
+      /^169\.254\.\d+\.\d+$/.test(ip) ||
+      ip === '0.0.0.0' ||
+      ip === '255.255.255.255'
+    );
+  }
+  const isIPv6 = ip.includes(':');
+  if (isIPv6) {
+    return (
+      ip === '::1' ||
+      ip.toLowerCase().startsWith('fc00:') ||
+      ip.toLowerCase().startsWith('fd') ||
+      ip.toLowerCase().startsWith('fe80:')
+    );
+  }
+  return false;
+}
+
 serve(async (req) => {
   const origin = req.headers.get('origin');
   const corsHeaders = buildCorsHeaders(origin);
@@ -61,10 +90,64 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
+    let currentUrl = url;
+    let response;
+    let redirectCount = 0;
+    const MAX_REDIRECTS = 5;
+
+    while (redirectCount <= MAX_REDIRECTS) {
+      const parsedUrl = new URL(currentUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error('Only HTTP and HTTPS protocols are allowed');
+      }
+
+      let hostname = parsedUrl.hostname;
+      if (hostname.startsWith('[') && hostname.endsWith(']')) {
+        hostname = hostname.slice(1, -1);
+      }
+
+      if (isPrivateIP(hostname)) {
+        throw new Error('Access to internal or private networks is forbidden');
+      }
+
+      const resolvedIps: string[] = [];
+      const isIP = /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname) || /^[0-9a-fA-F:]+$/.test(hostname);
+
+      if (!isIP) {
+        await Promise.all([
+          Deno.resolveDns(hostname, 'A').catch(() => []),
+          Deno.resolveDns(hostname, 'AAAA').catch(() => [])
+        ]).then(([ipv4s, ipv6s]) => {
+          resolvedIps.push(...ipv4s);
+          resolvedIps.push(...ipv6s);
+        });
+
+        for (const ip of resolvedIps) {
+          if (isPrivateIP(ip)) {
+            throw new Error(`Resolved IP address ${ip} is restricted`);
+          }
+        }
+      }
+
+      response = await fetch(currentUrl, { headers: fetchHeaders, redirect: 'manual' });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const locationUrl = new URL(response.headers.get('location')!, currentUrl).toString();
+        if (response.body) await response.body.cancel();
+        currentUrl = locationUrl;
+        redirectCount++;
+      } else {
+        break;
+      }
+    }
+
+    if (redirectCount > MAX_REDIRECTS) {
+      throw new Error('Too many redirects');
+    }
     
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    if (!response || !response.ok) {
+      if (response?.body) await response.body.cancel();
+      throw new Error(`Error al acceder a la URL: ${response ? response.statusText : 'Unknown'}`);
     }
 
     const html = await response.text();
