@@ -1,0 +1,3 @@
+## 2024-11-09 - [Optimize EmployeeStats Calculation]
+**Learning:** Calculating stats inside a component's render loop that iterates over large lists multiple times for every user (O(N*M)) leads to severe performance degradation. This is especially true when `employeeStats` uses nested array filters on assignments and certificates for each user in the array map and reduce functions.
+**Action:** Use a single `useMemo` block to create a frequency map (`employeeStatsMap`) in O(N) time that accumulates stats for all employees in one pass. Refactor the `employeeStats` helper to `React.useCallback` and perform an O(1) Map lookup instead of full array filtering. This ensures fast re-renders and avoids scaling bottlenecks.
