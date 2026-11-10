@@ -54,6 +54,39 @@ serve(async (req) => {
 
     console.log(`Buscando contenido de: ${url}`);
     
+    // Validar SSRF
+    const isPrivateIP = (ip: string): boolean => {
+      if (ip.startsWith('[')) ip = ip.substring(1, ip.length - 1);
+      if (ip.startsWith('::ffff:')) ip = ip.substring(7);
+      return (
+        ip === '127.0.0.1' ||
+        ip === '::1' ||
+        ip.startsWith('10.') ||
+        /^192\.168\.\d+\.\d+$/.test(ip) ||
+        /^172\.(1[6-9]|2[0-9]|3[0-1])\.\d+\.\d+$/.test(ip)
+      );
+    };
+
+    const checkHost = async (targetUrl: string): Promise<boolean> => {
+      const parsed = new URL(targetUrl);
+      const hostname = parsed.hostname.startsWith('[') ? parsed.hostname.slice(1, -1) : parsed.hostname;
+      if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+        return false;
+      }
+      const resolveType = async (type: "A" | "AAAA") => {
+        try {
+          return await Deno.resolveDns(hostname, type);
+        } catch {
+          return [];
+        }
+      };
+      const ipv4s = await resolveType("A");
+      const ipv6s = await resolveType("AAAA");
+      const ips = [...ipv4s, ...ipv6s];
+      if (ips.length === 0) return !isPrivateIP(hostname);
+      return !ips.some(isPrivateIP);
+    };
+
     // Configurar headers para parecer un navegador
     const fetchHeaders = new Headers({
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36',
@@ -61,10 +94,28 @@ serve(async (req) => {
       'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
     });
 
-    const response = await fetch(url, { headers: fetchHeaders });
-    
-    if (!response.ok) {
-      throw new Error(`Error al acceder a la URL: ${response.statusText}`);
+    let currentUrl = url;
+    let response;
+    for (let i = 0; i < 5; i++) {
+      if (!(await checkHost(currentUrl))) {
+        if (response) await response.arrayBuffer(); // Cancel discarded responses to prevent resource leaks
+        throw new Error("URL no permitida por razones de seguridad");
+      }
+
+      response = await fetch(currentUrl, { headers: fetchHeaders, redirect: 'manual' });
+
+      if (response.status >= 300 && response.status < 400 && response.headers.has('location')) {
+        const location = response.headers.get('location');
+        currentUrl = new URL(location!, currentUrl).toString();
+        await response.arrayBuffer(); // Cancel discarded responses
+        continue;
+      }
+      break;
+    }
+
+    if (!response || !response.ok) {
+      if (response) await response.arrayBuffer();
+      throw new Error(`Error al acceder a la URL: ${response?.statusText || "Demasiadas redirecciones"}`);
     }
 
     const html = await response.text();
