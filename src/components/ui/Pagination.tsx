@@ -87,6 +87,8 @@ const Pagination: React.FC<PaginationProps> = ({
             <button
               key={page}
               onClick={() => onPageChange(page)}
+              aria-current={currentPage === page ? 'page' : undefined}
+              aria-label={`Ir a la página ${page}`}
               className={`min-w-[40px] h-10 px-3 rounded-lg font-medium transition-colors ${
                 currentPage === page
                   ? 'bg-brand text-white'
