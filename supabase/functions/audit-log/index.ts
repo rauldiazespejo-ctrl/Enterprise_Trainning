@@ -50,10 +50,31 @@ Deno.serve(async request => {
 
     const body: AuditLogEntry & { user_id?: string } = await request.json();
 
-    const { action, resource_type, resource_id, details, user_id } = body;
+    const { action, resource_type, resource_id, details, user_id: body_user_id } = body;
 
     if (!action || !resource_type) {
       throw new Error('action y resource_type son requeridos.');
+    }
+
+    const exemptActions = ['login', 'login_failed', 'logout'];
+    let user_id = body_user_id;
+
+    if (!exemptActions.includes(action)) {
+      const authHeader = request.headers.get('Authorization');
+      if (!authHeader) {
+        throw new Error('Unauthorized');
+      }
+
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } }
+      });
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+
+      if (authError || !user) {
+        throw new Error('Unauthorized');
+      }
+      user_id = user.id;
     }
 
     // Obtener información del cliente
