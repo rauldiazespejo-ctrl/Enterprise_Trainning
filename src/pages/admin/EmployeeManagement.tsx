@@ -43,7 +43,7 @@ const emptyForm: EmployeeForm = {
 };
 
 const EmployeeManagement: React.FC = () => {
-  const { courses, assignments, certificates, assignCourse, getUserAssignments } = useCourses();
+  const { courses, assignments, certificates, assignCourse } = useCourses();
   const { user, users, addUser, updateUser, deleteUser } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -65,16 +65,34 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = React.useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // ⚡ Bolt Optimization:
+  // Reduced time complexity from O(n^2) to O(n+m) by computing an aggregated map upfront.
+  // This drastically reduces re-render time when rendering large employee lists,
+  // preventing a full assignments scan for every employee row on each render.
+  const employeeStatsMap = React.useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
+    for (const emp of employees) {
+      stats[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    }
+    for (const a of assignments) {
+      if (stats[a.userId]) {
+        if (a.status === 'completed') stats[a.userId].completed++;
+        if (a.status === 'in_progress') stats[a.userId].inProgress++;
+      }
+    }
+    for (const c of certificates) {
+      if (stats[c.userId]) {
+        stats[c.userId].certificates++;
+      }
+    }
+    return stats;
+  }, [employees, assignments, certificates]);
+
+  const employeeStats = React.useCallback((employeeId: string) => {
+    return employeeStatsMap[employeeId] || { completed: 0, inProgress: 0, certificates: 0 };
+  }, [employeeStatsMap]);
 
   const filteredEmployees = employees.filter(emp =>
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
