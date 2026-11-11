@@ -1,0 +1,3 @@
+## 2024-11-11 - Optimize employeeStats
+**Learning:** Found an O(n^2) operation in `EmployeeManagement.tsx` where `employeeStats` iterates over all assignments and certificates for each employee, and it's called multiple times on each render (for the summary stats at the top and for each row). By creating a memoized lookup map of stats by employeeId, we change it from O(n * m) to O(n + m), vastly improving render performance for large datasets.
+**Action:** Memoize expensive derived data (like grouped stats) using `useMemo` when rendering lists of items that need aggregated data from other collections.
