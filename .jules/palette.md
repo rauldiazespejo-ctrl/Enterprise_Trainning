@@ -1,0 +1,3 @@
+## 2024-06-11 - Add aria-current to Pagination
+**Learning:** When building pagination components or navigation menus, apply the `aria-current="page"` attribute to the currently active page element or button to explicitly communicate the active state to assistive technologies. When adding conditional ARIA attributes in React components (such as `aria-current`), use `undefined` for the falsy state (e.g., `active ? 'page' : undefined`) rather than `false` or null, ensuring React completely omits the attribute from the DOM when inactive to strictly comply with HTML accessibility guidelines.
+**Action:** Always add `aria-current` with `page` or `undefined` for pagination.
