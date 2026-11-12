@@ -502,6 +502,7 @@ const DocumentRepository: React.FC = () => {
                             a.href = doc.fileUrl;
                             a.download = doc.name;
                             a.target = '_blank';
+                            a.rel = 'noopener noreferrer';
                             a.click();
                           }}
                           title="Descargar"
