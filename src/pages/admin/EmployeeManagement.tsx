@@ -1,5 +1,5 @@
 // Gestión de Empleados - Página del Administrador
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import Pagination from '@/components/ui/Pagination';
@@ -65,23 +65,47 @@ const EmployeeManagement: React.FC = () => {
   const [resetRutResult, setResetRutResult] = useState<{ updated: number; skipped: number; results: any[] } | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
-  const employees = users.filter(u => u.role === 'employee');
+  const employees = useMemo(() => users.filter(u => u.role === 'employee'), [users]);
 
-  const employeeStats = (employeeId: string) => {
-    const userAssignments = getUserAssignments(employeeId);
-    return {
-      completed: userAssignments.filter(a => a.status === 'completed').length,
-      inProgress: userAssignments.filter(a => a.status === 'in_progress').length,
-      certificates: certificates.filter(c => c.userId === employeeId).length
-    };
-  };
+  // Memoize employee stats calculation in O(N) instead of O(N*M)
+  const employeeStatsMap = useMemo(() => {
+    const stats: Record<string, { completed: number; inProgress: number; certificates: number }> = {};
 
-  const filteredEmployees = employees.filter(emp =>
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.rut || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (emp.department || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    // Initialize stats
+    employees.forEach(emp => {
+      stats[emp.id] = { completed: 0, inProgress: 0, certificates: 0 };
+    });
+
+    // Count assignments in a single pass
+    assignments.forEach(a => {
+      if (stats[a.userId]) {
+        if (a.status === 'completed') stats[a.userId].completed++;
+        if (a.status === 'in_progress') stats[a.userId].inProgress++;
+      }
+    });
+
+    // Count certificates in a single pass
+    certificates.forEach(c => {
+      if (stats[c.userId]) {
+        stats[c.userId].certificates++;
+      }
+    });
+
+    return stats;
+  }, [employees, assignments, certificates]);
+
+  const employeeStats = (employeeId: string) => employeeStatsMap[employeeId] || { completed: 0, inProgress: 0, certificates: 0 };
+
+  const filteredEmployees = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    if (!term) return employees;
+    return employees.filter(emp =>
+      emp.name.toLowerCase().includes(term) ||
+      emp.email.toLowerCase().includes(term) ||
+      (emp.rut || '').toLowerCase().includes(term) ||
+      (emp.department || '').toLowerCase().includes(term)
+    );
+  }, [employees, searchTerm]);
 
   // Reset page when search changes
   React.useEffect(() => {

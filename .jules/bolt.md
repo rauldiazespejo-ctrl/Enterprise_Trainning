@@ -1,0 +1,3 @@
+## 2024-05-18 - [O(N*M) list lookups inside renders]
+**Learning:** React `useMemo` hooks are critical when dealing with Context-provided lists. Deriving lists (like filtering `getUserAssignments` repeatedly inside `.map()`) can cause massive CPU spikes and block the main thread, especially when typing in search bars triggers a full re-render.
+**Action:** When calculating grouped or per-item statistics derived from large lists (e.g. counting assignments per user), avoid calling `filter()` inside the component map loop. Instead, use `useMemo()` to generate an O(N) Hash Map/Record lookup (`{ [userId]: stats }`) to guarantee fast O(1) reads during rendering.
