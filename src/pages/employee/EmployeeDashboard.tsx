@@ -1,5 +1,5 @@
 // EmployeeDashboard — tarjetas premium, hero animado y progreso circular
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Badge, ProgressBar, Button, Skeleton, EmptyState } from '@/components/ui/Card';
@@ -55,12 +55,22 @@ const EmployeeDashboard: React.FC = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  const userAssignments = user ? assignments.filter(a => a.userId === user.id) : [];
+  const userAssignments = useMemo(() => user ? assignments.filter(a => a.userId === user.id) : [], [user, assignments]);
 
-  const assignedCourses = userAssignments.map(a => {
-    const course = courses.find(c => c.id === a.courseId);
-    return course ? { ...course, assignment: a } : null;
-  }).filter(Boolean);
+  // Bolt Performance: Converted O(N) array lookup (courses.find) inside a map loop
+  // into O(1) hash map lookup using useMemo. This avoids O(N*M) time complexity during renders.
+  const courseMap = useMemo(() => {
+    const map = new Map();
+    courses.forEach(c => map.set(c.id, c));
+    return map;
+  }, [courses]);
+
+  const assignedCourses = useMemo(() => {
+    return userAssignments.map(a => {
+      const course = courseMap.get(a.courseId);
+      return course ? { ...course, assignment: a } : null;
+    }).filter(Boolean);
+  }, [userAssignments, courseMap]);
 
   const totalCourses = assignedCourses.length;
   const completedCourses = assignedCourses.filter(c => c?.assignment.status === 'completed').length;

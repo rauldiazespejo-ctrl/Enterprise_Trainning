@@ -1,0 +1,3 @@
+## 2024-05-18 - Nested array lookups inside map/filter render bottlenecks
+**Learning:** In the React frontend, doing `Array.prototype.find()` inside `.map()` or `.filter()` results in an O(N*M) time complexity operation. This can lead to main thread blocking and performance bottlenecks, particularly when dealing with lists like assignments or courses, especially if these collections can grow.
+**Action:** Always convert nested O(N) array lookups (e.g., `Array.prototype.find()`) inside `.map()` or `.filter()` into O(1) `Map` lookups (memoized with `useMemo()`) to avoid O(N*M) time complexity bottlenecks during synchronous renders.

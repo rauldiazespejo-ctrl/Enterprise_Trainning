@@ -1,5 +1,5 @@
 // Gestión de Certificados - Página del Administrador
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -30,20 +30,36 @@ const CertificateManagement: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateRow | null>(null);
 
+  // Bolt Performance: Converted O(N) array lookups (users.find and courses.find) inside a map loop
+  // into O(1) hash map lookups using useMemo. This avoids O(N*M) time complexity during renders.
+  const userMap = useMemo(() => {
+    const map = new Map();
+    users.forEach(u => map.set(u.id, u));
+    return map;
+  }, [users]);
+
+  const courseMap = useMemo(() => {
+    const map = new Map();
+    courses.forEach(c => map.set(c.id, c));
+    return map;
+  }, [courses]);
+
   // Unir certificados con empleados y cursos
-  const rows: CertificateRow[] = certificates.map(cert => {
-    const employee = users.find(u => u.id === cert.userId);
-    const course = courses.find(c => c.id === cert.courseId);
-    return {
-      id: cert.id,
-      employeeName: employee?.name || 'Usuario eliminado',
-      employeeEmail: employee?.email || '—',
-      courseName: course?.title || 'Curso eliminado',
-      score: cert.score,
-      issuedAt: new Date(cert.issuedAt),
-      verificationCode: cert.verificationCode
-    };
-  });
+  const rows: CertificateRow[] = useMemo(() => {
+    return certificates.map(cert => {
+      const employee = userMap.get(cert.userId);
+      const course = courseMap.get(cert.courseId);
+      return {
+        id: cert.id,
+        employeeName: employee?.name || 'Usuario eliminado',
+        employeeEmail: employee?.email || '—',
+        courseName: course?.title || 'Curso eliminado',
+        score: cert.score,
+        issuedAt: new Date(cert.issuedAt),
+        verificationCode: cert.verificationCode
+      };
+    });
+  }, [certificates, userMap, courseMap]);
 
   const filteredRows = rows.filter(cert =>
     cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
