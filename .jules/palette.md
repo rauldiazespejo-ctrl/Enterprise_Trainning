@@ -1,0 +1,3 @@
+## 2024-05-24 - Interactive Visual Indicators and aria-current
+**Learning:** Visual-only interactive elements like dot indicators or simple number pagination blocks often rely solely on visual styling (e.g., color changes) to indicate their selected state. Without `aria-current` or `aria-selected` and descriptive labels, screen reader users cannot perceive their purpose or determine the currently active step.
+**Action:** When implementing visual indicators (like carousel dots) or pagination buttons, always add `aria-label` describing the element (e.g. "Diapositiva 1", "Página 1") and `aria-current="step"` or `aria-current="page"` respectively to properly communicate the active state to assistive technologies.
