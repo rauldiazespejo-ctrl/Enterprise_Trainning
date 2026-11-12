@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge, Modal } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -30,18 +30,25 @@ const AssignmentManagement: React.FC = () => {
   const employees = users.filter(u => u.role === 'employee' && u.status !== 'inactive');
   const publishedCourses = courses.filter(c => c.status === 'published');
 
-  const enrichedAssignments = assignments.map(a => {
-    const emp = users.find(u => u.id === a.userId);
-    const course = courses.find(c => c.id === a.courseId);
-    return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
-  });
+  const userMap = useMemo(() => new Map(users.map(u => [u.id, u])), [users]);
+  const courseMap = useMemo(() => new Map(courses.map(c => [c.id, c])), [courses]);
 
-  const filtered = enrichedAssignments.filter(a => {
-    if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
-    if (filterCourse && a.courseId !== filterCourse) return false;
-    if (filterStatus && a.status !== filterStatus) return false;
-    return true;
-  });
+  const enrichedAssignments = useMemo(() => {
+    return assignments.map(a => {
+      const emp = userMap.get(a.userId);
+      const course = courseMap.get(a.courseId);
+      return { ...a, employeeName: emp?.name || 'Empleado', courseTitle: course?.title || 'Curso' };
+    });
+  }, [assignments, userMap, courseMap]);
+
+  const filtered = useMemo(() => {
+    return enrichedAssignments.filter(a => {
+      if (searchTerm && !a.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) && !a.courseTitle.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterCourse && a.courseId !== filterCourse) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      return true;
+    });
+  }, [enrichedAssignments, searchTerm, filterCourse, filterStatus]);
 
   const handleNewAssignment = async () => {
     if (!selectedCourse || !user) return;
