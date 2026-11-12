@@ -1,0 +1,3 @@
+## 2024-05-24 - React Main Thread Blocking via O(N*M) Array Lookups
+**Learning:** Found critical performance bottlenecks in `AssignmentManagement.tsx` and `CertificateManagement.tsx` where `.map()` functions contained nested `Array.prototype.find()` lookups. This resulted in O(N*M) time complexity. Because these derivations were not wrapped in `useMemo`, they recalculated synchronously on every render, severely blocking the main thread during frequent state updates like user input (typing in the search bar).
+**Action:** Convert nested array lookups into O(1) Map lookups before the `.map()` loop, wrap array derivations in `useMemo`, and cache derived strings (like `.toLowerCase()`) outside of `.filter()` loops to keep renders lightning fast.

@@ -1,5 +1,5 @@
 // Gestión de Certificados - Página del Administrador
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import MainLayout from '@/components/layout/MainLayout';
 import { Card, Button, Badge } from '@/components/ui/Card';
 import { useCourses } from '@/contexts/CourseContext';
@@ -31,30 +31,45 @@ const CertificateManagement: React.FC = () => {
   const [selectedCertificate, setSelectedCertificate] = useState<CertificateRow | null>(null);
 
   // Unir certificados con empleados y cursos
-  const rows: CertificateRow[] = certificates.map(cert => {
-    const employee = users.find(u => u.id === cert.userId);
-    const course = courses.find(c => c.id === cert.courseId);
-    return {
-      id: cert.id,
-      employeeName: employee?.name || 'Usuario eliminado',
-      employeeEmail: employee?.email || '—',
-      courseName: course?.title || 'Curso eliminado',
-      score: cert.score,
-      issuedAt: new Date(cert.issuedAt),
-      verificationCode: cert.verificationCode
-    };
-  });
+  // ⚡ Bolt Perf: Wrap in useMemo and convert O(N*M) nested array.find to O(1) Maps.
+  const rows: CertificateRow[] = useMemo(() => {
+    const userMap = new Map(users.map(u => [u.id, u]));
+    const courseMap = new Map(courses.map(c => [c.id, c]));
 
-  const filteredRows = rows.filter(cert =>
-    cert.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.employeeEmail.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.courseName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    cert.verificationCode.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    return certificates.map(cert => {
+      const employee = userMap.get(cert.userId);
+      const course = courseMap.get(cert.courseId);
+      return {
+        id: cert.id,
+        employeeName: employee?.name || 'Usuario eliminado',
+        employeeEmail: employee?.email || '—',
+        courseName: course?.title || 'Curso eliminado',
+        score: cert.score,
+        issuedAt: new Date(cert.issuedAt),
+        verificationCode: cert.verificationCode
+      };
+    });
+  }, [certificates, users, courses]);
 
-  const averageScore = rows.length > 0
-    ? Math.round(rows.reduce((sum, c) => sum + c.score, 0) / rows.length)
-    : 0;
+  // ⚡ Bolt Perf: Wrap in useMemo to prevent main thread blocking during typing events.
+  const filteredRows = useMemo(() => {
+    // ⚡ Bolt Perf: Cache toLowerCase() string outside the filter loop.
+    const term = searchTerm.toLowerCase();
+    if (!term) return rows;
+
+    return rows.filter(cert =>
+      cert.employeeName.toLowerCase().includes(term) ||
+      cert.employeeEmail.toLowerCase().includes(term) ||
+      cert.courseName.toLowerCase().includes(term) ||
+      cert.verificationCode.toLowerCase().includes(term)
+    );
+  }, [rows, searchTerm]);
+
+  const averageScore = useMemo(() => {
+    return rows.length > 0
+      ? Math.round(rows.reduce((sum, c) => sum + c.score, 0) / rows.length)
+      : 0;
+  }, [rows]);
 
   const exportCSV = () => {
     const header = 'Empleado,Email,Curso,Puntuación,Fecha de Emisión,Código de Verificación';
